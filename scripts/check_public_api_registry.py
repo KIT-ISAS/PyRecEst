@@ -4,33 +4,50 @@
 from __future__ import annotations
 
 import argparse
-import importlib
+import ast
 import sys
 from pathlib import Path
 from typing import Any
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
-SRC_PATH = REPOSITORY_ROOT / "src"
+API_REGISTRY_PATH = REPOSITORY_ROOT / "src" / "pyrecest" / "api_registry.py"
+CAPABILITIES_PATH = (
+    REPOSITORY_ROOT / "src" / "pyrecest" / "_backend" / "capabilities.py"
+)
 
 
-def _ensure_src_on_path() -> None:
-    src_path = str(SRC_PATH)
-    if src_path not in sys.path:
-        sys.path.insert(0, src_path)
+def _load_literal_constant(path: Path, name: str) -> Any:
+    module_ast = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    for node in module_ast.body:
+        value = None
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                if isinstance(target, ast.Name) and target.id == name:
+                    value = node.value
+                    break
+        elif (
+            isinstance(node, ast.AnnAssign)
+            and isinstance(node.target, ast.Name)
+            and node.target.id == name
+        ):
+            value = node.value
+
+        if value is not None:
+            return ast.literal_eval(value)
+
+    raise RuntimeError(f"{name} is not defined in {path}")
 
 
 def _load_registry() -> tuple[dict[str, dict[str, str]], tuple[str, ...]]:
-    _ensure_src_on_path()
-    module = importlib.import_module("pyrecest.api_registry")
-    registry: Any = getattr(module, "PUBLIC_API_REGISTRY")
-    categories: Any = getattr(module, "PUBLIC_API_CATEGORIES")
+    registry: Any = _load_literal_constant(API_REGISTRY_PATH, "PUBLIC_API_REGISTRY")
+    categories: Any = _load_literal_constant(API_REGISTRY_PATH, "PUBLIC_API_CATEGORIES")
     return dict(registry), tuple(categories)
 
 
 def _load_backend_capabilities() -> dict[str, dict[str, str]]:
-    _ensure_src_on_path()
-    module = importlib.import_module("pyrecest._backend.capabilities")
-    capabilities: Any = getattr(module, "API_BACKEND_CAPABILITIES")
+    capabilities: Any = _load_literal_constant(
+        CAPABILITIES_PATH, "API_BACKEND_CAPABILITIES"
+    )
     return dict(capabilities)
 
 
