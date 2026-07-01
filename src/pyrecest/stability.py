@@ -7,6 +7,9 @@ from dataclasses import asdict, dataclass
 from operator import index as _operator_index
 from typing import Final, Literal, ParamSpec, TypeVar
 
+from pyrecest.backend_support._jax_assignment_numpy_index_contract import (
+    patch_jax_assignment_numpy_index_contract as _patch_jax_assignment_numpy_index_contract,
+)
 from pyrecest.backend_support._pytorch_allclose_device_contract import (
     patch_pytorch_allclose_device_contract as _patch_pytorch_allclose_device_contract,
 )
@@ -568,7 +571,7 @@ def _patch_jax_triangular_vector_helpers_arraylike_contract() -> None:
         if getattr(backend, "__backend_name__", None) == "jax":
             setattr(backend, helper_name, helper)
 
-
+_patch_jax_assignment_numpy_index_contract()
 _patch_pytorch_allclose_device_contract()
 _patch_pytorch_diag_numpy_contract()
 _patch_pytorch_vec_to_diag_numpy_contract()
