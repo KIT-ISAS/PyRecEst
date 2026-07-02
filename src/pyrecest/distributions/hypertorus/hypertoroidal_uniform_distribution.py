@@ -28,6 +28,8 @@ def _validate_positive_sample_count(n) -> int:
     count = count_array.item()
     if isinstance(count, (bool, np.bool_)):
         raise ValueError("n must be an integer, not a boolean")
+    if isinstance(count, (str, bytes)):
+        raise ValueError("n must be an integer, not text")
 
     try:
         count_int = int(count)

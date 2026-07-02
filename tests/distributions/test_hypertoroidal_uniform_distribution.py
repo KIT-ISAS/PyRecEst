@@ -10,6 +10,13 @@ from pyrecest.distributions.hypertorus.hypertoroidal_uniform_distribution import
 from pyrecest.exceptions import ShapeError
 
 
+def test_sample_rejects_text_count():
+    dist = HypertoroidalUniformDistribution(2)
+
+    with pytest.raises(ValueError, match="not text"):
+        dist.sample("3")
+
+
 def test_pdf_validates_dimension_mismatch():
     dist = HypertoroidalUniformDistribution(2)
 
