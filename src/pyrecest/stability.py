@@ -19,7 +19,37 @@ from pyrecest.backend_support._pytorch_minmax_device_contract import (
     patch_pytorch_minmax_device_contract as _patch_pytorch_minmax_device_contract,
 )
 
+
+def _patch_pytorch_diag_numpy_contract() -> None:
+    """Patch raw/public PyTorch ``diag`` to accept NumPy-style inputs."""
+    try:
+        import pyrecest._backend.pytorch as raw_pytorch  # pylint: disable=import-outside-toplevel
+        import pyrecest.backend as backend  # pylint: disable=import-outside-toplevel
+        import torch  # pylint: disable=import-outside-toplevel
+    except ModuleNotFoundError:  # pragma: no cover - PyTorch backend may be unavailable
+        return
+
+    original_diag = getattr(raw_pytorch, "diag", None)
+    if original_diag is None:
+        return
+    if getattr(original_diag, "_pyrecest_numpy_contract", False):
+        if getattr(backend, "__backend_name__", None) == "pytorch":
+            backend.diag = original_diag
+        return
+
+    def diag(v, k=0):
+        return torch.diag(raw_pytorch.array(v), diagonal=k)
+
+    diag.__name__ = getattr(original_diag, "__name__", "diag")
+    diag.__doc__ = getattr(original_diag, "__doc__", None)
+    diag._pyrecest_numpy_contract = True
+    raw_pytorch.diag = diag
+    if getattr(backend, "__backend_name__", None) == "pytorch":
+        backend.diag = diag
+
+
 _patch_pytorch_allclose_device_contract()
+_patch_pytorch_diag_numpy_contract()
 _patch_pytorch_dot_outer_device_contract()
 _patch_pytorch_matmul_device_contract()
 _patch_pytorch_minmax_device_contract()
