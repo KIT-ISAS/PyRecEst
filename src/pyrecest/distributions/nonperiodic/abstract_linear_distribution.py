@@ -307,7 +307,7 @@ class AbstractLinearDistribution(AbstractManifoldSpecificDistribution):
             return float(squeeze(f(array(args).reshape(-1, dim))))
 
         if dim == 1:
-            result, _ = quad(f_for_nquad, left, right)
+            result, _ = quad(f_for_nquad, left[0], right[0])
         elif dim == 2:
             result, _ = nquad(f_for_nquad, [(left[0], right[0]), (left[1], right[1])])
         elif dim == 3:
