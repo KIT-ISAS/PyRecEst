@@ -28,6 +28,8 @@ def _validate_positive_sample_count(n) -> int:
     count = count_array.item()
     if isinstance(count, (bool, np.bool_)):
         raise ValueError("n must be an integer, not a boolean")
+    if isinstance(count, (str, np.str_)):
+        raise ValueError("n must be an integer, not text")
 
     try:
         count_int = int(count)
@@ -126,7 +128,7 @@ class HypertoroidalUniformDistribution(
     def mean_direction(self):
         """
         Returns the mean of the circular uniform distribution.
-        Since it doesn't have a unique mean, this function always raises a ValueError.
+        Since it does not have a unique mean, this function always raises a ValueError.
 
         :raises ValueError: Circular uniform distribution does not have a unique mean
         """
