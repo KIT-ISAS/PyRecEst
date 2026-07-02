@@ -328,6 +328,20 @@ def _meshgrid_with_arraylike_axes(meshgrid_func, asarray_func, atleast_1d_func):
     return meshgrid
 
 
+def _flip_with_numpy_axis(flip_func):
+    """Return a flip wrapper accepting NumPy integer axes on strict backends."""
+
+    @wraps(flip_func)
+    def flip(x, axis):
+        if isinstance(axis, _numbers.Integral):
+            axis = int(axis)
+        elif axis is not None:
+            axis = tuple(int(one_axis) for one_axis in axis)
+        return flip_func(x, axis)
+
+    return flip
+
+
 def _mean_with_numpy_signature(
     mean_func,
     asarray_func,
@@ -716,6 +730,12 @@ class BackendImporter(importlib.abc.MetaPathFinder, importlib.abc.Loader):
                             getattr(backend, "asarray"),
                             getattr(backend, "atleast_1d"),
                         )
+                    if (
+                        module_name == ""
+                        and attribute_name == "flip"
+                        and backend_name == "pytorch"
+                    ):
+                        attribute = _flip_with_numpy_axis(attribute)
                     if (
                         module_name == ""
                         and attribute_name == "quantile"
