@@ -186,6 +186,9 @@ def pairwise_covariance_shape_components(
 
 
 def _validate_control_scalar(value: Any, name: str, *, allow_zero: bool) -> float:
+    if isinstance(value, (str, bytes, bytearray)):
+        raise ValueError(f"{name} must be numeric")
+
     value_array = asarray(value)
     if value_array.shape != ():
         raise ValueError(f"{name} must be a scalar")
@@ -199,6 +202,8 @@ def _validate_control_scalar(value: Any, name: str, *, allow_zero: bool) -> floa
 
     if isinstance(scalar_value, bool):
         raise ValueError(f"{name} must be numeric, not boolean")
+    if isinstance(scalar_value, (str, bytes, bytearray)):
+        raise ValueError(f"{name} must be numeric")
 
     try:
         value_float = float(scalar_value)
