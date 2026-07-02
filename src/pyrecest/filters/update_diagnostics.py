@@ -7,6 +7,11 @@ from dataclasses import dataclass
 from operator import index as operator_index
 from typing import Any
 
+_TEXT_SEQUENCE_TYPES = (str, bytes, bytearray)
+_ACTIVE_INDICES_MESSAGE = (
+    "active_measurement_indices must be a sequence of non-negative integers"
+)
+
 
 @dataclass(frozen=True)
 class MeasurementUpdateDiagnostics:
@@ -79,12 +84,12 @@ def _normalize_active_measurement_indices(
 ) -> tuple[int, ...]:
     if values is None:
         return ()
+    if isinstance(values, _TEXT_SEQUENCE_TYPES):
+        raise ValueError(_ACTIVE_INDICES_MESSAGE)
     try:
         iterator = iter(values)
     except TypeError as exc:
-        raise ValueError(
-            "active_measurement_indices must be a sequence of non-negative integers"
-        ) from exc
+        raise ValueError(_ACTIVE_INDICES_MESSAGE) from exc
     indices = tuple(
         _as_nonnegative_integer(value, "active_measurement_indices")
         for value in iterator
