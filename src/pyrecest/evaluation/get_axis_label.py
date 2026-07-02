@@ -1,36 +1,40 @@
 def get_axis_label(manifold_name):
-    if "circleSymm" in manifold_name:
+    if not isinstance(manifold_name, str) or not manifold_name.strip():
+        raise ValueError("Mode not recognized")
+
+    normalized_name = manifold_name.strip().lower()
+
+    if "circlesymm" in normalized_name:
         error_label = "Error in radian"
 
-    elif "circle" in manifold_name or "hypertorus" in manifold_name:
+    elif "circle" in normalized_name or "hypertorus" in normalized_name:
         error_label = "Error in radian"
 
-    elif "hypersphereSymmetric" in manifold_name:
+    elif (
+        "hyperspheresymmetric" in normalized_name
+        or "hypersphere_symmetric" in normalized_name
+    ):
         error_label = "Angular error in radian"
 
-    elif "hypersphere" in manifold_name:
+    elif "hypersphere" in normalized_name:
         error_label = "Error (orthodromic distance) in radian"
 
-    elif "se2bounded" in manifold_name:
+    elif "se2bounded" in normalized_name:
         error_label = "Error in radian"
 
-    elif "se2" in manifold_name or "se2linear" in manifold_name:
+    elif "se2" in normalized_name or "se2linear" in normalized_name:
         error_label = "Error in meters"
 
-    elif "se3bounded" in manifold_name:
+    elif "se3bounded" in normalized_name:
         error_label = "Error in radian"
 
-    elif "se3" in manifold_name or "se3linear" in manifold_name:
+    elif "se3" in normalized_name or "se3linear" in normalized_name:
         error_label = "Error in meters"
 
-    elif (
-        "euclidean" in manifold_name or "Euclidean" in manifold_name
-    ) and "MTT" not in manifold_name:
+    elif "euclidean" in normalized_name and "mtt" not in normalized_name:
         error_label = "Error in meters"
 
-    elif (
-        "euclidean" in manifold_name or "Euclidean" in manifold_name
-    ) and "MTT" in manifold_name:
+    elif "euclidean" in normalized_name and "mtt" in normalized_name:
         error_label = "OSPA error in meters"
 
     else:
