@@ -31,6 +31,11 @@ def test_get_public_api_registry_entry_returns_copy():
     assert PUBLIC_API_REGISTRY["KalmanFilter"]["category"] == "stable"
 
 
+def test_get_public_api_registry_entry_returns_empty_for_non_string_lookup():
+    for value in (123, ("KalmanFilter",), ["KalmanFilter"], {"api": "KalmanFilter"}):
+        assert get_public_api_registry_entry(value) == {}
+
+
 def test_iter_public_api_registry_returns_row_copies():
     rows = dict(iter_public_api_registry())
     rows["KalmanFilter"]["category"] = "mutated"
