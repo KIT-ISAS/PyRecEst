@@ -11,7 +11,7 @@ from pyrecest.backend import (
     linalg,
     ones,
     pi,
-    random,
+    random as backend_random,
     sin,
     sqrt,
     stack,
@@ -24,13 +24,15 @@ from .abstract_hyperspherical_distribution import AbstractHypersphericalDistribu
 
 
 def _validate_positive_sample_count(n) -> int:
-    count_array = np.asarray(n)
+    count_array = np.array(n, copy=False)
     if count_array.ndim != 0:
         raise ValueError("n must be a scalar integer")
 
     count = count_array.item()
     if isinstance(count, (bool, np.bool_)):
         raise ValueError("n must be an integer, not a boolean")
+    if isinstance(count, str):
+        raise ValueError("n must be an integer")
 
     try:
         count_int = int(count)
@@ -71,12 +73,12 @@ class HypersphericalUniformDistribution(
                     self.dim + 1,
                 )
             )
-            phi = 2.0 * pi * random.uniform(size=n)
-            sz = random.uniform(size=n) * 2.0 - 1.0
+            phi = 2.0 * pi * backend_random.uniform(size=n)
+            sz = backend_random.uniform(size=n) * 2.0 - 1.0
             r = sqrt(1 - sz**2)
             s = stack([r * cos(phi), r * sin(phi), sz], axis=1)
         else:
-            samples_unnorm = random.normal(size=(n, self.dim + 1))
+            samples_unnorm = backend_random.normal(size=(n, self.dim + 1))
             s = samples_unnorm / linalg.norm(samples_unnorm, axis=1).reshape(-1, 1)
         return s
 
