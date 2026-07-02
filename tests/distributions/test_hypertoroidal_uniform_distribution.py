@@ -55,6 +55,13 @@ def test_integrate_accepts_scalar_boundaries_for_one_dimension():
     assert dist.integrate((array(0.0), 2.0 * pi)) == pytest.approx(1.0)
 
 
+def test_sample_rejects_text_count():
+    dist = HypertoroidalUniformDistribution(2)
+
+    with pytest.raises(ValueError, match="integer"):
+        dist.sample("3")
+
+
 def test_validation_survives_optimized_python():
     env = os.environ.copy()
     src_path = os.path.abspath("src")
