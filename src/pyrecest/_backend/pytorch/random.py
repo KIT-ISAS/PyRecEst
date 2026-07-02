@@ -218,6 +218,14 @@ def _normalize_random_dtype(dtype, *, default):
         return dtype
 
 
+def _normalize_randint_dtype(dtype):
+    """Return an integer dtype for randint outputs."""
+    dtype = _normalize_random_dtype(dtype, default=_torch.int64)
+    if dtype not in _INTEGER_DTYPES:
+        raise TypeError("dtype must be an integer dtype")
+    return dtype
+
+
 def _normalize_torch_dtype_kwargs(kwargs):
     if "dtype" not in kwargs:
         return kwargs
@@ -231,7 +239,7 @@ def _randint_array(low, high, size, *args, **kwargs):
         raise TypeError(
             "array-valued randint bounds do not support additional positional arguments"
         )
-    dtype = _normalize_random_dtype(kwargs.pop("dtype", None), default=_torch.int64)
+    dtype = _normalize_randint_dtype(kwargs.pop("dtype", None))
     device = kwargs.pop("device", None)
     generator = kwargs.pop("generator", None)
     out = kwargs.pop("out", None)
