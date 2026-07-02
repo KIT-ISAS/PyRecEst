@@ -42,6 +42,11 @@ def test_stability_decorator_attaches_public_api_status():
     assert status.notes == "example"
 
 
+def test_get_public_api_status_returns_none_for_non_string_names():
+    assert get_public_api_status(["KalmanFilter"]) is None
+    assert get_public_api_status({"api": "KalmanFilter"}) is None
+
+
 def test_registered_public_api_status_rows_have_valid_levels():
     rows = list(iter_public_api_status())
 
