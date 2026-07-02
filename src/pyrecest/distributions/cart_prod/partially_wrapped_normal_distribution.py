@@ -63,6 +63,28 @@ def _validate_positive_sample_count(n) -> int:
     return count_int
 
 
+def _validate_nonnegative_wrap_count(m) -> int:
+    count_array = np.asarray(m)
+    if count_array.ndim != 0:
+        raise ValueError("m must be a scalar integer")
+
+    count = count_array.item()
+    if isinstance(count, (bool, np.bool_)):
+        raise ValueError("m must be an integer, not a boolean")
+
+    try:
+        count_int = int(count)
+        count_float = float(count)
+    except (OverflowError, TypeError, ValueError) as exc:
+        raise ValueError("m must be an integer") from exc
+
+    if not np.isfinite(count_float) or not count_float.is_integer():
+        raise ValueError("m must be a finite integer")
+    if count_int < 0:
+        raise ValueError("m must be non-negative")
+    return count_int
+
+
 def _as_2d_query_points(xs, dim: int):
     """Normalize scalar/vector/matrix query inputs to shape ``(n_eval, dim)``."""
     xs = array(xs)
@@ -140,6 +162,7 @@ class PartiallyWrappedNormalDistribution(AbstractHypercylindricalDistribution):
         self.C = C
 
     def pdf(self, xs, m: Union[int, int32, int64] = 3):
+        m = _validate_nonnegative_wrap_count(m)
         xs = _as_2d_query_points(xs, self.input_dim)
         condition = (
             arange(xs.shape[1]) < self.bound_dim
