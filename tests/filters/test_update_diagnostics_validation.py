@@ -25,6 +25,21 @@ def test_active_measurement_indices_reject_non_sequence_values():
         MeasurementUpdateDiagnostics(active_measurement_indices=1)  # type: ignore[arg-type]
 
 
+def test_active_measurement_indices_reject_text_like_top_level_sequences():
+    invalid_sequences = (
+        "01",
+        b"\x00\x01",
+        bytearray([0, 1]),
+    )
+
+    for invalid_sequence in invalid_sequences:
+        with pytest.raises(ValueError, match="active_measurement_indices"):
+            MeasurementUpdateDiagnostics(
+                active_measurement_indices=invalid_sequence,  # type: ignore[arg-type]
+                measurement_count=2,
+            )
+
+
 def test_active_measurement_indices_must_fit_measurement_count():
     with pytest.raises(
         ValueError,
