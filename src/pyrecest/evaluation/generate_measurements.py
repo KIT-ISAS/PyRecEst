@@ -92,6 +92,17 @@ def _mtt_state_at(groundtruth, t, target_no, n_targets):
     return state_at_t[target_no, :]
 
 
+def _groundtruth_measurement_dim(groundtruth_at_t) -> int:
+    groundtruth_at_t = np.asarray(groundtruth_at_t)
+    if groundtruth_at_t.ndim == 0:
+        return 1
+    return int(groundtruth_at_t.shape[-1])
+
+
+def _empty_measurements_like_groundtruth(groundtruth_at_t):
+    return zeros((0, _groundtruth_measurement_dim(groundtruth_at_t)))
+
+
 # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 def generate_measurements(groundtruth, simulation_config):
     """
@@ -191,7 +202,9 @@ def generate_measurements(groundtruth, simulation_config):
                         "eot_sampling_style must be either 'boundary' or 'within'."
                     )
 
-            if eot_sampling_style == "boundary":
+            if n_meas_curr == 0:
+                measurements[t] = zeros((0, 2))
+            elif eot_sampling_style == "boundary":
                 measurements[t] = curr_shape.sample_on_boundary(n_meas_curr)
             elif eot_sampling_style == "within":
                 measurements[t] = curr_shape.sample_within(n_meas_curr)
@@ -253,6 +266,10 @@ def generate_measurements(groundtruth, simulation_config):
                 name=f"n_meas_at_individual_time_step[{t}]",
             )
             meas_noise = simulation_config["meas_noise"]
+
+            if n_meas == 0:
+                measurements[t] = _empty_measurements_like_groundtruth(groundtruth[t])
+                continue
 
             if isinstance(meas_noise, AbstractHypertoroidalDistribution):
                 noise_samples = meas_noise.sample(n_meas)
