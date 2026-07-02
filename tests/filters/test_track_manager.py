@@ -16,13 +16,33 @@ class TrackManagerAssociationTest(unittest.TestCase):
         self.assertEqual(manager.max_misses, 1)
 
     def test_lifecycle_thresholds_reject_invalid_integer_values(self):
-        invalid_n_init_values = (0, 1.5, np.nan, np.inf, True, np.array([1]))
+        invalid_n_init_values = (
+            0,
+            1.5,
+            np.nan,
+            np.inf,
+            True,
+            np.array([1]),
+            "2",
+            b"2",
+            np.str_("2"),
+        )
         for n_init in invalid_n_init_values:
             with self.subTest(n_init=n_init):
                 with self.assertRaisesRegex(ValueError, "n_init must be"):
                     TrackManager(n_init=n_init)
 
-        invalid_max_misses_values = (-1, 1.5, np.nan, np.inf, False, np.array([1]))
+        invalid_max_misses_values = (
+            -1,
+            1.5,
+            np.nan,
+            np.inf,
+            False,
+            np.array([1]),
+            "1",
+            b"1",
+            np.str_("1"),
+        )
         for max_misses in invalid_max_misses_values:
             with self.subTest(max_misses=max_misses):
                 with self.assertRaisesRegex(ValueError, "max_misses must be"):
@@ -63,6 +83,14 @@ class TrackManagerAssociationTest(unittest.TestCase):
                 "Measurement index must be a non-negative integer",
             ),
             (
+                AssociationResult(matches=[("0", 0)]),
+                "Track index must be a non-negative integer",
+            ),
+            (
+                AssociationResult(matches=[(0, np.str_("0"))]),
+                "Measurement index must be a non-negative integer",
+            ),
+            (
                 AssociationResult(
                     matches=[],
                     unmatched_track_indices=[0.5],
@@ -75,6 +103,22 @@ class TrackManagerAssociationTest(unittest.TestCase):
                     matches=[],
                     unmatched_track_indices=[0],
                     unmatched_measurement_indices=[np.array([0])],
+                ),
+                "Unmatched measurement index must be a non-negative integer",
+            ),
+            (
+                AssociationResult(
+                    matches=[],
+                    unmatched_track_indices=["0"],
+                    unmatched_measurement_indices=[0],
+                ),
+                "Unmatched track index must be a non-negative integer",
+            ),
+            (
+                AssociationResult(
+                    matches=[],
+                    unmatched_track_indices=[0],
+                    unmatched_measurement_indices=[b"0"],
                 ),
                 "Unmatched measurement index must be a non-negative integer",
             ),
