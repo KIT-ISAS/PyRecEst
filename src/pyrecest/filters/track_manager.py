@@ -994,6 +994,8 @@ def _as_nonnegative_integer(value: Any, name: str) -> int:
     scalar = value_array.item()
     if isinstance(scalar, (bool, np.bool_)):
         raise ValueError(f"{name} must be a non-negative integer")
+    if isinstance(scalar, (str, bytes, bytearray, np.str_, np.bytes_)):
+        raise ValueError(f"{name} must be a non-negative integer")
     if isinstance(scalar, (int, np.integer)):
         integer_value = int(scalar)
     else:
