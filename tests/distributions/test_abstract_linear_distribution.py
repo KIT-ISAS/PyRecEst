@@ -35,6 +35,25 @@ class TestAbstractLinearDistribution(unittest.TestCase):
             integration_result, 1.0, rtol=1e-5
         ), f"Expected 1.0, but got {integration_result}"
 
+    def test_integrate_1d_accepts_sequence_bounds(self):
+        """Test that 1D integration accepts per-dimension sequence bounds."""
+        dist = GaussianDistribution(array([0.0]), array([[1.0]]))
+        integration_result = dist.integrate_numerically([-float("inf")], [float("inf")])
+        assert isclose(
+            integration_result, 1.0, rtol=1e-5
+        ), f"Expected 1.0, but got {integration_result}"
+
+    def test_integrate_fun_over_domain_1d_accepts_sequence_bounds(self):
+        dist = GaussianDistribution(array([0.0]), array([[1.0]]))
+
+        integration_result = AbstractLinearDistribution.integrate_fun_over_domain(
+            lambda x: dist.pdf(x), 1, [-float("inf")], [float("inf")]
+        )
+
+        assert isclose(
+            integration_result, 1.0, rtol=1e-5
+        ), f"Expected 1.0, but got {integration_result}"
+
     def test_integrate_fun_over_domain(self):
         dist = GaussianDistribution(array([1.0, 2.0]), diag(array([1.0, 2.0])))
 
