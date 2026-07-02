@@ -130,6 +130,9 @@ class TestPairwiseCovarianceFeatures(unittest.TestCase):
         self.assertEqual(shape_cost.shape, (0, 4))
         self.assertEqual(logdet_cost.shape, (0, 4))
         self.assertEqual(shape_similarity.shape, (0, 4))
+        self.assertIsNot(shape_cost, logdet_cost)
+        self.assertIsNot(shape_cost, shape_similarity)
+        self.assertIsNot(logdet_cost, shape_similarity)
 
     def test_pairwise_covariance_shape_components_rejects_ambiguous_epsilon(self):
         covariances = zeros((2, 2, 1))
