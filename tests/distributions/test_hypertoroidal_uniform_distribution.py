@@ -3,7 +3,7 @@ import subprocess
 import sys
 
 import pytest
-from pyrecest.backend import array, ones, pi, zeros
+from pyrecest.backend import array, ndim, ones, pi, zeros
 from pyrecest.distributions.hypertorus.hypertoroidal_uniform_distribution import (
     HypertoroidalUniformDistribution,
 )
@@ -37,6 +37,24 @@ def test_pdf_keeps_legacy_shape_for_valid_inputs():
     values = dist.pdf(array([[0.1, 0.2], [0.3, 0.4]]))
 
     assert values.shape == (2,)
+
+
+def test_pdf_returns_scalar_for_one_dimensional_scalar_input():
+    dist = HypertoroidalUniformDistribution(1)
+
+    value = dist.pdf(array(0.1))
+
+    assert ndim(value) == 0
+    assert float(value) == pytest.approx(1.0 / (2.0 * pi))
+
+
+def test_pdf_returns_scalar_for_single_multidimensional_point():
+    dist = HypertoroidalUniformDistribution(2)
+
+    value = dist.pdf(array([0.1, 0.2]))
+
+    assert ndim(value) == 0
+    assert float(value) == pytest.approx(1.0 / (2.0 * pi) ** 2)
 
 
 def test_shift_validates_shape():
