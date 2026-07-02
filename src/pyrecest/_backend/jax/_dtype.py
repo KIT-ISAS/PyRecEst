@@ -3,6 +3,14 @@ from pyrecest._backend._dtype_utils import _pre_set_default_dtype
 
 # Mapping of string dtype representations to JAX dtypes
 MAP_DTYPE = {
+    "bool": _jnp.bool_,
+    "bool_": _jnp.bool_,
+    "uint8": _jnp.uint8,
+    "int8": _jnp.int8,
+    "int16": _jnp.int16,
+    "int32": _jnp.int32,
+    "int64": _jnp.int64,
+    "float16": _jnp.float16,
     "float32": _jnp.float32,
     "float64": _jnp.float64,
     "complex64": _jnp.complex64,
