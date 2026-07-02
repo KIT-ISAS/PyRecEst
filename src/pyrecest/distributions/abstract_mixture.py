@@ -34,7 +34,10 @@ def _validate_positive_sample_count(n) -> int:
         raise ValueError(message)
 
     count = count_array.item()
-    if isinstance(count, (bool, np.bool_)):
+    if isinstance(
+        count,
+        (bool, np.bool_, str, bytes, bytearray, np.str_, np.bytes_),
+    ):
         raise ValueError(message)
 
     try:
