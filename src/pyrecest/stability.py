@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable
 from dataclasses import asdict, dataclass
+from operator import index as _operator_index
 from typing import Final, Literal, ParamSpec, TypeVar
 
 from pyrecest.backend_support._pytorch_allclose_device_contract import (
@@ -33,7 +34,11 @@ def _patch_pytorch_raw_comparison_arraylike_contract() -> None:
     active_pytorch_backend = getattr(backend, "__backend_name__", None) == "pytorch"
     helper_names = ("greater", "less", "logical_or")
     if all(
-        getattr(getattr(raw_pytorch, helper_name, None), "_pyrecest_arraylike_contract", False)
+        getattr(
+            getattr(raw_pytorch, helper_name, None),
+            "_pyrecest_arraylike_contract",
+            False,
+        )
         for helper_name in helper_names
     ):
         if active_pytorch_backend:
@@ -138,17 +143,27 @@ def _patch_pytorch_vec_to_diag_numpy_contract() -> None:
         backend.vec_to_diag = vec_to_diag
 
 
+def _jax_squeeze_axis(axis) -> int:
+    """Return one NumPy-style integer squeeze axis."""
+    if isinstance(axis, bool) or type(axis).__name__ == "bool_":
+        raise TypeError("axis must be an integer or a tuple of integers")
+    try:
+        return _operator_index(axis)
+    except TypeError as exc:
+        raise TypeError("axis must be an integer or a tuple of integers") from exc
+
+
 def _jax_squeeze_axes(axis, jnp) -> tuple[int, ...]:
     """Normalize NumPy-style squeeze axes for the JAX backend."""
     try:
-        return (int(axis),)
+        return (_jax_squeeze_axis(axis),)
     except TypeError:
         pass
 
     axis_array = jnp.asarray(axis)
     if axis_array.shape == ():
-        return (int(axis_array),)
-    return tuple(int(one_axis) for one_axis in axis_array.tolist())
+        return (_jax_squeeze_axis(axis_array.item()),)
+    return tuple(_jax_squeeze_axis(one_axis) for one_axis in axis_array.tolist())
 
 
 def _patch_jax_squeeze_numpy_contract() -> None:
@@ -177,7 +192,9 @@ def _patch_jax_squeeze_numpy_contract() -> None:
         if not axes:
             return a
 
-        normalized_axes = tuple(one_axis + a.ndim if one_axis < 0 else one_axis for one_axis in axes)
+        normalized_axes = tuple(
+            one_axis + a.ndim if one_axis < 0 else one_axis for one_axis in axes
+        )
         for one_axis, normalized_axis in zip(axes, normalized_axes):
             if normalized_axis < 0 or normalized_axis >= a.ndim:
                 raise ValueError(
@@ -188,7 +205,9 @@ def _patch_jax_squeeze_numpy_contract() -> None:
         if any(a.shape[one_axis] != 1 for one_axis in normalized_axes):
             return a
 
-        squeeze_axis = normalized_axes[0] if len(normalized_axes) == 1 else normalized_axes
+        squeeze_axis = (
+            normalized_axes[0] if len(normalized_axes) == 1 else normalized_axes
+        )
         return original_squeeze(a, axis=squeeze_axis)
 
     squeeze.__name__ = getattr(original_squeeze, "__name__", "squeeze")
