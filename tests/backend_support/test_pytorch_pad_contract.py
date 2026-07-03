@@ -123,3 +123,42 @@ print("ok")
     result = run_backend_code("pytorch", code)
     assert result.returncode == 0, result.stderr
     assert "ok" in result.stdout
+
+
+def test_raw_pytorch_concatenate_axis_none_flattens_after_import():
+    if importlib.util.find_spec("torch") is None:
+        pytest.skip("PyTorch is not installed")
+
+    code = """
+import pyrecest  # noqa: F401  # triggers raw-backend compatibility patches
+import pyrecest._backend.pytorch as raw_pytorch_backend
+
+result = raw_pytorch_backend.concatenate(
+    (raw_pytorch_backend.array([[1, 2]]), raw_pytorch_backend.array([[3], [4]])),
+    axis=None,
+)
+assert raw_pytorch_backend.to_numpy(result).tolist() == [1, 2, 3, 4]
+print("ok")
+"""
+    result = run_backend_code("numpy", code)
+    assert result.returncode == 0, result.stderr
+    assert "ok" in result.stdout
+
+
+def test_public_pytorch_concatenate_axis_none_flattens_inputs():
+    if importlib.util.find_spec("torch") is None:
+        pytest.skip("PyTorch is not installed")
+
+    code = """
+import pyrecest.backend as backend
+
+result = backend.concatenate(
+    (backend.array([[1, 2]]), backend.array([[3], [4]])),
+    axis=None,
+)
+assert backend.to_numpy(result).tolist() == [1, 2, 3, 4]
+print("ok")
+"""
+    result = run_backend_code("pytorch", code)
+    assert result.returncode == 0, result.stderr
+    assert "ok" in result.stdout

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+from operator import index as _operator_index
 from pathlib import Path
 
 
@@ -39,6 +40,7 @@ def patch_pytorch_dtype_promotion_contract() -> None:
     _patch_pytorch_equality_device_contract(raw_pytorch, backend, torch)
     _patch_pytorch_linspace_integer_dtype_contract(raw_pytorch, backend, torch)
     _patch_pytorch_arraylike_helper_contract(raw_pytorch, backend, torch)
+    _patch_pytorch_concatenate_axis_none_contract(raw_pytorch, backend, torch)
 
 
 def _pytorch_numpy_index_array(index, numpy_module, torch_module):
@@ -397,6 +399,32 @@ def _patch_pytorch_arraylike_helper_contract(raw_pytorch, backend, torch) -> Non
     raw_pytorch.argsort = wrapped_argsort
     if getattr(backend, "__backend_name__", None) == "pytorch":
         backend.argsort = wrapped_argsort
+
+
+def _patch_pytorch_concatenate_axis_none_contract(raw_pytorch, backend, torch) -> None:
+    """Make PyTorch concatenate flatten inputs when axis is ``None``."""
+    original_concatenate = raw_pytorch.concatenate
+    if getattr(original_concatenate, "_pyrecest_axis_none_contract", False):
+        if getattr(backend, "__backend_name__", None) == "pytorch":
+            backend.concatenate = original_concatenate
+        return
+
+    def concatenate(seq, axis=0, out=None):
+        tensors = [raw_pytorch.array(item) for item in seq]
+        if axis is None:
+            tensors = [tensor.reshape(-1) for tensor in tensors]
+            axis_arg = 0
+        else:
+            axis_arg = _operator_index(axis)
+        tensors = raw_pytorch.convert_to_wider_dtype(tensors)
+        return torch.cat(tensors, dim=axis_arg, out=out)
+
+    concatenate.__name__ = getattr(original_concatenate, "__name__", "concatenate")
+    concatenate.__doc__ = getattr(original_concatenate, "__doc__", None)
+    concatenate._pyrecest_axis_none_contract = True
+    raw_pytorch.concatenate = concatenate
+    if getattr(backend, "__backend_name__", None) == "pytorch":
+        backend.concatenate = concatenate
 
 
 __all__ = ["patch_pytorch_dtype_promotion_contract"]
