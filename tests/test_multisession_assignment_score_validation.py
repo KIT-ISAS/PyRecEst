@@ -61,6 +61,8 @@ class TestMultiSessionAssignmentScoreValidation(unittest.TestCase):
             {(0, 1): np.array([["0.9"]])},
             {(0, 1): np.array([[0.9 + 0.0j]])},
             {(0, 1): np.array([[None]], dtype=object)},
+            {(0, 1): np.array([[object()]], dtype=object)},
+            {(0, 1): np.array([[{"score": 0.9}]], dtype=object)},
         )
 
         for pairwise_scores in invalid_pairwise_scores:
@@ -73,6 +75,26 @@ class TestMultiSessionAssignmentScoreValidation(unittest.TestCase):
                         pairwise_scores,
                         session_sizes=[1, 1],
                     )
+
+    @unittest.skipIf(
+        __backend_name__ == "jax",
+        reason="Not supported on this backend",
+    )
+    def test_similarity_wrapper_rejects_non_numeric_score_to_cost_object_entries(self):
+        pairwise_scores = {(0, 1): array([[0.9]], dtype=float)}
+
+        def score_to_cost(_scores):
+            return np.array([[object()]], dtype=object)
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "score_to_cost must return real numeric cost matrices",
+        ):
+            solve_multisession_assignment_from_similarity(
+                pairwise_scores,
+                session_sizes=[1, 1],
+                score_to_cost=score_to_cost,
+            )
 
     @unittest.skipIf(
         __backend_name__ == "jax",
