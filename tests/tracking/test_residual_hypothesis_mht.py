@@ -53,3 +53,44 @@ def test_conflicting_candidates_are_not_combined():
     )
 
     assert all(len(hypothesis.candidate_ids) == 1 for hypothesis in hypotheses)
+
+
+def test_family_caps_prevent_overselecting_one_candidate_family():
+    candidates = [
+        ResidualEditCandidate("growth", 2.0, family="growth_veto"),
+        ResidualEditCandidate("cell_a", 1.9, family="cell_gated"),
+        ResidualEditCandidate("cell_b", 1.8, family="cell_gated"),
+    ]
+
+    selected = select_residual_hypothesis(
+        candidates,
+        config=ResidualMHTConfig(
+            max_edits=3,
+            edit_penalty=0.0,
+            score_threshold=0.0,
+            max_edits_per_family={"cell_gated": 1},
+        ),
+    )
+
+    assert selected.candidate_ids == ("growth", "cell_a")
+    assert selected.candidate_families == ("growth_veto", "cell_gated")
+
+
+def test_hypothesis_dict_serializes_candidate_families():
+    hypotheses = enumerate_residual_hypotheses(
+        [
+            ResidualEditCandidate("a", 1.0, family="alpha"),
+            ResidualEditCandidate("b", 0.9, family="beta"),
+        ],
+        config=ResidualMHTConfig(max_edits=2, edit_penalty=0.0, include_empty=False),
+    )
+
+    serialized = [
+        {
+            "candidate_ids": ";".join(hypothesis.candidate_ids),
+            "families": ";".join(hypothesis.candidate_families),
+        }
+        for hypothesis in hypotheses
+    ]
+
+    assert {"candidate_ids": "a;b", "families": "alpha;beta"} in serialized
