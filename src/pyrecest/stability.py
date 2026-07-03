@@ -111,8 +111,43 @@ def _patch_pytorch_diag_numpy_contract() -> None:
         backend.diag = diag
 
 
+def _patch_shared_numpy_vec_to_diag_numpy_contract() -> None:
+    """Patch shared NumPy/Autograd ``vec_to_diag`` to accept array-like inputs."""
+    try:
+        import pyrecest._backend._shared_numpy as shared_numpy  # pylint: disable=import-outside-toplevel
+        import pyrecest.backend as backend  # pylint: disable=import-outside-toplevel
+    except ModuleNotFoundError:  # pragma: no cover - backend import may be unavailable
+        return
+
+    backend_name = getattr(backend, "__backend_name__", None)
+    if backend_name == "numpy":
+        import pyrecest._backend.numpy as raw_backend  # pylint: disable=import-outside-toplevel
+    elif backend_name == "autograd":
+        import pyrecest._backend.autograd as raw_backend  # pylint: disable=import-outside-toplevel
+    else:
+        return
+
+    original_vec_to_diag = getattr(raw_backend, "vec_to_diag", None)
+    if original_vec_to_diag is None:
+        return
+    if getattr(original_vec_to_diag, "_pyrecest_numpy_contract", False):
+        backend.vec_to_diag = original_vec_to_diag
+        return
+
+    def vec_to_diag(vec):
+        return original_vec_to_diag(raw_backend.array(vec))
+
+    vec_to_diag.__name__ = getattr(original_vec_to_diag, "__name__", "vec_to_diag")
+    vec_to_diag.__doc__ = getattr(original_vec_to_diag, "__doc__", None)
+    vec_to_diag._pyrecest_numpy_contract = True
+    shared_numpy.vec_to_diag = vec_to_diag
+    raw_backend.vec_to_diag = vec_to_diag
+    backend.vec_to_diag = vec_to_diag
+
+
 _patch_pytorch_allclose_device_contract()
 _patch_pytorch_diag_numpy_contract()
+_patch_shared_numpy_vec_to_diag_numpy_contract()
 _patch_pytorch_raw_comparison_arraylike_contract()
 _patch_pytorch_dot_outer_device_contract()
 _patch_pytorch_matmul_device_contract()
@@ -127,8 +162,8 @@ StabilityLevel = Literal[
 STABILITY_LEVELS: Final = (
     "stable",
     "experimental",
-    "deprecated",
     "backend-specific",
+    "deprecated",
     "internal",
 )
 
