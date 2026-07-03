@@ -154,6 +154,7 @@ _OPTIONAL_API_CAPABILITY_KEYS: Final = frozenset({"notes"})
 _ALLOWED_API_CAPABILITY_KEYS: Final = frozenset(
     (*REQUIRED_BACKENDS, *_OPTIONAL_API_CAPABILITY_KEYS)
 )
+_PYTORCH_ARGSORT_DEFAULT_AXIS: Final = object()
 
 
 def _patch_jax_backend_contracts() -> None:
@@ -179,8 +180,11 @@ def _patch_random_backend_contracts() -> None:
 
 def _resolve_pytorch_argsort_axis(axis, dim) -> int | None:
     """Resolve NumPy ``axis`` and PyTorch ``dim`` aliases for argsort."""
+    axis_was_omitted = axis is _PYTORCH_ARGSORT_DEFAULT_AXIS
+    if axis_was_omitted:
+        axis = -1
     if dim is not None:
-        if axis is not None and axis != dim:
+        if not axis_was_omitted and axis is not None and axis != dim:
             raise TypeError("argsort() got both 'axis' and 'dim'")
         axis = dim
     if axis is None:
@@ -206,7 +210,7 @@ def _patch_pytorch_argsort_contracts() -> None:
 
     def argsort(
         a,
-        axis=-1,
+        axis=_PYTORCH_ARGSORT_DEFAULT_AXIS,
         kind=None,
         order=None,
         *,
