@@ -91,6 +91,29 @@ class TestCostMatrixAdjustments(unittest.TestCase):
         self.assertEqual(result.diagnostics["prior"], {"kind": "prior"})
         self.assertEqual(result.diagnostics["scale"], {"factor": 2.0})
 
+    def test_compose_adjustments_disambiguates_duplicate_diagnostics(self):
+        first = CallableCostMatrixAdjustment(
+            name="shared",
+            function=lambda matrix, _metadata: CostMatrixAdjustmentResult(
+                matrix + 1.0,
+                {"step": 1},
+            ),
+        )
+        second = CallableCostMatrixAdjustment(
+            name="shared",
+            function=lambda matrix, _metadata: CostMatrixAdjustmentResult(
+                matrix + 2.0,
+                {"step": 2},
+            ),
+        )
+
+        result = compose_cost_matrix_adjustments(np.array([[0.0]]), [first, second])
+
+        npt.assert_allclose(result.adjusted_cost_matrix, np.array([[3.0]]))
+        self.assertEqual(result.diagnostics["adjustment_order"], ["shared", "shared_2"])
+        self.assertEqual(result.diagnostics["shared"], {"step": 1})
+        self.assertEqual(result.diagnostics["shared_2"], {"step": 2})
+
     def test_additive_adjustment_rejects_shape_mismatch(self):
         adjustment = additive_cost_matrix_adjustment(np.ones((2, 2)))
 
@@ -103,7 +126,7 @@ class TestCostMatrixAdjustments(unittest.TestCase):
             function=lambda _matrix, _metadata: np.ones((1, 3)),
         )
 
-        with self.assertRaisesRegex(ValueError, "expected \(1, 2\)"):
+        with self.assertRaisesRegex(ValueError, r"expected \(1, 2\)"):
             apply_cost_matrix_adjustment(np.ones((1, 2)), adjustment)
 
     def test_simple_callable_without_apply_is_supported(self):
