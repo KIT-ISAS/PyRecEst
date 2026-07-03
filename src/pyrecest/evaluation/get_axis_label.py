@@ -1,5 +1,11 @@
+def _normalize_manifold_name(manifold_name):
+    if not isinstance(manifold_name, str) or not manifold_name.strip():
+        raise ValueError("manifold_name must be a non-empty string")
+    return manifold_name.strip().lower()
+
+
 def get_axis_label(manifold_name):
-    normalized_name = manifold_name.lower()
+    normalized_name = _normalize_manifold_name(manifold_name)
 
     if "circlesymm" in normalized_name:
         error_label = "Error in radian"
