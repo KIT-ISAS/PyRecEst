@@ -8,6 +8,7 @@ consistent diagnostics.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
@@ -34,6 +35,16 @@ def _coerce_bool_flag(value: bool, name: str) -> bool:
     if value_array.shape == () and np.issubdtype(value_array.dtype, np.bool_):
         return bool(value_array.item())
     raise ValueError(f"{name} must be a bool")
+
+
+def _coerce_metadata(metadata: Any) -> dict[str, Any]:
+    """Return a plain metadata dictionary without sequence-to-dict surprises."""
+
+    if metadata is None:
+        return {}
+    if not isinstance(metadata, Mapping):
+        raise ValueError("metadata must be a mapping or None")
+    return dict(metadata)
 
 
 @dataclass(frozen=True, slots=True)
@@ -74,7 +85,7 @@ class EvidenceComputationMode:
             raise ValueError("evidence_only mode cannot return smoothed posteriors")
         if self.mode == "full_smoothing" and not return_smoothed:
             raise ValueError("full_smoothing mode must return smoothed posteriors")
-        metadata = {} if self.metadata is None else dict(self.metadata)
+        metadata = _coerce_metadata(self.metadata)
         conflicting_metadata_keys = _RESERVED_DIAGNOSTIC_METADATA_KEYS.intersection(
             metadata
         )
