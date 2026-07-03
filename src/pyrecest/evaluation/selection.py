@@ -22,9 +22,13 @@ def _is_text_scalar(value) -> bool:
 
 
 def _normalize_nonnegative_integer(value, name: str) -> int:
-    value_array = np.asarray(value)
+    message = f"{name} must be a non-negative integer."
+    try:
+        value_array = np.asarray(value)
+    except (TypeError, ValueError, RuntimeError) as exc:
+        raise ValueError(message) from exc
     if value_array.shape != () or value_array.dtype == np.bool_:
-        raise ValueError(f"{name} must be a non-negative integer.")
+        raise ValueError(message)
 
     scalar = value_array.item()
     if (
@@ -32,35 +36,42 @@ def _normalize_nonnegative_integer(value, name: str) -> int:
         or _is_text_scalar(scalar)
         or not isinstance(scalar, Real)
     ):
-        raise ValueError(f"{name} must be a non-negative integer.")
+        raise ValueError(message)
     if isinstance(scalar, (int, np.integer)):
         integer = int(scalar)
     else:
         try:
             scalar_float = float(scalar)
         except (TypeError, ValueError, OverflowError) as exc:
-            raise ValueError(f"{name} must be a non-negative integer.") from exc
+            raise ValueError(message) from exc
         if not np.isfinite(scalar_float) or not scalar_float.is_integer():
-            raise ValueError(f"{name} must be a non-negative integer.")
+            raise ValueError(message)
         integer = int(scalar_float)
 
     if integer < 0:
-        raise ValueError(f"{name} must be a non-negative integer.")
+        raise ValueError(message)
     return integer
 
 
 def _normalize_bool_flag(value, name: str) -> bool:
-    value_array = np.asarray(value)
+    message = f"{name} must be a boolean."
+    try:
+        value_array = np.asarray(value)
+    except (TypeError, ValueError, RuntimeError) as exc:
+        raise ValueError(message) from exc
     if value_array.shape != ():
-        raise ValueError(f"{name} must be a boolean.")
+        raise ValueError(message)
     scalar = value_array.item()
     if not isinstance(scalar, (bool, np.bool_)):
-        raise ValueError(f"{name} must be a boolean.")
+        raise ValueError(message)
     return bool(scalar)
 
 
 def _normalize_finite_scalar(value, message: str) -> float:
-    value_array = np.asarray(value)
+    try:
+        value_array = np.asarray(value)
+    except (TypeError, ValueError, RuntimeError) as exc:
+        raise ValueError(message) from exc
     if value_array.shape != () or value_array.dtype == np.bool_:
         raise ValueError(message)
 
