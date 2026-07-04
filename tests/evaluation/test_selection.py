@@ -15,6 +15,12 @@ from pyrecest.evaluation.selection import (
 )
 
 
+class UncoercibleScalar:
+    def __array__(self, dtype=None):
+        del dtype
+        raise TypeError("cannot convert")
+
+
 def test_top_count_mask_is_deterministic_with_ties() -> None:
     mask = top_count_mask([1.0, 2.0, 2.0, 0.5], 2)
 
@@ -99,6 +105,23 @@ def test_selection_helpers_reject_text_scalar_fractions() -> None:
             quantile_tail_threshold([0.0, 1.0], fraction)
         with pytest.raises(ValueError, match="rescue_fraction"):
             tail_rescue_quota_count(3, rescue_fraction=fraction)
+
+
+def test_selection_helpers_report_value_error_for_uncoercible_scalars() -> None:
+    uncoercible = UncoercibleScalar()
+
+    with pytest.raises(ValueError, match="item_count"):
+        retained_count_from_fraction(uncoercible, 0.5)
+    with pytest.raises(ValueError, match="retention_fraction"):
+        retained_count_from_fraction(10, uncoercible)
+    with pytest.raises(ValueError, match="nonnegative"):
+        sanitized_score_vector([1.0], nonnegative=uncoercible)
+    with pytest.raises(ValueError, match="largest"):
+        top_count_mask([1.0], 1, largest=uncoercible)
+    with pytest.raises(ValueError, match="quantile"):
+        quantile_tail_threshold([0.0, 1.0], uncoercible)
+    with pytest.raises(ValueError, match="rescue_fraction"):
+        tail_rescue_quota_count(3, rescue_fraction=uncoercible)
 
 
 def test_quantile_tail_mask_selects_lower_tail() -> None:
