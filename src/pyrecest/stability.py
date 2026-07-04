@@ -143,6 +143,34 @@ def _patch_pytorch_vec_to_diag_numpy_contract() -> None:
         backend.vec_to_diag = vec_to_diag
 
 
+def _patch_pytorch_arctan_numpy_contract() -> None:
+    """Patch raw/public PyTorch ``arctan`` to accept NumPy-style inputs."""
+    try:
+        import pyrecest._backend.pytorch as raw_pytorch  # pylint: disable=import-outside-toplevel
+        import pyrecest.backend as backend  # pylint: disable=import-outside-toplevel
+        import torch  # pylint: disable=import-outside-toplevel
+    except ModuleNotFoundError:  # pragma: no cover - PyTorch backend may be unavailable
+        return
+
+    original_arctan = getattr(raw_pytorch, "arctan", None)
+    if original_arctan is None:
+        return
+    if getattr(original_arctan, "_pyrecest_numpy_contract", False):
+        if getattr(backend, "__backend_name__", None) == "pytorch":
+            backend.arctan = original_arctan
+        return
+
+    def arctan(a, *args, **kwargs):
+        return torch.arctan(raw_pytorch.array(a), *args, **kwargs)
+
+    arctan.__name__ = getattr(original_arctan, "__name__", "arctan")
+    arctan.__doc__ = getattr(original_arctan, "__doc__", None)
+    arctan._pyrecest_numpy_contract = True
+    raw_pytorch.arctan = arctan
+    if getattr(backend, "__backend_name__", None) == "pytorch":
+        backend.arctan = arctan
+
+
 def _jax_squeeze_axis(axis) -> int:
     """Return one NumPy-style integer squeeze axis."""
     if isinstance(axis, bool) or type(axis).__name__ == "bool_":
@@ -221,6 +249,7 @@ def _patch_jax_squeeze_numpy_contract() -> None:
 _patch_pytorch_allclose_device_contract()
 _patch_pytorch_diag_numpy_contract()
 _patch_pytorch_vec_to_diag_numpy_contract()
+_patch_pytorch_arctan_numpy_contract()
 _patch_pytorch_raw_comparison_arraylike_contract()
 _patch_pytorch_dot_outer_device_contract()
 _patch_pytorch_matmul_device_contract()
