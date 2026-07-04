@@ -16,6 +16,7 @@ from pyrecest.backend import (
 from pyrecest.distributions import GaussianDistribution
 
 _INVALID_DIMENSION_SCALAR_TYPES = (bool, str, bytes, bytearray)
+_NOISE_COV_UNSET = object()
 
 
 def _has_boolean_dtype(value):
@@ -99,10 +100,36 @@ def _covariance(distribution):
     return distribution.C
 
 
-class LinearGaussianTransitionModel:
-    """Transition model ``x_next = F x + u + w`` with Gaussian noise."""
+def _resolve_noise_covariance(noise_cov, noise_covariance, model_name):
+    if noise_cov is _NOISE_COV_UNSET:
+        if noise_covariance is _NOISE_COV_UNSET:
+            raise TypeError(f"{model_name} missing required argument: 'noise_cov'")
+        return noise_covariance
+    if noise_covariance is not _NOISE_COV_UNSET:
+        raise TypeError(f"{model_name} got both noise_cov and noise_covariance")
+    return noise_cov
 
-    def __init__(self, matrix, noise_cov, offset=None):
+
+class LinearGaussianTransitionModel:
+    """Transition model ``x_next = F x + u + w`` with Gaussian noise.
+
+    The noise covariance can be supplied as ``noise_cov`` or, for consistency
+    with additive-noise models, as the keyword alias ``noise_covariance``.
+    """
+
+    def __init__(
+        self,
+        matrix,
+        noise_cov=_NOISE_COV_UNSET,
+        offset=None,
+        *,
+        noise_covariance=_NOISE_COV_UNSET,
+    ):
+        noise_cov = _resolve_noise_covariance(
+            noise_cov,
+            noise_covariance,
+            type(self).__name__,
+        )
         self.matrix = _as_matrix(matrix, "matrix")
         self.noise_cov = _as_square(noise_cov, "noise_cov")
         self.predicted_dim, self.state_dim = _shape(self.matrix)
@@ -166,9 +193,24 @@ class IdentityGaussianTransitionModel(LinearGaussianTransitionModel):
 
 
 class LinearGaussianMeasurementModel:
-    """Measurement model ``z = H x + v`` with Gaussian noise."""
+    """Measurement model ``z = H x + v`` with Gaussian noise.
 
-    def __init__(self, matrix, noise_cov):
+    The noise covariance can be supplied as ``noise_cov`` or, for consistency
+    with additive-noise models, as the keyword alias ``noise_covariance``.
+    """
+
+    def __init__(
+        self,
+        matrix,
+        noise_cov=_NOISE_COV_UNSET,
+        *,
+        noise_covariance=_NOISE_COV_UNSET,
+    ):
+        noise_cov = _resolve_noise_covariance(
+            noise_cov,
+            noise_covariance,
+            type(self).__name__,
+        )
         self.matrix = _as_matrix(matrix, "matrix")
         self.noise_cov = _as_square(noise_cov, "noise_cov")
         self.measurement_dim, self.state_dim = _shape(self.matrix)
