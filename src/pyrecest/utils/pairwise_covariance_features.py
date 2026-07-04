@@ -158,8 +158,11 @@ def pairwise_covariance_shape_components(
     n_a = covariances_a.shape[2]
     n_b = covariances_b.shape[2]
     if n_a == 0 or n_b == 0:
-        empty = zeros((n_a, n_b), dtype=float64)
-        return empty, empty, empty
+        return (
+            zeros((n_a, n_b), dtype=float64),
+            zeros((n_a, n_b), dtype=float64),
+            zeros((n_a, n_b), dtype=float64),
+        )
 
     moved_covariances_a = _symmetrized_covariance_batch(covariances_a)
     moved_covariances_b = _symmetrized_covariance_batch(covariances_b)
