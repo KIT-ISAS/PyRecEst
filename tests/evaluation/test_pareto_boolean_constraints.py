@@ -86,5 +86,8 @@ def test_boolean_constraints_work_through_selection() -> None:
 def test_boolean_constraints_reject_ordering_operators() -> None:
     table = pd.DataFrame({"allowed": [True, False]})
 
-    with pytest.raises(ValueError, match="Constraint threshold"):
+    with pytest.raises(
+        ValueError,
+        match="Constraint threshold for 'allowed' must be a finite scalar",
+    ):
         constraint_mask(table, {"allowed": ("<=", True)})
