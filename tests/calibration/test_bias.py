@@ -64,6 +64,23 @@ def test_model_rejects_invalid_scalar_metadata(field_name, invalid_value, match)
         SensorBiasCorrectionModel(**kwargs)
 
 
+@pytest.mark.parametrize(
+    ("field_name", "invalid_value", "match"),
+    [
+        ("intercept", np.array([np.nan]), "intercept"),
+        ("coefficients", np.array([[np.inf]]), "coefficients"),
+        ("feature_mean", np.array([np.nan]), "feature_mean"),
+        ("residual_std", np.array([np.inf]), "residual_std"),
+    ],
+)
+def test_model_rejects_nonfinite_array_parameters(field_name, invalid_value, match):
+    kwargs = _unit_feature_model_kwargs()
+    kwargs[field_name] = invalid_value
+
+    with pytest.raises(ValueError, match=match):
+        SensorBiasCorrectionModel(**kwargs)
+
+
 def test_from_dict_rejects_invalid_scalar_metadata_before_truncation():
     payload = SensorBiasCorrectionModel(**_unit_feature_model_kwargs()).to_dict()
     payload["target_dim"] = 1.5

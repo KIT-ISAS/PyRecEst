@@ -75,6 +75,10 @@ class SensorBiasCorrectionModel:
         residual_std = _as_numeric_array(self.residual_std, "residual_std").reshape(
             target_dim
         )
+        _require_finite_array(intercept, "intercept")
+        _require_finite_array(coefficients, "coefficients")
+        _require_finite_array(feature_mean, "feature_mean")
+        _require_finite_array(residual_std, "residual_std")
         feature_scale = np.where(
             np.isfinite(feature_scale) & (feature_scale > 0.0), feature_scale, 1.0
         )
@@ -415,6 +419,11 @@ def _as_nonnegative_finite_float(value: Any, name: str) -> float:
     if not np.isfinite(result) or result < 0.0:
         raise ValueError(f"{name} must be a nonnegative finite scalar")
     return result
+
+
+def _require_finite_array(values: np.ndarray, name: str) -> None:
+    if not np.isfinite(values).all():
+        raise ValueError(f"{name} must contain only finite values")
 
 
 def _nanmean_or_zero(values: np.ndarray) -> np.ndarray:
