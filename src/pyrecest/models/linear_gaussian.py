@@ -187,8 +187,20 @@ class LinearGaussianTransitionModel:
 
 
 class IdentityGaussianTransitionModel(LinearGaussianTransitionModel):
-    def __init__(self, dim, noise_cov, offset=None):
+    def __init__(
+        self,
+        dim,
+        noise_cov=_NOISE_COV_UNSET,
+        offset=None,
+        *,
+        noise_covariance=_NOISE_COV_UNSET,
+    ):
         dim = _as_positive_integer(dim, "dim")
+        noise_cov = _resolve_noise_covariance(
+            noise_cov,
+            noise_covariance,
+            type(self).__name__,
+        )
         super().__init__(eye(dim), noise_cov, offset=offset)
 
 
@@ -260,6 +272,17 @@ class LinearGaussianMeasurementModel:
 
 
 class IdentityGaussianMeasurementModel(LinearGaussianMeasurementModel):
-    def __init__(self, dim, noise_cov):
+    def __init__(
+        self,
+        dim,
+        noise_cov=_NOISE_COV_UNSET,
+        *,
+        noise_covariance=_NOISE_COV_UNSET,
+    ):
         dim = _as_positive_integer(dim, "dim")
+        noise_cov = _resolve_noise_covariance(
+            noise_cov,
+            noise_covariance,
+            type(self).__name__,
+        )
         super().__init__(eye(dim), noise_cov)
