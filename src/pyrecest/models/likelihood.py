@@ -186,10 +186,20 @@ class SampleableTransitionModel:
         self._sample_next = sample_next
         self._sample_next_count_call_mode = _sample_count_call_mode(sample_next)
         self._transition_density = transition_density
-        self.function_is_vectorized = _validate_bool_flag(
-            function_is_vectorized, "function_is_vectorized"
-        )
+        self.function_is_vectorized = function_is_vectorized
         self.name = name
+
+    @property
+    def function_is_vectorized(self) -> bool:
+        """Whether the sampler accepts vectorized state inputs."""
+
+        return self._function_is_vectorized
+
+    @function_is_vectorized.setter
+    def function_is_vectorized(self, value: bool) -> None:
+        self._function_is_vectorized = _validate_bool_flag(
+            value, "function_is_vectorized"
+        )
 
     @property
     def has_transition_density(self) -> bool:
