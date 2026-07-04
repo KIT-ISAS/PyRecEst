@@ -91,6 +91,67 @@ def _patch_pytorch_raw_comparison_arraylike_contract() -> None:
             setattr(backend, helper_name, helper)
 
 
+def _patch_pytorch_array_equal_equal_nan_contract() -> None:
+    """Patch raw/public PyTorch ``array_equal`` to accept ``equal_nan``."""
+
+    try:
+        import pyrecest._backend.pytorch as raw_pytorch  # pylint: disable=import-outside-toplevel
+        import pyrecest.backend as backend  # pylint: disable=import-outside-toplevel
+        import torch  # pylint: disable=import-outside-toplevel
+    except ModuleNotFoundError:  # pragma: no cover - PyTorch backend may be unavailable
+        return
+
+    original_array_equal = getattr(raw_pytorch, "array_equal", None)
+    if original_array_equal is None:
+        return
+    if getattr(original_array_equal, "_pyrecest_equal_nan_contract", False):
+        if getattr(backend, "__backend_name__", None) == "pytorch":
+            backend.array_equal = original_array_equal
+        return
+
+    def _preferred_pytorch_device(*values):
+        for value in values:
+            if torch.is_tensor(value) and value.device.type != "cpu":
+                return value.device
+        for value in values:
+            if torch.is_tensor(value):
+                return value.device
+        return None
+
+    def _coerce_array_equal_arg(value, *, device):
+        if not torch.is_tensor(value):
+            return torch.as_tensor(value, device=device)
+        if device is not None and value.device != device:
+            return value.to(device=device)
+        return value
+
+    def array_equal(a, b, equal_nan=False):
+        device = _preferred_pytorch_device(a, b)
+        a = _coerce_array_equal_arg(a, device=device)
+        b = _coerce_array_equal_arg(b, device=device)
+        if tuple(a.shape) != tuple(b.shape):
+            return False
+
+        dtype = torch.promote_types(a.dtype, b.dtype)
+        a = a.to(dtype=dtype)
+        b = b.to(dtype=dtype)
+        if not equal_nan:
+            return torch.equal(a, b)
+
+        comparison = torch.eq(a, b)
+        if dtype.is_floating_point or dtype.is_complex:
+            comparison = comparison | (torch.isnan(a) & torch.isnan(b))
+        return bool(torch.all(comparison))
+
+    array_equal.__name__ = getattr(original_array_equal, "__name__", "array_equal")
+    array_equal.__doc__ = getattr(original_array_equal, "__doc__", None)
+    array_equal._pyrecest_equal_nan_contract = True
+    array_equal._pyrecest_numpy_contract = True
+    raw_pytorch.array_equal = array_equal
+    if getattr(backend, "__backend_name__", None) == "pytorch":
+        backend.array_equal = array_equal
+
+
 def _patch_pytorch_diag_numpy_contract() -> None:
     """Patch raw/public PyTorch ``diag`` to accept NumPy-style inputs."""
     try:
@@ -254,6 +315,7 @@ _patch_pytorch_diag_numpy_contract()
 _patch_pytorch_vec_to_diag_numpy_contract()
 _patch_pytorch_arctan_numpy_contract()
 _patch_pytorch_raw_comparison_arraylike_contract()
+_patch_pytorch_array_equal_equal_nan_contract()
 _patch_pytorch_dot_outer_device_contract()
 _patch_pytorch_matmul_device_contract()
 _patch_pytorch_minmax_device_contract()
