@@ -238,6 +238,100 @@ def _patch_pytorch_arctan_numpy_contract() -> None:
         backend.arctan = arctan
 
 
+def _patch_pytorch_special_arraylike_contract() -> None:
+    """Patch raw/public PyTorch special helpers to accept array-like inputs."""
+    try:
+        import pyrecest._backend.pytorch as raw_pytorch  # pylint: disable=import-outside-toplevel
+        import pyrecest.backend as backend  # pylint: disable=import-outside-toplevel
+        import torch  # pylint: disable=import-outside-toplevel
+    except ModuleNotFoundError:  # pragma: no cover - PyTorch backend may be unavailable
+        return
+
+    active_pytorch_backend = getattr(backend, "__backend_name__", None) == "pytorch"
+    helper_names = ("erf", "gammaln", "gamma", "polygamma")
+    if all(
+        getattr(
+            getattr(raw_pytorch, helper_name, None),
+            "_pyrecest_arraylike_contract",
+            False,
+        )
+        for helper_name in helper_names
+    ):
+        if active_pytorch_backend:
+            for helper_name in helper_names:
+                setattr(backend, helper_name, getattr(raw_pytorch, helper_name))
+        return
+
+    def _return_or_store_out(result, out):
+        if out is None:
+            return result
+        copy_ = getattr(out, "copy_", None)
+        if copy_ is not None:
+            copy_(result)
+        else:
+            out[...] = raw_pytorch.to_numpy(result)
+        return out
+
+    def _as_real_gamma_input(a):
+        values = raw_pytorch.array(a)
+        if raw_pytorch.is_floating(values):
+            return values
+        if raw_pytorch.is_complex(values):
+            raise TypeError("gamma is only supported for real-valued PyTorch inputs")
+        return raw_pytorch.cast(values, dtype=raw_pytorch.get_default_dtype())
+
+    def erf(a, out=None):
+        result = torch.erf(raw_pytorch.array(a))
+        return _return_or_store_out(result, out)
+
+    def gammaln(a, out=None):
+        result = torch.special.gammaln(raw_pytorch.array(a))
+        return _return_or_store_out(result, out)
+
+    def gamma(a, out=None):
+        values = _as_real_gamma_input(a)
+        positive_branch = torch.exp(torch.special.gammaln(values))
+        reflected_branch = torch.pi / (
+            torch.sin(torch.pi * values) * torch.exp(torch.special.gammaln(1 - values))
+        )
+        result = torch.where(values < 0, reflected_branch, positive_branch)
+
+        zero_mask = values == 0
+        signed_zero_inf = torch.where(
+            torch.signbit(values),
+            torch.full_like(values, -torch.inf),
+            torch.full_like(values, torch.inf),
+        )
+        result = torch.where(zero_mask, signed_zero_inf, result)
+
+        negative_integer_mask = (values < 0) & (values == torch.floor(values))
+        result = torch.where(
+            negative_integer_mask,
+            torch.full_like(values, torch.nan),
+            result,
+        )
+        return _return_or_store_out(result, out)
+
+    def polygamma(n, a, out=None):
+        result = torch.polygamma(_operator_index(n), raw_pytorch.array(a))
+        return _return_or_store_out(result, out)
+
+    helpers = {
+        "erf": (erf, torch.erf),
+        "gammaln": (gammaln, torch.special.gammaln),
+        "gamma": (gamma, getattr(raw_pytorch, "gamma", None)),
+        "polygamma": (polygamma, torch.polygamma),
+    }
+    for helper_name, (helper, original_helper) in helpers.items():
+        helper.__name__ = helper_name
+        helper.__doc__ = getattr(original_helper, "__doc__", None)
+        helper._pyrecest_arraylike_contract = True
+        setattr(raw_pytorch, helper_name, helper)
+        if active_pytorch_backend:
+            setattr(backend, helper_name, helper)
+    raw_pytorch._gammaln = gammaln  # pylint: disable=protected-access
+
+
 def _jax_squeeze_axis(axis) -> int:
     """Return one NumPy-style integer squeeze axis."""
     if isinstance(axis, bool) or type(axis).__name__ == "bool_":
@@ -317,6 +411,7 @@ _patch_pytorch_allclose_device_contract()
 _patch_pytorch_diag_numpy_contract()
 _patch_pytorch_vec_to_diag_numpy_contract()
 _patch_pytorch_arctan_numpy_contract()
+_patch_pytorch_special_arraylike_contract()
 _patch_pytorch_raw_comparison_arraylike_contract()
 _patch_pytorch_array_equal_equal_nan_contract()
 _patch_pytorch_dot_outer_device_contract()
