@@ -73,15 +73,20 @@ def _normalize_fft_dim_sequence(dim):
     return tuple(normalized_entries)
 
 
-def _with_dim_alias(kwargs, alias, func_name):
+def _with_dim_alias(kwargs, alias, func_name, *, none_alias_means_default=True):
     if alias not in kwargs:
         return kwargs
 
     kwargs = dict(kwargs)
     alias_value = kwargs.pop(alias)
-    if alias_value is None:
-        return kwargs
     dim_value = kwargs.get("dim")
+    if alias_value is None:
+        if none_alias_means_default:
+            return kwargs
+        if dim_value is not None:
+            raise TypeError("conflicting FFT axis aliases")
+        kwargs["dim"] = None
+        return kwargs
     if dim_value is not None:
         dim_value = _normalize_fft_dim_sequence(dim_value)
         alias_value = _normalize_fft_dim_sequence(alias_value)
@@ -100,11 +105,17 @@ def _wrap_arraylike_fft(
     empty_dim_is_noop=False,
     normalize_scalar_dim=False,
     normalize_dim_sequence=False,
+    none_alias_means_default=True,
 ):
     @_wraps(torch_func)
     def fft_func(value, *args, **kwargs):
         if dim_alias is not None:
-            kwargs = _with_dim_alias(kwargs, dim_alias, func_name)
+            kwargs = _with_dim_alias(
+                kwargs,
+                dim_alias,
+                func_name,
+                none_alias_means_default=none_alias_means_default,
+            )
         if normalize_scalar_dim and "dim" in kwargs:
             kwargs = dict(kwargs)
             kwargs["dim"] = _normalize_single_fft_dim(kwargs["dim"])
@@ -128,12 +139,14 @@ rfft = _wrap_arraylike_fft(
     func_name="rfft",
     dim_alias="axis",
     normalize_scalar_dim=True,
+    none_alias_means_default=False,
 )
 irfft = _wrap_arraylike_fft(
     _torch.fft.irfft,
     func_name="irfft",
     dim_alias="axis",
     normalize_scalar_dim=True,
+    none_alias_means_default=False,
 )
 fftshift = _wrap_arraylike_fft(
     _torch.fft.fftshift,
