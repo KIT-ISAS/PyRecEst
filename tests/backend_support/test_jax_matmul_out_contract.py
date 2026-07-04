@@ -6,4 +6,4 @@ import sys
 import pytest
 
 
-@패?
+@ pytest.mark.backend_portable
