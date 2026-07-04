@@ -65,6 +65,22 @@ def _is_finite_real_number(value: Any) -> bool:
     )
 
 
+def _coerce_finite_real_sequence(value: Any, *, field_name: str) -> list[float]:
+    if isinstance(value, (str, bytes, bytearray, dict)):
+        raise ValueError(f"{field_name} must be a sequence of finite numbers")
+    try:
+        items = list(value)
+    except TypeError as exc:
+        raise ValueError(f"{field_name} must be a sequence of finite numbers") from exc
+
+    coerced: list[float] = []
+    for item in items:
+        if not _is_finite_real_number(item):
+            raise ValueError(f"{field_name} must contain only finite numbers")
+        coerced.append(float(item))
+    return coerced
+
+
 def _comparison_value(value: Any) -> Any:
     if isinstance(value, np.ndarray):
         return _comparison_value(value.tolist())
@@ -190,17 +206,29 @@ def _cmd_run_scenario(args: argparse.Namespace) -> int:
         failures: list[str] = []
         expected_estimate = expected.get("final_estimate")
         if expected_estimate is not None:
-            if len(result.final_estimate) != len(expected_estimate):
-                failures.append(
-                    "final_estimate length mismatch: "
-                    f"expected {len(expected_estimate)}, got {len(result.final_estimate)}"
+            try:
+                actual_estimate_values = _coerce_finite_real_sequence(
+                    result.final_estimate,
+                    field_name="scenario result final_estimate",
                 )
+                expected_estimate_values = _coerce_finite_real_sequence(
+                    expected_estimate,
+                    field_name="final_estimate",
+                )
+            except ValueError as exc:
+                failures.append(str(exc))
             else:
-                max_error = _max_abs_error(result.final_estimate, expected_estimate)
-                if max_error > tolerance:
+                if len(actual_estimate_values) != len(expected_estimate_values):
                     failures.append(
-                        f"final_estimate mismatch: max_abs_error={max_error:.6g} > tolerance={tolerance:.6g}"
+                        "final_estimate length mismatch: "
+                        f"expected {len(expected_estimate_values)}, got {len(actual_estimate_values)}"
                     )
+                else:
+                    max_error = _max_abs_error(actual_estimate_values, expected_estimate_values)
+                    if max_error > tolerance:
+                        failures.append(
+                            f"final_estimate mismatch: max_abs_error={max_error:.6g} > tolerance={tolerance:.6g}"
+                        )
         if isinstance(expected.get("metrics"), dict):
             failures.extend(
                 _check_expected_mapping(
