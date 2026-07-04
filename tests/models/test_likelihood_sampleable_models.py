@@ -1,5 +1,7 @@
 import unittest
 
+import numpy as np
+
 # pylint: disable=no-name-in-module,no-member
 from pyrecest.backend import allclose, arange, array, exp, reshape
 from pyrecest.models import (
@@ -174,6 +176,27 @@ class SampleableTransitionModelTest(unittest.TestCase):
         )
 
         self.assertFalse(model.function_is_vectorized)
+
+    def test_function_is_vectorized_flag_requires_boolean(self):
+        model = SampleableTransitionModel(
+            lambda state: state,
+            function_is_vectorized=np.bool_(True),
+        )
+
+        self.assertTrue(model.function_is_vectorized)
+        model.function_is_vectorized = False
+        self.assertFalse(model.function_is_vectorized)
+
+        invalid_flags = ("False", 1, np.array([True]))
+        for flag in invalid_flags:
+            with self.subTest(flag=flag):
+                with self.assertRaisesRegex(TypeError, "function_is_vectorized"):
+                    SampleableTransitionModel(
+                        lambda state: state,
+                        function_is_vectorized=flag,
+                    )
+                with self.assertRaisesRegex(TypeError, "function_is_vectorized"):
+                    model.function_is_vectorized = flag
 
 
 class DensityTransitionModelTest(unittest.TestCase):
