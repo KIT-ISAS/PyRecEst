@@ -64,6 +64,16 @@ public_result = backend.std(
 assert tuple(public_result.shape) == (1, 3)
 assert backend.allclose(public_result, expected)
 
+correction_result = backend.std(
+    values,
+    axis=0,
+    dtype=backend.float64,
+    correction=1,
+    keepdims=True,
+)
+assert tuple(correction_result.shape) == (1, 3)
+assert backend.allclose(correction_result, expected)
+
 raw_out = backend.zeros((1, 3), dtype=backend.float64)
 raw_result = raw_jax.std(
     values,
