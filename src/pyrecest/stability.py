@@ -246,6 +246,66 @@ def _patch_jax_squeeze_numpy_contract() -> None:
         backend.squeeze = squeeze
 
 
+def _patch_jax_triangular_vec_numpy_contract() -> None:
+    """Patch raw/public JAX triangular vector helpers for array-like inputs."""
+    try:
+        import jax.numpy as jnp  # pylint: disable=import-outside-toplevel
+        import pyrecest._backend.jax as raw_jax  # pylint: disable=import-outside-toplevel
+        import pyrecest.backend as backend  # pylint: disable=import-outside-toplevel
+    except ModuleNotFoundError:  # pragma: no cover - JAX backend may be unavailable
+        return
+
+    helper_names = ("tril_to_vec", "triu_to_vec")
+    active_jax_backend = getattr(backend, "__backend_name__", None) == "jax"
+    if all(
+        getattr(
+            getattr(raw_jax, helper_name, None),
+            "_pyrecest_numpy_contract",
+            False,
+        )
+        for helper_name in helper_names
+    ):
+        if active_jax_backend:
+            for helper_name in helper_names:
+                setattr(backend, helper_name, getattr(raw_jax, helper_name))
+        return
+
+    def _wrap_triangular_vector_helper(helper_name, index_factory):
+        original_helper = getattr(raw_jax, helper_name, None)
+        if original_helper is None:
+            return None
+        if getattr(original_helper, "_pyrecest_numpy_contract", False):
+            return original_helper
+
+        def triangular_vector(x, k=0):
+            x = jnp.asarray(x)
+            n = x.shape[-1]
+            rows, cols = index_factory(n, k=k)
+            return x[..., rows, cols]
+
+        triangular_vector.__name__ = getattr(original_helper, "__name__", helper_name)
+        triangular_vector.__doc__ = getattr(original_helper, "__doc__", None)
+        triangular_vector._pyrecest_numpy_contract = True
+        return triangular_vector
+
+    helpers = {
+        "tril_to_vec": _wrap_triangular_vector_helper(
+            "tril_to_vec",
+            jnp.tril_indices,
+        ),
+        "triu_to_vec": _wrap_triangular_vector_helper(
+            "triu_to_vec",
+            jnp.triu_indices,
+        ),
+    }
+    for helper_name, helper in helpers.items():
+        if helper is None:
+            continue
+        setattr(raw_jax, helper_name, helper)
+        if active_jax_backend:
+            setattr(backend, helper_name, helper)
+
+
 _patch_pytorch_allclose_device_contract()
 _patch_pytorch_diag_numpy_contract()
 _patch_pytorch_vec_to_diag_numpy_contract()
@@ -255,6 +315,7 @@ _patch_pytorch_dot_outer_device_contract()
 _patch_pytorch_matmul_device_contract()
 _patch_pytorch_minmax_device_contract()
 _patch_jax_squeeze_numpy_contract()
+_patch_jax_triangular_vec_numpy_contract()
 
 P = ParamSpec("P")
 R = TypeVar("R")
