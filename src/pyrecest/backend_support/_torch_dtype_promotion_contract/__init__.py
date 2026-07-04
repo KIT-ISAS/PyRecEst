@@ -39,6 +39,7 @@ def patch_pytorch_dtype_promotion_contract() -> None:
     _patch_pytorch_binary_device_contract(raw_pytorch, backend, torch)
     _patch_pytorch_equality_device_contract(raw_pytorch, backend, torch)
     _patch_pytorch_linspace_integer_dtype_contract(raw_pytorch, backend, torch)
+    _patch_pytorch_creation_bool_shape_contract(raw_pytorch, backend, torch, np)
     _patch_pytorch_arraylike_helper_contract(raw_pytorch, backend, torch)
     _patch_pytorch_concatenate_axis_none_contract(raw_pytorch, backend, torch)
 
@@ -313,6 +314,74 @@ def _patch_pytorch_linspace_integer_dtype_contract(raw_pytorch, backend, torch) 
     raw_pytorch.linspace = linspace
     if getattr(backend, "__backend_name__", None) == "pytorch":
         backend.linspace = linspace
+
+
+def _pytorch_creation_dimension(dimension, np) -> int:
+    """Return one creation-shape dimension while rejecting booleans."""
+    if isinstance(dimension, (bool, np.bool_)):
+        raise TypeError("shape dimensions must be integers")
+    try:
+        return _operator_index(dimension)
+    except TypeError as exc:
+        raise TypeError("shape dimensions must be integers") from exc
+
+
+def _pytorch_creation_shape(shape, torch, np) -> tuple[int, ...]:
+    """Return a NumPy-style creation shape without accepting boolean dimensions."""
+    if torch.is_tensor(shape):
+        shape = shape.detach().cpu().numpy()
+
+    if isinstance(shape, (bool, np.bool_)):
+        raise TypeError("shape dimensions must be integers")
+    if isinstance(shape, (list, tuple)):
+        return tuple(_pytorch_creation_dimension(dimension, np) for dimension in shape)
+
+    shape_array = np.asarray(shape)
+    if shape_array.shape == ():
+        return (_pytorch_creation_dimension(shape_array.item(), np),)
+    if shape_array.size and np.issubdtype(shape_array.dtype, np.bool_):
+        raise TypeError("shape dimensions must be integers")
+    return tuple(
+        _pytorch_creation_dimension(dimension, np)
+        for dimension in shape_array.tolist()
+    )
+
+
+def _wrap_creation_shape_helper(original_helper, torch, np):
+    """Normalize creation shapes before the base PyTorch compatibility wrapper."""
+    if getattr(original_helper, "_pyrecest_bool_shape_contract", False):
+        return original_helper
+
+    def creation_helper(shape, *args, **kwargs):
+        return original_helper(_pytorch_creation_shape(shape, torch, np), *args, **kwargs)
+
+    creation_helper.__name__ = getattr(original_helper, "__name__", "creation_helper")
+    creation_helper.__doc__ = getattr(original_helper, "__doc__", None)
+    creation_helper._pyrecest_bool_shape_contract = True
+    return creation_helper
+
+
+def _patch_pytorch_creation_bool_shape_contract(raw_pytorch, backend, torch, np) -> None:
+    """Reject boolean creation shapes before PyTorch interprets them as integers."""
+    helper_names = ("empty", "zeros", "ones", "full")
+    if all(
+        getattr(getattr(raw_pytorch, helper_name, None), "_pyrecest_bool_shape_contract", False)
+        for helper_name in helper_names
+    ):
+        if getattr(backend, "__backend_name__", None) == "pytorch":
+            for helper_name in helper_names:
+                setattr(backend, helper_name, getattr(raw_pytorch, helper_name))
+        return
+
+    for helper_name in helper_names:
+        wrapped_helper = _wrap_creation_shape_helper(
+            getattr(raw_pytorch, helper_name),
+            torch,
+            np,
+        )
+        setattr(raw_pytorch, helper_name, wrapped_helper)
+        if getattr(backend, "__backend_name__", None) == "pytorch":
+            setattr(backend, helper_name, wrapped_helper)
 
 
 def _arraylike_tensor(value, raw_pytorch, torch):
