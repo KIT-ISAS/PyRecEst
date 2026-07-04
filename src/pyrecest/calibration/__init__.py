@@ -8,6 +8,7 @@ import numpy as np
 from . import time_offset as _time_offset_module
 
 _REJECTED_REAL_SCALAR_TYPES = (
+    type(None),
     bool,
     np.bool_,
     str,
@@ -58,7 +59,7 @@ def _as_real_numeric_array(value: Any, name: str) -> np.ndarray:
     arr = np.asarray(value)
     if arr.dtype == np.bool_ or arr.dtype.kind in "USbcMm":
         raise ValueError(f"{name} must contain real numeric values")
-    if arr.dtype == object:
+    if arr.dtype.kind == "O":
         for item in arr.reshape(-1):
             if _is_rejected_real_scalar(item):
                 raise ValueError(f"{name} must contain real numeric values")
