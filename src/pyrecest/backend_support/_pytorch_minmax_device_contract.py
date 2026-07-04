@@ -2,9 +2,14 @@
 
 from __future__ import annotations
 
+import sys
+
 
 def _preferred_pytorch_device(torch_module, *values):
     """Return a non-CPU tensor device when mixed-device operands are present."""
+    for value in values:
+        if torch_module.is_tensor(value) and value.device.type == "meta":
+            return value.device
     for value in values:
         if torch_module.is_tensor(value) and value.device.type != "cpu":
             return value.device
@@ -25,13 +30,21 @@ def _minmax_operands(raw_pytorch, torch_module, left, right):
     return left.to(device=device, dtype=dtype), right.to(device=device, dtype=dtype)
 
 
+def _raw_pytorch_module():
+    """Return the already-imported raw PyTorch backend module, if available."""
+    return sys.modules.get(".".join(("pyrecest", "_backend", "pytorch")))
+
+
 def patch_pytorch_minmax_device_contract() -> None:
     """Patch raw/public PyTorch ``maximum`` and ``minimum`` to preserve device."""
     try:
-        import pyrecest._backend.pytorch as raw_pytorch  # pylint: disable=import-outside-toplevel
         import pyrecest.backend as backend  # pylint: disable=import-outside-toplevel
         import torch  # pylint: disable=import-outside-toplevel
     except ModuleNotFoundError:  # pragma: no cover - PyTorch backend may be unavailable
+        return
+
+    raw_pytorch = _raw_pytorch_module()
+    if raw_pytorch is None:  # pragma: no cover - backend import failed earlier
         return
 
     helpers = {
