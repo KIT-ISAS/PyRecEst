@@ -39,7 +39,11 @@ for module in (backend, pytorch_backend):
     upper = module.triu_to_vec(matrix, k=1)
     assert module.to_numpy(upper).tolist() == [2, 3, 6]
 """
-    subprocess.run([sys.executable, "-c", code], check=True, env=_backend_test_env("pytorch"))
+    subprocess.run(
+        [sys.executable, "-c", code],
+        check=True,
+        env=_backend_test_env("pytorch"),
+    )
 
 
 @pytest.mark.backend_portable
@@ -64,4 +68,8 @@ assert pytorch_backend.to_numpy(lower).tolist() == [1, 4, 5, 7, 8, 9]
 upper = pytorch_backend.triu_to_vec(matrix, k=1)
 assert pytorch_backend.to_numpy(upper).tolist() == [2, 3, 6]
 """
-    subprocess.run([sys.executable, "-c", code], check=True, env=_backend_test_env("numpy"))
+    subprocess.run(
+        [sys.executable, "-c", code],
+        check=True,
+        env=_backend_test_env("numpy"),
+    )
