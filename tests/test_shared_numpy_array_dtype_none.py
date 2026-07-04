@@ -9,11 +9,13 @@ backend.set_default_dtype("float32")
 try:
     omitted_real = backend.array([1.0])
     explicit_none_real = backend.array([1.0], dtype=None)
+    positional_none_real = backend.array([1.0], None)
     explicit_none_complex = backend.array([1.0 + 2.0j], dtype=None)
     explicit_none_integer = backend.array([1], dtype=None)
 
     assert str(omitted_real.dtype) == "float32", omitted_real.dtype
     assert str(explicit_none_real.dtype) == "float32", explicit_none_real.dtype
+    assert str(positional_none_real.dtype) == "float32", positional_none_real.dtype
     assert str(explicit_none_complex.dtype) == "complex64", explicit_none_complex.dtype
     assert str(explicit_none_integer.dtype).startswith("int"), explicit_none_integer.dtype
 finally:
