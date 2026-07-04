@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+from pyrecest.backend_support._pytorch_creation_shape_contract import (
+    patch_pytorch_creation_shape_contract as _patch_pytorch_creation_shape_contract,
+)
+
 
 def _preferred_pytorch_device(torch_module, *values):
     """Return a non-CPU tensor device when mixed-device operands are present."""
@@ -39,6 +43,8 @@ def patch_pytorch_allclose_device_contract() -> None:
         import torch as torch_module  # pylint: disable=import-outside-toplevel
     except ModuleNotFoundError:  # pragma: no cover - PyTorch backend may be unavailable
         return
+
+    _patch_pytorch_creation_shape_contract()
 
     original_allclose = getattr(pytorch_backend, "allclose", None)
     if original_allclose is None:
