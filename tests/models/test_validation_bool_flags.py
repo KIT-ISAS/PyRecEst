@@ -12,12 +12,22 @@ from pyrecest.models.validation import (
 )
 
 
+class _ArrayCoercionFailure:
+    def __array__(self, *args, **kwargs):
+        raise RuntimeError("cannot coerce to array")
+
+
 def test_validate_state_vector_rejects_nonboolean_allow_scalar() -> None:
     invalid_flags = ("False", 1, np.array([True]))
 
     for flag in invalid_flags:
         with pytest.raises(TypeError, match="allow_scalar"):
             validate_state_vector(1.0, allow_scalar=flag)
+
+
+def test_validate_state_vector_normalizes_bool_flag_array_coercion_errors() -> None:
+    with pytest.raises(TypeError, match="allow_scalar must be a boolean"):
+        validate_state_vector(1.0, allow_scalar=_ArrayCoercionFailure())
 
 
 @pytest.mark.parametrize("flag", [True, np.bool_(True), np.array(True)])
