@@ -148,6 +148,7 @@ def validate_vector(
 
     actual_dim = _shape_tuple(vector)[0]
     _validate_expected_dim(actual_dim, dim, name, "dim")
+    _validate_finite_entries(vector, name)
     return vector
 
 
@@ -209,6 +210,7 @@ def validate_matrix(
     actual_rows, actual_cols = _shape_tuple(matrix)
     _validate_expected_dim(actual_rows, rows, name, "rows")
     _validate_expected_dim(actual_cols, cols, name, "cols")
+    _validate_finite_entries(matrix, name)
     return matrix
 
 
