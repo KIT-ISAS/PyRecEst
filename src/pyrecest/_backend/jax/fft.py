@@ -9,7 +9,7 @@ def _normalize_real_fft_axis(axis):
     """Return a Python ``int`` for integer scalar-array FFT axes."""
     if isinstance(axis, _np.ndarray):
         if (
-            axis.size == 1
+            axis.ndim == 0
             and _np.issubdtype(axis.dtype, _np.integer)
             and not _np.issubdtype(axis.dtype, _np.bool_)
         ):
