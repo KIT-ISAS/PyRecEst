@@ -95,7 +95,7 @@ def _as_real_numeric_array(value: Any, name: str) -> np.ndarray:
     arr = np.asarray(value)
     if arr.dtype == np.bool_ or arr.dtype.kind in "USbcMm":
         raise ValueError(f"{name} must contain real numeric values")
-    if arr.dtype == object:
+    if arr.dtype.kind == "O":
         for item in arr.reshape(-1):
             if item is None or isinstance(item, (bool, np.bool_, str, bytes, bytearray, complex, np.complexfloating)):
                 raise ValueError(f"{name} must contain real numeric values")
