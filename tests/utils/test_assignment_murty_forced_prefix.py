@@ -1,5 +1,7 @@
 import numpy as np
+import pytest
 
+import pyrecest.backend as backend
 from pyrecest.utils.assignment import murty_k_best_assignments
 
 
@@ -8,6 +10,9 @@ def _assignment_tuple(solution):
 
 
 def test_murty_forced_prefix_subproblems_do_not_repeat_assignments():
+    if backend.__backend_name__ == "jax":
+        pytest.skip("Murty k-best assignment is not supported on the JAX backend")
+
     cost_matrix = np.asarray(
         [
             [0.0, 100.0],
