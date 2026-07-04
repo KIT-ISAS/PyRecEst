@@ -248,7 +248,7 @@ def plan_linear_measurement_update(
     residual_threshold = (
         None
         if max_residual_norm is None
-        else _as_positive_scalar(max_residual_norm, "max_residual_norm")
+        else _as_nonnegative_scalar(max_residual_norm, "max_residual_norm")
     )
 
     residual = vector - observation @ state_mean
@@ -338,7 +338,7 @@ def gate_threshold_for_measurement(
     source = str(measurement.source)
     if gate_thresholds_by_source and source in gate_thresholds_by_source:
         value = gate_thresholds_by_source[source]
-        return None if value is None else _as_positive_scalar(value, "gate_threshold")
+        return None if value is None else _as_nonnegative_scalar(value, "gate_threshold")
     if gate_probabilities_by_source and source in gate_probabilities_by_source:
         probability = gate_probabilities_by_source[source]
         vector = np.asarray(measurement.vector).reshape(-1)
@@ -378,7 +378,7 @@ def _resolve_threshold(
     name: str,
 ) -> float | None:
     if threshold is not None:
-        return _as_positive_scalar(threshold, f"{name}_threshold")
+        return _as_nonnegative_scalar(threshold, f"{name}_threshold")
     return chi_square_gate_threshold(probability, measurement_dim)
 
 
