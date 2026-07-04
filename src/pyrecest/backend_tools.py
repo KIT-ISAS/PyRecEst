@@ -144,25 +144,20 @@ def _patch_pytorch_broadcast_arrays_numpy_contract() -> None:
 
 
 def _patch_pytorch_round_numpy_contract() -> None:
-    """Make PyTorch round accept NumPy-style array-like inputs."""
-
-    try:
-        import pyrecest.backend as backend  # pylint: disable=import-outside-toplevel
-    except ModuleNotFoundError:  # pragma: no cover - import fails before this module
-        return
-
-    if getattr(backend, "__backend_name__", None) != "pytorch":
-        return
+    """Make raw and active public PyTorch round accept NumPy-style inputs."""
 
     try:
         import pyrecest._backend.pytorch as pytorch_backend  # pylint: disable=import-outside-toplevel
+        import pyrecest.backend as backend  # pylint: disable=import-outside-toplevel
         import torch as _torch  # pylint: disable=import-outside-toplevel
-    except (
-        ModuleNotFoundError
-    ):  # pragma: no cover - PyTorch backend import failed earlier
+    except ModuleNotFoundError:  # pragma: no cover - PyTorch backend may be unavailable
         return
 
+    active_pytorch_backend = getattr(backend, "__backend_name__", None) == "pytorch"
+
     if getattr(pytorch_backend.round, "_pyrecest_numpy_contract", False):
+        if active_pytorch_backend:
+            backend.round = pytorch_backend.round
         return
 
     def round(a, decimals=0, out=None):  # pylint: disable=redefined-builtin
@@ -176,8 +171,9 @@ def _patch_pytorch_round_numpy_contract() -> None:
     round.__name__ = getattr(_torch.round, "__name__", "round")
     round.__doc__ = getattr(_torch.round, "__doc__", None)
     round._pyrecest_numpy_contract = True
-    backend.round = round
     pytorch_backend.round = round
+    if active_pytorch_backend:
+        backend.round = round
 
 
 def _patch_raw_pytorch_conj_numpy_contract() -> None:
