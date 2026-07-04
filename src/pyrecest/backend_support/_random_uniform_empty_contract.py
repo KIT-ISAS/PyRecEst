@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+
 
 def _shape_has_no_samples(shape) -> bool:
     """Return whether a sample shape requests zero samples."""
@@ -232,6 +234,8 @@ def _patch_jax_uniform_empty_bounds_contract() -> None:
 def patch_random_uniform_empty_bounds_contract() -> None:
     """Patch random uniform empty-bound compatibility for optional backends."""
 
-    _patch_shared_numpy_uniform_empty_bounds_contract()
+    backend_name = os.environ.get("PYRECEST_BACKEND", "numpy")
+    if backend_name in {"autograd", "numpy"}:
+        _patch_shared_numpy_uniform_empty_bounds_contract()
     _patch_pytorch_uniform_empty_bounds_contract()
     _patch_jax_uniform_empty_bounds_contract()
