@@ -41,10 +41,21 @@ def _validate_randint_bound(bound, name):
         raise TypeError(f"{name} must contain integer values")
 
 
+def _validate_randint_dtype(dtype):
+    try:
+        dtype = _np.dtype(dtype)
+    except (TypeError, ValueError) as exc:
+        raise TypeError("dtype must be an integer dtype") from exc
+    if dtype.kind not in "iu":
+        raise TypeError("dtype must be an integer dtype")
+    return dtype
+
+
 def randint(low, high=None, size=None, dtype=int):
-    """Draw integer samples after rejecting non-integer bounds."""
+    """Draw integer samples after rejecting non-integer bounds and dtypes."""
 
     size = _normalize_size(size)
+    dtype = _validate_randint_dtype(dtype)
     if high is None:
         _validate_randint_bound(low, "high")
         return _np.random.randint(low, high=None, size=size, dtype=dtype)
