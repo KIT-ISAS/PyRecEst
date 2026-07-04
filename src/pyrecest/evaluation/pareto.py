@@ -167,24 +167,33 @@ def constraint_mask(
         if column not in table.columns:
             mask &= False
             continue
-        threshold_value = _coerce_finite_threshold(threshold, column)
-        values = pd.to_numeric(table[column], errors="coerce")
-        present_values = values.notna()
-        if op == "<=":
-            comparison = values <= threshold_value + eps
-        elif op == ">=":
-            comparison = values >= threshold_value - eps
-        elif op == "<":
-            comparison = values < threshold_value - eps
-        elif op == ">":
-            comparison = values > threshold_value + eps
-        elif op == "==":
-            comparison = np.isclose(values, threshold_value, atol=eps, rtol=0.0)
-        elif op == "!=":
-            comparison = ~np.isclose(values, threshold_value, atol=eps, rtol=0.0)
-        else:  # pragma: no cover - protected by _parse_constraint_spec.
-            raise ValueError(f"Unsupported constraint operator {op!r}.")
-        comparison = pd.Series(comparison, index=table.index).fillna(False).astype(bool)
+        threshold_value = _coerce_constraint_threshold(threshold, column)
+        if isinstance(threshold_value, bool):
+            present_values, comparison = _boolean_constraint_comparison(
+                table[column],
+                op,
+                threshold_value,
+                column,
+            )
+        else:
+            values = pd.to_numeric(table[column], errors="coerce").astype(float)
+            present_values = values.notna()
+            if op == "<=":
+                comparison = values <= threshold_value + eps
+            elif op == ">=":
+                comparison = values >= threshold_value - eps
+            elif op == "<":
+                comparison = values < threshold_value - eps
+            elif op == ">":
+                comparison = values > threshold_value + eps
+            elif op == "==":
+                comparison = np.isclose(values, threshold_value, atol=eps, rtol=0.0)
+            elif op == "!=":
+                comparison = ~np.isclose(values, threshold_value, atol=eps, rtol=0.0)
+            else:  # pragma: no cover - protected by _parse_constraint_spec.
+                raise ValueError(f"Unsupported constraint operator {op!r}.")
+            comparison = pd.Series(comparison, index=table.index)
+        comparison = comparison.fillna(False).astype(bool)
         mask &= present_values & comparison
     return mask.fillna(False)
 
@@ -414,16 +423,19 @@ def _parse_constraint_spec(spec: ConstraintSpec | Mapping[str, Any]) -> Constrai
     return op, threshold
 
 
-def _coerce_finite_threshold(value: Any, column: str) -> float:
+def _coerce_constraint_threshold(value: Any, column: str) -> float | bool:
     message = f"Constraint threshold for {column!r} must be a finite scalar."
-    value_array = np.asarray(value)
+    try:
+        value_array = np.asarray(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(message) from exc
     if value_array.shape != ():
         raise ValueError(message)
     scalar = value_array.item()
+    if isinstance(scalar, (bool, np.bool_)):
+        return bool(scalar)
     if _is_text_scalar(scalar):
         raise ValueError(message)
-    if isinstance(scalar, (bool, np.bool_)):
-        return float(scalar)
     try:
         threshold = float(scalar)
     except (TypeError, ValueError, OverflowError) as exc:
@@ -431,3 +443,32 @@ def _coerce_finite_threshold(value: Any, column: str) -> float:
     if not np.isfinite(threshold):
         raise ValueError(message)
     return threshold
+
+
+def _boolean_constraint_comparison(
+    values: pd.Series,
+    op: ConstraintOperator,
+    threshold: bool,
+    column: str,
+) -> tuple[pd.Series, pd.Series]:
+    if op not in {"==", "!="}:
+        raise ValueError(
+            f"Constraint threshold for {column!r} must be a finite scalar."
+        )
+
+    bool_values = np.zeros(len(values), dtype=bool)
+    present_values = np.zeros(len(values), dtype=bool)
+    for position, value in enumerate(values.to_numpy(dtype=object)):
+        if _is_missing(value):
+            continue
+        if isinstance(value, (bool, np.bool_)):
+            bool_values[position] = bool(value)
+            present_values[position] = True
+
+    comparison = bool_values == threshold
+    if op == "!=":
+        comparison = ~comparison
+    return (
+        pd.Series(present_values, index=values.index, dtype=bool),
+        pd.Series(comparison, index=values.index, dtype=bool),
+    )
