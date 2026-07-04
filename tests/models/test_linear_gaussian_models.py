@@ -39,6 +39,12 @@ class LinearGaussianModelsTest(unittest.TestCase):
         npt.assert_allclose(to_numpy(noise.mu), to_numpy(array([0.0, 0.0])), atol=1e-12)
         npt.assert_allclose(to_numpy(noise.C), to_numpy(noise_cov), atol=1e-12)
 
+    def test_transition_accepts_noise_covariance_keyword_alias(self):
+        noise_cov = diag(array([0.1, 0.2]))
+        model = LinearGaussianTransitionModel(eye(2), noise_covariance=noise_cov)
+
+        npt.assert_allclose(to_numpy(model.system_noise_cov), to_numpy(noise_cov), atol=1e-12)
+
     def test_measurement_predict_distribution(self):
         model = LinearGaussianMeasurementModel(array([[1.0, 0.0]]), array([[0.25]]))
         state = GaussianDistribution(array([2.0, 0.5]), diag(array([1.0, 2.0])))
@@ -58,6 +64,29 @@ class LinearGaussianModelsTest(unittest.TestCase):
 
         npt.assert_allclose(to_numpy(noise.mu), to_numpy(array([0.0])), atol=1e-12)
         npt.assert_allclose(to_numpy(noise.C), to_numpy(noise_cov), atol=1e-12)
+
+    def test_measurement_accepts_noise_covariance_keyword_alias(self):
+        noise_cov = array([[0.25]])
+        model = LinearGaussianMeasurementModel(
+            array([[1.0, 0.0]]), noise_covariance=noise_cov
+        )
+
+        npt.assert_allclose(to_numpy(model.measurement_noise_cov), to_numpy(noise_cov), atol=1e-12)
+
+    def test_noise_covariance_keyword_rejects_ambiguous_inputs(self):
+        with self.assertRaisesRegex(
+            TypeError, "LinearGaussianTransitionModel got both noise_cov and noise_covariance"
+        ):
+            LinearGaussianTransitionModel(
+                eye(1), array([[1.0]]), noise_covariance=array([[1.0]])
+            )
+
+        with self.assertRaisesRegex(
+            TypeError, "LinearGaussianMeasurementModel got both noise_cov and noise_covariance"
+        ):
+            LinearGaussianMeasurementModel(
+                eye(1), array([[1.0]]), noise_covariance=array([[1.0]])
+            )
 
     def test_identity_models(self):
         transition_model = IdentityGaussianTransitionModel(2, diag(array([0.1, 0.2])))
