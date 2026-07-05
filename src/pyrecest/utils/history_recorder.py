@@ -68,12 +68,28 @@ def _is_invalid_padded_history_dtype(dtype: Any) -> bool:
     )
 
 
+def _padded_history_input_dtype(value: Any):
+    dtype = getattr(value, "dtype", None)
+    if dtype is not None:
+        return dtype
+    try:
+        return np.asarray(value).dtype
+    except (TypeError, ValueError):
+        return None
+
+
 def _as_padded_numeric_array(curr_ests):
     message = "padded history values must be real numeric"
+    if _is_invalid_padded_history_dtype(_padded_history_input_dtype(curr_ests)):
+        raise TypeError(message)
+
     try:
         raw_curr_ests = asarray(curr_ests)
-    except (TypeError, ValueError, RuntimeError) as exc:
-        raise TypeError(message) from exc
+    except (TypeError, ValueError, RuntimeError):
+        try:
+            raw_curr_ests = asarray(np.asarray(curr_ests, dtype=float))
+        except (TypeError, ValueError, RuntimeError) as fallback_exc:
+            raise TypeError(message) from fallback_exc
 
     if _is_invalid_padded_history_dtype(getattr(raw_curr_ests, "dtype", None)):
         raise TypeError(message)
