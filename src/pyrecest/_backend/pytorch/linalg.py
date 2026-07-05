@@ -236,7 +236,9 @@ class _Logm(_torch.autograd.Function):
         return _Logm._logm(backward_tensor).to(tensor.dtype)[..., :n, n:]
 
 
-logm = _Logm.apply
+def logm(x):
+    """Compute the matrix logarithm after PyRecEst-style array-like promotion."""
+    return _Logm.apply(_as_linalg_tensor(x))
 
 
 def sqrtm(x):
@@ -458,4 +460,4 @@ def polar(a, side="right"):
     func = _np.vectorize(_scipy.linalg.polar, signature=signature, excluded=["side"])
     unitary, hermitian = func(_as_numpy_no_grad(a), side=side)
 
-    return _torch_as_like(unitary, a), _torch_as_like(hermitian, a)
+    return _torch_as_like(unitary, a)
