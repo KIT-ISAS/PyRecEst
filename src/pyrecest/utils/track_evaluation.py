@@ -5,6 +5,8 @@ from __future__ import annotations
 
 from collections import Counter
 from collections.abc import Iterable, Sequence
+from decimal import Decimal
+from fractions import Fraction
 from typing import Any, TypeAlias
 
 import numpy as np
@@ -363,6 +365,8 @@ def _parse_optional_int(value: Any) -> int | None:
     candidate = _optional_int_candidate(value)
     if candidate is _MISSING:
         return None
+    if _fractional_exact_number(candidate):
+        return None
     if (
         isinstance(candidate, (float, np.floating))
         and not float(candidate).is_integer()
@@ -373,6 +377,14 @@ def _parse_optional_int(value: Any) -> int | None:
     except (TypeError, ValueError, OverflowError):
         return None
     return parsed if parsed >= 0 else None
+
+
+def _fractional_exact_number(value: Any) -> bool:
+    if isinstance(value, Decimal):
+        return value != value.to_integral_value()
+    if isinstance(value, Fraction):
+        return value.denominator != 1
+    return False
 
 
 def _optional_int_candidate(value: Any) -> Any:
