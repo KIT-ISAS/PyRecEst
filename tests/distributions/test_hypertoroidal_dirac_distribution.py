@@ -64,6 +64,29 @@ class TestHypertoroidalDiracDistribution(TestAbstractDiracDistribution):
         self.assertEqual(dist.dim, 1)
         npt.assert_allclose(dist.d, array([0.1, 0.2, 0.3]))
 
+    def test_init_treats_one_dimensional_locations_as_one_multivariate_sample(self):
+        dist = HypertoroidalDiracDistribution([0.1, 0.2], dim=2)
+
+        self.assertEqual(dist.dim, 2)
+        npt.assert_allclose(dist.d, array([[0.1, 0.2]]))
+        npt.assert_allclose(dist.w, array([1.0]))
+
+    def test_init_rejects_invalid_explicit_dim(self):
+        for dim in (True, 0, -1, 1.5):
+            with self.subTest(dim=dim):
+                with self.assertRaisesRegex(ValueError, "positive integer"):
+                    HypertoroidalDiracDistribution([0.1], dim=dim)
+
+    def test_init_rejects_explicit_dim_location_mismatch(self):
+        with self.assertRaisesRegex(ValueError, "trailing dimension"):
+            HypertoroidalDiracDistribution([[0.1, 0.2]], dim=1)
+
+        with self.assertRaisesRegex(ValueError, "length 3"):
+            HypertoroidalDiracDistribution([0.1, 0.2], dim=3)
+
+        with self.assertRaisesRegex(ValueError, "Scalar"):
+            HypertoroidalDiracDistribution(0.1, dim=2)
+
     def test_from_distribution_sampling_1d(self):
         n_particles = np.int64(5)
         vm = VonMisesDistribution(array(0.2), array(1.5))
