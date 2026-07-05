@@ -252,6 +252,7 @@ def _patch_pytorch_argsort_contracts() -> None:
 
     argsort.__name__ = getattr(original_argsort, "__name__", "argsort")
     argsort.__doc__ = getattr(original_argsort, "__doc__", None)
+    argsort._pyrecest_arraylike_contract = True
     argsort._pyrecest_numpy_contract = True
     raw_pytorch.argsort = argsort
     if getattr(backend, "__backend_name__", None) == "pytorch":
