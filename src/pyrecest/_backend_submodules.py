@@ -401,6 +401,49 @@ def _adapt_pytorch_stack_helpers_contract(backend: ModuleType) -> None:
         setattr(backend, helper_name, helper)
 
 
+def _pytorch_transpose_axes(axes, torch_module) -> tuple[int, ...] | None:
+    """Normalize NumPy-style transpose axes for ``torch.Tensor.permute``."""
+    if axes is None:
+        return None
+    if torch_module.is_tensor(axes):
+        if axes.ndim == 0:
+            axes = axes.item()
+        else:
+            axes = axes.detach().cpu().tolist()
+    if isinstance(axes, (str, bytes)):
+        raise TypeError("transpose axes must be a sequence of integers")
+    try:
+        return tuple(_operator_index(axis) for axis in axes)
+    except TypeError as exc:
+        raise TypeError("transpose axes must be a sequence of integers") from exc
+
+
+def _adapt_pytorch_transpose_contract(backend: ModuleType) -> None:
+    """Adapt raw and public PyTorch transpose to accept NumPy-style axis arrays."""
+    try:
+        import pyrecest._backend.pytorch as pytorch_backend  # pylint: disable=import-outside-toplevel
+        import torch as torch_module  # pylint: disable=import-outside-toplevel
+    except ModuleNotFoundError:  # pragma: no cover - PyTorch may be unavailable
+        return
+
+    transpose = getattr(pytorch_backend, "transpose", None)
+    if transpose is None:
+        return
+    if getattr(transpose, "_pyrecest_transpose_axes_contract", False):
+        if getattr(backend, "__backend_name__", None) == "pytorch":
+            setattr(backend, "transpose", transpose)
+        return
+
+    @wraps(transpose)
+    def wrapped_transpose(x, axes=None):
+        return transpose(x, axes=_pytorch_transpose_axes(axes, torch_module))
+
+    wrapped_transpose._pyrecest_transpose_axes_contract = True
+    setattr(pytorch_backend, "transpose", wrapped_transpose)
+    if getattr(backend, "__backend_name__", None) == "pytorch":
+        setattr(backend, "transpose", wrapped_transpose)
+
+
 def _resolve_pytorch_reduction_axis(axis, dim, func_name):
     """Resolve NumPy ``axis`` and PyTorch ``dim`` aliases."""
     if dim is not None:
@@ -627,6 +670,7 @@ def register_backend_submodules(backend: ModuleType | None = None) -> None:
     _adapt_pytorch_repeat_contract(backend)
     _adapt_pytorch_reshape_contract(backend)
     _adapt_pytorch_stack_helpers_contract(backend)
+    _adapt_pytorch_transpose_contract(backend)
     _adapt_pytorch_reduction_alias_contract(backend)
     _adapt_pytorch_cross_contract(backend)
 
