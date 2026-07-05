@@ -25,6 +25,9 @@ from pyrecest.backend_support._pytorch_one_hot_scalar_contract import (
 from pyrecest.backend_support._pytorch_trapezoid_numpy_contract import (
     patch_pytorch_trapezoid_numpy_contract as _patch_pytorch_trapezoid_numpy_contract,
 )
+from pyrecest.backend_support._pytorch_where_device_contract import (
+    patch_pytorch_where_device_contract as _patch_pytorch_where_device_contract,
+)
 
 
 def _patch_pytorch_raw_comparison_arraylike_contract() -> None:
@@ -419,6 +422,7 @@ _patch_pytorch_matmul_device_contract()
 _patch_pytorch_minmax_device_contract()
 _patch_pytorch_one_hot_scalar_contract()
 _patch_pytorch_trapezoid_numpy_contract()
+_patch_pytorch_where_device_contract()
 _patch_jax_squeeze_numpy_contract()
 
 P = ParamSpec("P")
