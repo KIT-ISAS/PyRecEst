@@ -184,9 +184,13 @@ class GaussianDistribution(AbstractLinearDistribution):
         many likelihoods are accumulated or when densities may underflow.
         """
         xs = self._validate_evaluation_points(xs)
+        scalar_input = self.dim == 1 and ndim(xs) == 0
+        one_dimensional_batch_input = self.dim == 1 and ndim(xs) == 1
         if pyrecest.backend.__backend_name__ == "numpy":
             from scipy.stats import multivariate_normal as mvn
 
+            if ndim(xs) <= 1 and self.dim == 1:
+                xs = reshape(xs, (-1, 1))
             log_pdf_vals = mvn.logpdf(xs, self.mu, self.C)
         elif pyrecest.backend.__backend_name__ == "pytorch":
             # Disable import errors for megalinter
@@ -210,6 +214,10 @@ class GaussianDistribution(AbstractLinearDistribution):
         else:
             raise NotImplementedError("Backend not supported")
 
+        if scalar_input:
+            log_pdf_vals = reshape(log_pdf_vals, ())
+        elif one_dimensional_batch_input:
+            log_pdf_vals = reshape(log_pdf_vals, (-1,))
         return log_pdf_vals
 
     log_pdf = ln_pdf
