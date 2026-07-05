@@ -463,6 +463,53 @@ def _patch_raw_pytorch_isclose_equal_nan_contract() -> None:
         backend.isclose = isclose
 
 
+def _normalize_get_slice_indices(indices):
+    """Return grouped get_slice indices in a backend-compatible form."""
+    if isinstance(indices, tuple):
+        return indices
+    if isinstance(indices, (str, bytes)):
+        return indices
+
+    ndim = getattr(indices, "ndim", None)
+    if ndim is not None:
+        return tuple(indices) if ndim > 1 else indices
+
+    if isinstance(indices, list):
+        if not indices:
+            return indices
+        first_index = indices[0]
+        if isinstance(first_index, (str, bytes)):
+            return indices
+        if hasattr(first_index, "__len__"):
+            return tuple(indices)
+
+    return indices
+
+
+def _patch_get_slice_arraylike_contract() -> None:
+    """Make public get_slice accept array-like inputs and grouped list indices."""
+    import pyrecest.backend as backend  # pylint: disable=import-outside-toplevel
+
+    original_get_slice = getattr(backend, "get_slice", None)
+    array_func = getattr(backend, "array", None) or getattr(backend, "asarray", None)
+    if original_get_slice is None or array_func is None:
+        return
+    if getattr(original_get_slice, "_pyrecest_get_slice_contract", False):
+        return
+
+    is_array_func = getattr(backend, "is_array", None)
+
+    def get_slice(x, indices):
+        if is_array_func is None or not is_array_func(x):
+            x = array_func(x)
+        return original_get_slice(x, _normalize_get_slice_indices(indices))
+
+    get_slice.__name__ = getattr(original_get_slice, "__name__", "get_slice")
+    get_slice.__doc__ = getattr(original_get_slice, "__doc__", None)
+    get_slice._pyrecest_get_slice_contract = True
+    backend.get_slice = get_slice
+
+
 _patch_pytorch_assignment_scalar_tensor_indices()
 _patch_pytorch_diag_numpy_contract()
 _patch_pytorch_broadcast_arrays_numpy_contract()
@@ -472,6 +519,7 @@ _patch_pytorch_special_numpy_contract()
 _patch_pytorch_stack_helpers_numpy_contract()
 _patch_raw_pytorch_comparison_numpy_contract()
 _patch_raw_pytorch_isclose_equal_nan_contract()
+_patch_get_slice_arraylike_contract()
 
 
 def get_backend_name() -> str:
