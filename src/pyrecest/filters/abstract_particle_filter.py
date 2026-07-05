@@ -26,6 +26,14 @@ from .abstract_filter import AbstractFilter
 
 def _call_vectorized_sample_next(sample_next, particles, n_particles):
     """Call vectorized sample_next, passing the batch size when supported."""
+    owner = getattr(sample_next, "__self__", None)
+    if (
+        getattr(owner, "function_is_vectorized", False)
+        and hasattr(owner, "_sample_next_count_call_mode")
+        and getattr(owner, "_sample_next_count_call_mode", None) is None
+    ):
+        return sample_next(particles)
+
     try:
         signature = inspect.signature(sample_next)
     except (TypeError, ValueError):
