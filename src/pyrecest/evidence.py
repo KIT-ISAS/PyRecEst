@@ -210,6 +210,16 @@ def resolve_evidence_computation_mode(
     raise ValueError(f"unknown evidence computation mode {mode!r}")
 
 
+try:
+    from pyrecest._backend_runtime_patches import (  # pylint: disable=import-outside-toplevel
+        patch_pytorch_close_equal_nan_device_contract as _patch_pytorch_close_equal_nan_device_contract,
+    )
+except ModuleNotFoundError:  # pragma: no cover - source tree corruption only
+    pass
+else:
+    _patch_pytorch_close_equal_nan_device_contract()
+
+
 __all__ = [
     "EvidenceComputationKind",
     "EvidenceComputationMode",
