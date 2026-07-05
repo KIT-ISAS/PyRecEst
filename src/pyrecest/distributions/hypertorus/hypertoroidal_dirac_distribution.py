@@ -40,14 +40,42 @@ class HypertoroidalDiracDistribution(
     def __init__(self, d, w=None, dim: int | None = None):
         """Can set dim manually to tell apart number of samples vs dimension for 1-D arrays."""
         d = array(d)
-        if dim is None:
-            if d.ndim > 1:
-                dim = d.shape[-1]
-            else:
-                raise ValueError("Cannot automatically determine dimension.")
+        d, dim = self._normalize_dirac_locations_and_dim(d, dim)
 
         AbstractHypertoroidalDistribution.__init__(self, dim)
         AbstractDiracDistribution.__init__(self, atleast_1d(mod(d, 2.0 * pi)), w=w)
+
+    @staticmethod
+    def _validate_explicit_dim(dim) -> int:
+        if isinstance(dim, bool) or not isinstance(dim, Integral) or int(dim) <= 0:
+            raise ValueError("dim must be a positive integer.")
+        return int(dim)
+
+    @classmethod
+    def _normalize_dirac_locations_and_dim(cls, d, dim: int | None):
+        if dim is None:
+            if d.ndim > 1:
+                return d, int(d.shape[-1])
+            raise ValueError("Cannot automatically determine dimension.")
+
+        dim = cls._validate_explicit_dim(dim)
+        if d.ndim == 0:
+            if dim != 1:
+                raise ValueError("Scalar Dirac locations require dim=1.")
+        elif d.ndim == 1:
+            if dim > 1:
+                if d.shape[0] != dim:
+                    raise ValueError(
+                        "One-dimensional Dirac locations must have length "
+                        f"{dim} when dim={dim}."
+                    )
+                d = reshape(d, (1, dim))
+        elif d.shape[-1] != dim:
+            raise ValueError(
+                "Dirac locations have trailing dimension "
+                f"{d.shape[-1]}, but dim={dim}."
+            )
+        return d, dim
 
     @staticmethod
     def from_distribution(
