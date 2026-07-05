@@ -108,6 +108,9 @@ jobs:
           path: |
             megalinter-reports
             mega-linter.log
+      - name: Drop generated branch protection snapshot
+        if: github.ref == 'refs/heads/main' && steps.ml.outputs.has_updated_sources == 1 && (env.APPLY_FIXES_EVENT == 'all' || env.APPLY_FIXES_EVENT == github.event_name) && env.APPLY_FIXES_MODE == 'pull_request' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) && !contains(github.event.head_commit.message, 'skip fix')
+        run: sudo rm -rf .megalinter_github_conf
       # Create Pull Request step
       - name: Create Pull Request with applied fixes
         id: cpr
