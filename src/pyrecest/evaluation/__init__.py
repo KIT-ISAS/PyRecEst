@@ -1,3 +1,6 @@
+from math import isinf as _isinf
+
+from . import model_comparison as _model_comparison
 from .check_and_fix_config import check_and_fix_config
 from .configure_for_filter import configure_for_filter
 from .determine_all_deviations import determine_all_deviations
@@ -66,6 +69,19 @@ from .selection import (
 )
 from .simulation_database import simulation_database
 from .summarize_filter_results import summarize_filter_results
+
+_original_classify_evidence_margin = classify_evidence_margin
+
+
+def _classify_evidence_margin(delta_log_evidence: float) -> str:
+    value = float(delta_log_evidence)
+    if _isinf(value) and value > 0.0:
+        return "decisive"
+    return _original_classify_evidence_margin(delta_log_evidence)
+
+
+_model_comparison.classify_evidence_margin = _classify_evidence_margin
+classify_evidence_margin = _classify_evidence_margin
 
 __all__ = [
     "generate_groundtruth",
