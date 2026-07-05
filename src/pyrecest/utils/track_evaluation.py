@@ -797,7 +797,7 @@ def _score_identity_sets(
     false_negatives = len(reference - predicted)
     precision = _safe_ratio(true_positives, true_positives + false_positives)
     recall = _safe_ratio(true_positives, true_positives + false_negatives)
-    f1 = _safe_ratio(2.0 * precision * recall, precision + recall)
+    f1 = _zero_ratio(2.0 * precision * recall, precision + recall)
     return {
         f"{prefix}_true_positives": true_positives,
         f"{prefix}_false_positives": false_positives,
