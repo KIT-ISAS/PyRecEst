@@ -219,12 +219,18 @@ def _validate_max_cost(max_cost) -> float:
 
 
 def _validate_tolerance(tolerance) -> float:
-    tolerance_array = asarray(tolerance)
+    if isinstance(tolerance, (str, bytes, bytearray)):
+        raise ValueError("tolerance must be a finite non-negative scalar.")
+
+    try:
+        tolerance_array = asarray(tolerance)
+    except (TypeError, ValueError, OverflowError, RuntimeError) as exc:
+        raise ValueError("tolerance must be a finite non-negative scalar.") from exc
     if tolerance_array.shape != ():
         raise ValueError("tolerance must be a finite non-negative scalar.")
 
     tolerance_scalar = tolerance_array.item()
-    if isinstance(tolerance_scalar, bool):
+    if isinstance(tolerance_scalar, (bool, str, bytes, bytearray)):
         raise ValueError("tolerance must be a finite non-negative scalar.")
 
     try:
