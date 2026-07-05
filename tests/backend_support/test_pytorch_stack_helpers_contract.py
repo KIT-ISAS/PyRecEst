@@ -18,6 +18,18 @@ def _backend_test_env(backend_name):
     return env
 
 
+def _skip_if_no_torch_meta_device():
+    if importlib.util.find_spec("torch") is None:
+        pytest.skip("torch is not installed")
+
+    import torch  # pylint: disable=import-outside-toplevel
+
+    try:
+        torch.empty((1,), device="meta")
+    except (RuntimeError, NotImplementedError, TypeError) as exc:
+        pytest.skip(f"torch meta device is not available: {exc}")
+
+
 @pytest.mark.backend_portable
 def test_pytorch_stack_helpers_accept_array_like_sequences():
     if importlib.util.find_spec("torch") is None:
@@ -88,4 +100,43 @@ assert raw_backend.to_numpy(raw_right).tolist() == [3.0, 3.0]
 """
     subprocess.run(
         [sys.executable, "-c", code], check=True, env=_backend_test_env("numpy")
+    )
+
+
+@pytest.mark.backend_portable
+@pytest.mark.parametrize("backend_name", ("pytorch", "numpy"))
+def test_pytorch_stack_helpers_preserve_non_cpu_tensor_device(backend_name):
+    _skip_if_no_torch_meta_device()
+
+    code = """
+import torch
+
+import pyrecest.backend as backend
+import pyrecest._backend.pytorch as raw_backend
+
+helpers = (raw_backend,)
+if getattr(backend, "__backend_name__", None) == "pytorch":
+    helpers = (backend, raw_backend)
+
+for stack_backend in helpers:
+    one_d_meta = torch.empty((2,), device="meta")
+
+    hstack_result = stack_backend.hstack(([1, 2], one_d_meta))
+    assert hstack_result.device.type == "meta"
+    assert tuple(hstack_result.shape) == (4,)
+
+    vstack_result = stack_backend.vstack(([1, 2], one_d_meta))
+    assert vstack_result.device.type == "meta"
+    assert tuple(vstack_result.shape) == (2, 2)
+
+    column_stack_result = stack_backend.column_stack(([1, 2], one_d_meta))
+    assert column_stack_result.device.type == "meta"
+    assert tuple(column_stack_result.shape) == (2, 2)
+
+    dstack_result = stack_backend.dstack(([1, 2], one_d_meta))
+    assert dstack_result.device.type == "meta"
+    assert tuple(dstack_result.shape) == (1, 2, 2)
+"""
+    subprocess.run(
+        [sys.executable, "-c", code], check=True, env=_backend_test_env(backend_name)
     )

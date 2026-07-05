@@ -22,6 +22,9 @@ from pyrecest.backend_support._pytorch_minmax_device_contract import (
 from pyrecest.backend_support._pytorch_one_hot_scalar_contract import (
     patch_pytorch_one_hot_scalar_contract as _patch_pytorch_one_hot_scalar_contract,
 )
+from pyrecest.backend_support._pytorch_stack_helpers_device_contract import (
+    patch_pytorch_stack_helpers_device_contract as _patch_pytorch_stack_helpers_device_contract,
+)
 from pyrecest.backend_support._pytorch_trapezoid_numpy_contract import (
     patch_pytorch_trapezoid_numpy_contract as _patch_pytorch_trapezoid_numpy_contract,
 )
@@ -582,6 +585,7 @@ _patch_pytorch_matmul_device_contract()
 _patch_pytorch_minmax_device_contract()
 _patch_pytorch_one_hot_scalar_contract()
 _patch_shared_numpy_matrix_helpers_arraylike_contract()
+_patch_pytorch_stack_helpers_device_contract()
 _patch_pytorch_trapezoid_numpy_contract()
 _patch_pytorch_where_device_contract()
 _patch_jax_squeeze_numpy_contract()
