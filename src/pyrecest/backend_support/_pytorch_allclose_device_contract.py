@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from operator import index as _operator_index
+
 from pyrecest.backend_support._pytorch_creation_shape_contract import (
     patch_pytorch_creation_shape_contract as _patch_pytorch_creation_shape_contract,
 )
@@ -62,6 +64,43 @@ def _patch_pytorch_linalg_logm_arraylike_contract() -> None:
         backend.linalg.logm = logm
 
 
+def _patch_pytorch_flip_numpy_axis_contract() -> None:
+    """Patch raw/public PyTorch ``flip`` to accept NumPy integer axes."""
+    try:
+        import numpy as np  # pylint: disable=import-outside-toplevel
+        import pyrecest._backend.pytorch as pytorch_backend  # pylint: disable=import-outside-toplevel
+        import pyrecest.backend as backend  # pylint: disable=import-outside-toplevel
+        import torch as torch_module  # pylint: disable=import-outside-toplevel
+    except ModuleNotFoundError:  # pragma: no cover - PyTorch backend may be unavailable
+        return
+
+    original_flip = getattr(pytorch_backend, "flip", None)
+    if original_flip is None:
+        return
+    if getattr(original_flip, "_pyrecest_numpy_axis_contract", False):
+        if getattr(backend, "__backend_name__", None) == "pytorch":
+            backend.flip = original_flip
+        return
+
+    def _flip_axes(axis, ndim):
+        if axis is None:
+            return list(range(ndim))
+        if isinstance(axis, (int, np.integer)):
+            return [int(axis)]
+        return [int(_operator_index(one_axis)) for one_axis in axis]
+
+    def flip(x, axis):
+        x = pytorch_backend.array(x)
+        return torch_module.flip(x, dims=_flip_axes(axis, x.ndim))
+
+    flip.__name__ = getattr(original_flip, "__name__", "flip")
+    flip.__doc__ = getattr(original_flip, "__doc__", None)
+    flip._pyrecest_numpy_axis_contract = True
+    pytorch_backend.flip = flip
+    if getattr(backend, "__backend_name__", None) == "pytorch":
+        backend.flip = flip
+
+
 def patch_pytorch_allclose_device_contract() -> None:
     """Patch raw/public PyTorch ``allclose`` to preserve non-CPU operands."""
 
@@ -74,6 +113,7 @@ def patch_pytorch_allclose_device_contract() -> None:
 
     _patch_pytorch_creation_shape_contract()
     _patch_pytorch_linalg_logm_arraylike_contract()
+    _patch_pytorch_flip_numpy_axis_contract()
 
     original_allclose = getattr(pytorch_backend, "allclose", None)
     if original_allclose is None:
