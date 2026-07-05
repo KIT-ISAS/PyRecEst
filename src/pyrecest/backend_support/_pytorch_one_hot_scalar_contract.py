@@ -5,6 +5,24 @@ from __future__ import annotations
 from operator import index as _operator_index
 
 
+def _is_numpy_bool_scalar(value) -> bool:
+    return type(value).__module__ == "numpy" and type(value).__name__ == "bool_"
+
+
+def _contains_boolean_label(value, torch_module) -> bool:
+    """Return whether labels contain booleans before coercing to ``long``."""
+    if isinstance(value, bool) or _is_numpy_bool_scalar(value):
+        return True
+    if torch_module.is_tensor(value):
+        return value.dtype == torch_module.bool
+    dtype = getattr(value, "dtype", None)
+    if dtype is not None and str(dtype).lower() in {"bool", "bool_"}:
+        return True
+    if isinstance(value, (list, tuple)):
+        return any(_contains_boolean_label(item, torch_module) for item in value)
+    return False
+
+
 def patch_pytorch_one_hot_scalar_contract() -> None:
     """Patch raw/public PyTorch ``one_hot`` to handle scalar labels correctly."""
     try:
@@ -24,12 +42,10 @@ def patch_pytorch_one_hot_scalar_contract() -> None:
 
     def one_hot(labels, num_classes):
         num_classes = _operator_index(num_classes)
+        if _contains_boolean_label(labels, torch_module):
+            raise TypeError("one_hot labels must be integers, not booleans")
         if torch_module.is_tensor(labels):
-            if (
-                labels.dtype == torch_module.bool
-                or labels.dtype.is_floating_point
-                or labels.dtype.is_complex
-            ):
+            if labels.dtype.is_floating_point or labels.dtype.is_complex:
                 return original_one_hot(labels, num_classes)
             labels = labels.to(dtype=torch_module.long)
         else:
