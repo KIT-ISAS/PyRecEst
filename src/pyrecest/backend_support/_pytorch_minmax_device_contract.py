@@ -34,6 +34,16 @@ def _binary_operands(raw_pytorch, torch_module, left, right):
 _minmax_operands = _binary_operands
 
 
+def _copy_to_out(result, out):
+    """Store ``result`` in ``out`` and return the output buffer."""
+    copy_ = getattr(out, "copy_", None)
+    if copy_ is not None:
+        copy_(result)
+        return out
+    out[...] = result
+    return out
+
+
 def _raw_pytorch_module():
     """Return the raw PyTorch backend module, importing it when available."""
     try:
@@ -42,7 +52,15 @@ def _raw_pytorch_module():
         return None
 
 
-def _patch_binary_helpers(raw_pytorch, backend, torch_module, helpers, contract_attr):
+def _patch_binary_helpers(
+    raw_pytorch,
+    backend,
+    torch_module,
+    helpers,
+    contract_attr,
+    *,
+    supports_out=False,
+):
     """Patch raw/public binary helpers to share dtype and preserve device."""
     if all(
         getattr(
@@ -60,9 +78,20 @@ def _patch_binary_helpers(raw_pytorch, backend, torch_module, helpers, contract_
     for helper_name, torch_helper in helpers.items():
         original_helper = getattr(raw_pytorch, helper_name)
 
-        def binary_helper(left, right, _torch_helper=torch_helper):
-            left, right = _binary_operands(raw_pytorch, torch_module, left, right)
-            return _torch_helper(left, right)
+        if supports_out:
+
+            def binary_helper(left, right, out=None, _torch_helper=torch_helper):
+                left, right = _binary_operands(raw_pytorch, torch_module, left, right)
+                result = _torch_helper(left, right)
+                if out is None:
+                    return result
+                return _copy_to_out(result, out)
+
+        else:
+
+            def binary_helper(left, right, _torch_helper=torch_helper):
+                left, right = _binary_operands(raw_pytorch, torch_module, left, right)
+                return _torch_helper(left, right)
 
         binary_helper.__name__ = getattr(original_helper, "__name__", helper_name)
         binary_helper.__doc__ = getattr(original_helper, "__doc__", None)
@@ -94,6 +123,7 @@ def patch_pytorch_minmax_device_contract() -> None:
             "minimum": torch.minimum,
         },
         "_pyrecest_minmax_device_contract",
+        supports_out=True,
     )
     _patch_binary_helpers(
         raw_pytorch,
