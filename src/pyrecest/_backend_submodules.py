@@ -370,8 +370,7 @@ def _adapt_pytorch_reshape_contract(backend: ModuleType) -> None:
 
 def _adapt_pytorch_stack_helpers_contract(backend: ModuleType) -> None:
     """Adapt raw PyTorch stack helpers to accept NumPy-style sequences."""
-    if getattr(backend, "__backend_name__", None) != "pytorch":
-        return
+    active_pytorch_backend = getattr(backend, "__backend_name__", None) == "pytorch"
 
     try:
         import numpy as numpy_module  # pylint: disable=import-outside-toplevel
@@ -389,10 +388,13 @@ def _adapt_pytorch_stack_helpers_contract(backend: ModuleType) -> None:
         )
         for helper_name in helper_names
     ):
+        if active_pytorch_backend:
+            for helper_name in helper_names:
+                setattr(backend, helper_name, getattr(pytorch_backend, helper_name))
         return
 
     def _tensor_sequence(tup):
-        return [backend.array(item) for item in tup]
+        return [pytorch_backend.array(item) for item in tup]
 
     def hstack(tup):
         tensors = [torch_module.atleast_1d(tensor) for tensor in _tensor_sequence(tup)]
@@ -426,7 +428,8 @@ def _adapt_pytorch_stack_helpers_contract(backend: ModuleType) -> None:
         helper.__doc__ = getattr(numpy_module, helper_name).__doc__
         helper._pyrecest_stack_contract = True
         setattr(pytorch_backend, helper_name, helper)
-        setattr(backend, helper_name, helper)
+        if active_pytorch_backend:
+            setattr(backend, helper_name, helper)
 
 
 def _pytorch_transpose_axes(axes, torch_module) -> tuple[int, ...] | None:
