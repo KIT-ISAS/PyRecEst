@@ -1,7 +1,14 @@
+import importlib.util
+
+import pytest
 from tests.support.backend_runner import run_backend_code
 
 
+@pytest.mark.backend_portable
 def test_pytorch_flip_accepts_numpy_integer_axis():
+    if importlib.util.find_spec("torch") is None:
+        pytest.skip("PyTorch is not installed")
+
     code = '''
 import numpy as np
 import pyrecest.backend as backend
