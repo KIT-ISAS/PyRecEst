@@ -290,11 +290,15 @@ def _has_front_eligible_objectives(
     *,
     allow_missing: bool,
 ) -> bool:
-    present = [
+    if allow_missing:
+        return any(
+            not _is_missing(record.get(objective, np.nan))
+            for objective in objectives
+        )
+    return all(
         not _is_missing(_lookup_numeric(record, objective))
         for objective in objectives
-    ]
-    return any(present) if allow_missing else all(present)
+    )
 
 
 def _validate_objectives(objectives: Sequence[str]) -> tuple[str, ...]:
