@@ -460,4 +460,4 @@ def polar(a, side="right"):
     func = _np.vectorize(_scipy.linalg.polar, signature=signature, excluded=["side"])
     unitary, hermitian = func(_as_numpy_no_grad(a), side=side)
 
-    return _torch_as_like(unitary, a)
+    return _torch_as_like(unitary, a), _torch_as_like(hermitian, a)
