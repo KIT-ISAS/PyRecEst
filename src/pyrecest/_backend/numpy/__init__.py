@@ -1,6 +1,7 @@
 """Numpy based computation backend."""
 
 import builtins as _builtins
+from operator import index as _operator_index
 
 import numpy as _np
 from numpy import (  # The ones below are for pyrecest; For Riemannian score-based SDE
@@ -204,7 +205,11 @@ def squeeze(x, axis=None):
     if isinstance(axis, (int, _np.integer)):
         axes = (int(axis),)
     else:
-        axes = tuple(axis)
+        axis_array = _np.asarray(axis)
+        if axis_array.shape == ():
+            axes = (_operator_index(axis_array),)
+        else:
+            axes = tuple(axis)
     if not axes:
         return x
 
@@ -218,7 +223,7 @@ def squeeze(x, axis=None):
             raise ValueError(
                 f"axis {one_axis} is out of bounds for array of dimension {x.ndim}"
             )
-    if any(x.shape[one_axis] != 1 for one_axis in normalized_axes):
+    if _builtins.any(x.shape[one_axis] != 1 for one_axis in normalized_axes):
         return x
     squeeze_axis = normalized_axes[0] if len(normalized_axes) == 1 else normalized_axes
     return _np.squeeze(x, axis=squeeze_axis)
