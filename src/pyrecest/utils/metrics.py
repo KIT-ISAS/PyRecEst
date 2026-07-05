@@ -605,8 +605,8 @@ def _quadratic_forms(vectors: np.ndarray, matrices: np.ndarray) -> np.ndarray:
 def _validate_order_cutoff(order: float, cutoff: float) -> tuple[float, float]:
     order = float(order)
     cutoff = float(cutoff)
-    if order < 1.0:
-        raise ValueError("order must be at least 1")
+    if not np.isfinite(order) or order < 1.0:
+        raise ValueError("order must be finite and at least 1")
     if cutoff <= 0.0 or not np.isfinite(cutoff):
         raise ValueError("cutoff must be a finite positive number")
     return order, cutoff
