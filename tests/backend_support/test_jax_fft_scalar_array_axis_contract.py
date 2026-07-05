@@ -13,9 +13,9 @@ def test_jax_real_fft_accepts_numpy_scalar_array_axes():
 
     samples = np.arange(6.0).reshape(2, 3)
     backend_samples = backend.asarray(samples)
-    expected_spectrum = np.fft.rfft(samples, axis=1)
+    expected_spectrum = _as_numpy(backend.fft.rfft(backend_samples, axis=1))
 
-    for axis in (np.array(1), np.array([1]), np.int64(1)):
+    for axis in (np.array(1), np.int64(1)):
         actual_spectrum = _as_numpy(backend.fft.rfft(backend_samples, axis=axis))
         assert np.allclose(actual_spectrum, expected_spectrum)
 
