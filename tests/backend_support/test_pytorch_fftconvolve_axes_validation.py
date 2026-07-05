@@ -27,7 +27,7 @@ def test_pytorch_fftconvolve_accepts_scalar_array_axis():
 
 @pytest.mark.parametrize(
     "axes",
-    ["0", np.array(0.0)],
+    ["0", np.array(0.0), True, np.bool_(True), np.array(True)],
 )
 def test_pytorch_fftconvolve_rejects_non_integer_axes(axes):
     _skip_unless_pytorch()
