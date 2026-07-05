@@ -24,6 +24,17 @@ class TestVonMisesDistribution(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     VonMisesDistribution(0.0, kappa)
 
+    def test_set_mean_returns_shifted_copy(self):
+        dist = VonMisesDistribution(array(0.3), array(2.0))
+
+        shifted = dist.set_mean(array(1.1))
+
+        self.assertIsInstance(shifted, VonMisesDistribution)
+        self.assertIsNot(shifted, dist)
+        npt.assert_allclose(float(dist.mu), 0.3)
+        npt.assert_allclose(float(shifted.mu), 1.1)
+        npt.assert_allclose(float(shifted.kappa), 2.0)
+
     def test_besselratio_remains_finite_for_large_concentration(self):
         ratio = VonMisesDistribution.besselratio(0, 1000.0)
 
