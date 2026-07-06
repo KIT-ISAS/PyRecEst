@@ -4,6 +4,7 @@ from operator import index as _operator_index
 
 import jax.numpy as _jnp
 import jax.scipy.linalg as _jax_scipy_linalg
+import numpy as _np
 
 from .._backend_config import jax_atol as atol
 
@@ -15,6 +16,8 @@ def _as_linalg_array(value):
 
 def _as_integer_scalar(value, name):
     """Return a Python integer for JAX static integer arguments."""
+    if isinstance(value, (bool, _np.bool_)):
+        raise TypeError(f"{name} must be an integer scalar")
     try:
         return _operator_index(value)
     except TypeError:
