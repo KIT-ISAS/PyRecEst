@@ -32,3 +32,14 @@ def test_pytorch_as_dtype_accepts_dtype_like_aliases():
         assert backend.get_default_cdtype() == torch.complex128
     finally:
         backend.set_default_dtype(original_dtype)
+
+
+def test_pytorch_as_dtype_accepts_bfloat16_aliases():
+    if backend.__backend_name__ != "pytorch":
+        pytest.skip("PyTorch-specific dtype alias regression test")
+
+    torch = pytest.importorskip("torch")
+
+    assert backend.as_dtype(torch.bfloat16) == torch.bfloat16
+    assert backend.as_dtype("bfloat16") == torch.bfloat16
+    assert backend.as_dtype("torch.bfloat16") == torch.bfloat16
