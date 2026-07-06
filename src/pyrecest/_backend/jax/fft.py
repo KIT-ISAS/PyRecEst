@@ -5,26 +5,28 @@ import numpy as _np
 from jax.numpy import fft as _fft
 
 
+_BOOLEAN_FFT_AXIS_ERROR = "axis must be an integer, not boolean"
+_BOOLEAN_FFT_LENGTH_ERROR = "n must be an integer length, not boolean"
+
+
 def _normalize_real_fft_axis(axis):
     """Return a Python ``int`` for integer scalar-array FFT axes."""
+    if isinstance(axis, (bool, _np.bool_)):
+        raise TypeError(_BOOLEAN_FFT_AXIS_ERROR)
     if isinstance(axis, _np.ndarray):
-        if (
-            axis.ndim == 0
-            and _np.issubdtype(axis.dtype, _np.integer)
-            and not _np.issubdtype(axis.dtype, _np.bool_)
-        ):
+        if _np.issubdtype(axis.dtype, _np.bool_):
+            raise TypeError(_BOOLEAN_FFT_AXIS_ERROR)
+        if axis.ndim == 0 and _np.issubdtype(axis.dtype, _np.integer):
             return int(axis.item())
         return axis
     if isinstance(axis, _jnp.ndarray):
         axis_dtype = _np.asarray(axis).dtype
-        if (
-            axis.ndim == 0
-            and _np.issubdtype(axis_dtype, _np.integer)
-            and not _np.issubdtype(axis_dtype, _np.bool_)
-        ):
+        if _np.issubdtype(axis_dtype, _np.bool_):
+            raise TypeError(_BOOLEAN_FFT_AXIS_ERROR)
+        if axis.ndim == 0 and _np.issubdtype(axis_dtype, _np.integer):
             return int(axis.item())
         return axis
-    if isinstance(axis, _np.integer) and not isinstance(axis, _np.bool_):
+    if isinstance(axis, _np.integer):
         return int(axis)
     return axis
 
@@ -33,24 +35,22 @@ def _normalize_real_fft_length(n):
     """Return a Python ``int`` for integer scalar-array real FFT lengths."""
     if n is None:
         return None
+    if isinstance(n, (bool, _np.bool_)):
+        raise TypeError(_BOOLEAN_FFT_LENGTH_ERROR)
     if isinstance(n, _np.ndarray):
-        if (
-            n.size == 1
-            and _np.issubdtype(n.dtype, _np.integer)
-            and not _np.issubdtype(n.dtype, _np.bool_)
-        ):
+        if _np.issubdtype(n.dtype, _np.bool_):
+            raise TypeError(_BOOLEAN_FFT_LENGTH_ERROR)
+        if n.size == 1 and _np.issubdtype(n.dtype, _np.integer):
             return int(n.item())
         return n
     if isinstance(n, _jnp.ndarray):
         n_dtype = _np.asarray(n).dtype
-        if (
-            n.size == 1
-            and _np.issubdtype(n_dtype, _np.integer)
-            and not _np.issubdtype(n_dtype, _np.bool_)
-        ):
+        if _np.issubdtype(n_dtype, _np.bool_):
+            raise TypeError(_BOOLEAN_FFT_LENGTH_ERROR)
+        if n.size == 1 and _np.issubdtype(n_dtype, _np.integer):
             return int(n.item())
         return n
-    if isinstance(n, _np.integer) and not isinstance(n, _np.bool_):
+    if isinstance(n, _np.integer):
         return int(n)
     return n
 
