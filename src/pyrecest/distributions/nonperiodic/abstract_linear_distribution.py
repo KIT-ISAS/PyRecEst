@@ -283,25 +283,40 @@ class AbstractLinearDistribution(AbstractManifoldSpecificDistribution):
         return C
 
     def integrate(self, left=None, right=None):
-        if left is None:
-            left = -float("inf") * ones(self.dim)
-        if right is None:
-            right = float("inf") * ones(self.dim)
-
-        result = self.integrate_numerically(left, right)
-        return result
+        return self.integrate_numerically(left, right)
 
     def integrate_numerically(self, left=None, right=None):
-        if left is None:
-            left = full((self.dim,), -float("inf"))
-        if right is None:
-            right = full((self.dim,), float("inf"))
+        left, right = self._normalize_integration_bounds(left, right)
         return AbstractLinearDistribution.integrate_fun_over_domain(
             self.pdf, self.dim, left, right
         )
 
+    def _normalize_integration_bounds(self, left, right):
+        left = self._normalize_integration_bound(left, -float("inf"), "left")
+        right = self._normalize_integration_bound(right, float("inf"), "right")
+        return left, right
+
+    def _normalize_integration_bound(self, bound, default, name):
+        if bound is None:
+            return full((self.dim,), default)
+
+        bound = atleast_1d(array(bound))
+        if bound.ndim != 1 or bound.shape != (self.dim,):
+            raise ValueError(
+                f"{name} integration bound must have shape ({self.dim},), "
+                f"got {bound.shape}."
+            )
+        return bound
+
     @staticmethod
     def integrate_fun_over_domain(f, dim, left, right):
+        left = AbstractLinearDistribution._normalize_static_integration_bound(
+            left, dim, "left"
+        )
+        right = AbstractLinearDistribution._normalize_static_integration_bound(
+            right, dim, "right"
+        )
+
         def f_for_nquad(*args):
             # Avoid DeprecationWarning: Conversion of an array with ndim > 0 to a scalar is deprecated, and will error in future.
             return float(squeeze(f(array(args).reshape(-1, dim))))
@@ -318,6 +333,15 @@ class AbstractLinearDistribution(AbstractManifoldSpecificDistribution):
         else:
             raise ValueError("Dimension not supported.")
         return result
+
+    @staticmethod
+    def _normalize_static_integration_bound(bound, dim, name):
+        bound = atleast_1d(array(bound))
+        if bound.ndim != 1 or bound.shape != (dim,):
+            raise ValueError(
+                f"{name} integration bound must have shape ({dim},), got {bound.shape}."
+            )
+        return bound
 
     def get_suggested_integration_limits(self, scaling_factor=10):
         """
