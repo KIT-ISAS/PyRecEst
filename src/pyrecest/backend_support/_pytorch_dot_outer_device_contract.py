@@ -30,7 +30,7 @@ def _promoted_pair(raw_pytorch, torch_module, left, right):
 
 
 def _patch_sort_axis_none_contract(raw_pytorch, backend, torch_module) -> None:
-    """Patch raw/public PyTorch sort to flatten inputs for ``axis=None``."""
+    """Patch raw/public PyTorch sort to match PyRecEst's NumPy-style contract."""
     original_sort = getattr(raw_pytorch, "sort", None)
     if original_sort is None:
         return
@@ -39,8 +39,17 @@ def _patch_sort_axis_none_contract(raw_pytorch, backend, torch_module) -> None:
             setattr(backend, "sort", original_sort)
         return
 
-    def sort(a, axis=-1):
-        return _sort_axis_none(raw_pytorch, torch_module, a, axis=axis)
+    def sort(a, axis=-1, kind=None, order=None, *, stable=None, descending=False):
+        return _sort_axis_none(
+            raw_pytorch,
+            torch_module,
+            a,
+            axis=axis,
+            kind=kind,
+            order=order,
+            stable=stable,
+            descending=descending,
+        )
 
     sort.__name__ = getattr(original_sort, "__name__", "sort")
     sort.__doc__ = getattr(original_sort, "__doc__", None)
