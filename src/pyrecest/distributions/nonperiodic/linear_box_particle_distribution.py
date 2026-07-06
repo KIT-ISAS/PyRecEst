@@ -132,7 +132,7 @@ class LinearBoxParticleDistribution(AbstractLinearDistribution):
         return self.upper - self.lower
 
     def half_widths(self):
-        """Return side half-lengths of all boxes."""
+        """Return side half-lengths."""
         return 0.5 * self.widths()
 
     def volumes(self):
@@ -157,12 +157,13 @@ class LinearBoxParticleDistribution(AbstractLinearDistribution):
         return between_box_cov + diag(within_box_var)
 
     def set_mean(self, new_mean):
-        """Shift all boxes so the mixture has the supplied mean."""
+        """Return a shifted copy whose mixture mean equals ``new_mean``."""
         offset = array(new_mean) - self.mean()
         offset = reshape(offset, (1, -1))
-        self.lower = self.lower + offset
-        self.upper = self.upper + offset
-        return self
+        dist = copy.deepcopy(self)
+        dist.lower = self.lower + offset
+        dist.upper = self.upper + offset
+        return dist
 
     def sample(self, n: Union[int, int32, int64]):
         """Draw point samples from the represented box mixture."""
