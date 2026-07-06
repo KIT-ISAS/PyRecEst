@@ -15,6 +15,8 @@ from .abstract_linear_distribution import AbstractLinearDistribution
 class LinearDiracDistribution(AbstractDiracDistribution, AbstractLinearDistribution):
     def __init__(self, d, w=None):
         d = asarray(d)
+        if d.ndim == 0:
+            d = reshape(d, (1,))
         dim = d.shape[1] if d.ndim > 1 else 1
         AbstractLinearDistribution.__init__(self, dim)
         AbstractDiracDistribution.__init__(self, d, w)
@@ -121,9 +123,9 @@ class LinearDiracDistribution(AbstractDiracDistribution, AbstractLinearDistribut
     @staticmethod
     def weighted_samples_to_mean_and_cov(samples, weights=None):
         samples = asarray(samples)
-        sample_matrix = reshape(samples, (-1, 1)) if samples.ndim == 1 else samples
+        sample_matrix = reshape(samples, (-1, 1)) if samples.ndim <= 1 else samples
         if sample_matrix.ndim != 2:
-            raise ValueError("samples must be a 1D or 2D array")
+            raise ValueError("samples must be a scalar, 1D array, or 2D array")
         if sample_matrix.shape[0] == 0:
             raise ValueError("samples must contain at least one sample")
 
