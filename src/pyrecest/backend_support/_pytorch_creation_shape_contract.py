@@ -52,10 +52,14 @@ def patch_pytorch_creation_shape_contract() -> None:
         from pyrecest._backend.pytorch._common import (  # pylint: disable=import-outside-toplevel
             _normalize_dtype,
         )
+        from pyrecest.backend_support._pytorch_scatter_add_contract import (  # pylint: disable=import-outside-toplevel
+            patch_pytorch_scatter_add_contract,
+        )
     except ModuleNotFoundError:  # pragma: no cover - PyTorch backend may be unavailable
         return
 
     active_pytorch_backend = getattr(backend, "__backend_name__", None) == "pytorch"
+    patch_pytorch_scatter_add_contract()
 
     def _wrap_creation_helper(helper_name, torch_helper, *, has_fill_value=False):
         original_helper = getattr(raw_pytorch, helper_name, None)
