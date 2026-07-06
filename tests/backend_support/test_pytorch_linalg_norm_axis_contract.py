@@ -8,7 +8,10 @@ def _skip_unless_pytorch():
         pytest.skip("PyTorch-specific linalg backend contract")
 
 
-@pytest.mark.parametrize("axis", [True, np.bool_(False)])
+@pytest.mark.parametrize(
+    "axis",
+    [True, np.bool_(False), (True,), [False], np.array([True])],
+)
 def test_pytorch_linalg_norm_rejects_boolean_axis(axis):
     _skip_unless_pytorch()
 
@@ -16,6 +19,16 @@ def test_pytorch_linalg_norm_rejects_boolean_axis(axis):
 
     with pytest.raises(TypeError, match="axis must be None"):
         backend.linalg.norm(values, axis=axis)
+
+
+@pytest.mark.parametrize("axis", [(1,), [1], np.array([1])])
+def test_pytorch_linalg_norm_accepts_integer_sequence_axis(axis):
+    _skip_unless_pytorch()
+
+    values = backend.ones((2, 2))
+    result = backend.linalg.norm(values, axis=axis)
+
+    assert backend.to_numpy(result).tolist() == pytest.approx([2**0.5, 2**0.5])
 
 
 def test_pytorch_linalg_norm_accepts_numpy_integer_scalar_axis():
