@@ -45,6 +45,29 @@ class LinearDiracDistributionTest(TestAbstractDiracDistribution):
         npt.assert_allclose(mean, array([2.5]))
         npt.assert_allclose(covariance, array([[0.0]]))
 
+    def test_set_mean_rejects_invalid_multidimensional_shapes(self):
+        dist = LinearDiracDistribution([[0.0, 0.0], [2.0, 2.0]], [0.5, 0.5])
+        expected_samples = array([[0.0, 0.0], [2.0, 2.0]])
+
+        for name, new_mean in (
+            ("scalar", 1.0),
+            ("too-short", array([1.0])),
+            ("too-long", array([1.0, 2.0, 3.0])),
+            ("column-vector", array([[1.0], [2.0]])),
+        ):
+            with self.subTest(name=name):
+                with self.assertRaisesRegex(ValueError, r"new_mean must have shape \(2,\)"):
+                    dist.set_mean(new_mean)
+                npt.assert_allclose(dist.d, expected_samples)
+
+    def test_set_mean_accepts_scalar_for_one_dimensional_distribution(self):
+        dist = LinearDiracDistribution([0.0, 2.0], [0.25, 0.75])
+
+        dist.set_mean(10.0)
+
+        npt.assert_allclose(dist.mean(), array([10.0]))
+        npt.assert_allclose(dist.d, array([8.5, 10.5]))
+
     def test_from_distribution(self):
         random.seed(0)
         C = wishart.rvs(3, eye(3))
