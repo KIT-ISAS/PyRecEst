@@ -27,23 +27,52 @@ from ._input_validation import as_hypertoroidal_points, as_shift_vector
 from .abstract_hypertoroidal_distribution import AbstractHypertoroidalDistribution
 
 
+_FINITE_REAL_MESSAGE = "{name} must contain only finite real values"
+
+
+def _dtype_kind_and_name(value):
+    dtype = getattr(value, "dtype", None)
+    if dtype is None:
+        return None, ""
+    return getattr(dtype, "kind", None), str(dtype).lower()
+
+
+def _as_real_numeric_array(value, name: str):
+    try:
+        value = array(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(_FINITE_REAL_MESSAGE.format(name=name)) from exc
+
+    dtype_kind, dtype_name = _dtype_kind_and_name(value)
+    if (
+        dtype_kind in {"b", "c", "O", "S", "U"}
+        or "bool" in dtype_name
+        or "complex" in dtype_name
+    ):
+        raise ValueError(_FINITE_REAL_MESSAGE.format(name=name))
+    if dtype_kind is not None and dtype_kind not in "iuf":
+        raise ValueError(_FINITE_REAL_MESSAGE.format(name=name))
+
+    try:
+        finite_values = backend_all(isfinite(value))
+    except (TypeError, ValueError) as exc:
+        raise ValueError(_FINITE_REAL_MESSAGE.format(name=name)) from exc
+    if not bool(finite_values):
+        raise ValueError(_FINITE_REAL_MESSAGE.format(name=name))
+    return value
+
+
 def _as_1d_mu(mu):
-    mu = array(mu)
+    mu = _as_real_numeric_array(mu, "mu")
     if mu.ndim == 0:
         mu = mu.reshape((1,))
     if mu.ndim != 1:
         raise ValueError(f"mu must be one-dimensional, but got shape {mu.shape}")
-    try:
-        finite_mu = backend_all(isfinite(mu))
-    except (TypeError, ValueError) as exc:
-        raise ValueError("mu must contain only finite real values") from exc
-    if not bool(finite_mu):
-        raise ValueError("mu must contain only finite real values")
     return mu
 
 
 def _as_2d_covariance(C):
-    C = array(C)
+    C = _as_real_numeric_array(C, "C")
     if C.ndim == 0:
         C = C.reshape((1, 1))
     return C
