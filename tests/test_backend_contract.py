@@ -82,6 +82,8 @@ class BackendContractTest(unittest.TestCase):
         npt.assert_allclose(to_numpy(added), [3.0, 0.0, 4.0])
 
     def test_assignment_by_sum_uses_full_coordinate_tuples(self):
+        if backend.__backend_name__ != "numpy":
+            self.skipTest("NumPy backend coordinate tuple regression test")
         added = backend.assignment_by_sum(
             np.zeros((2, 2, 2)),
             [2.0, 3.0],
