@@ -30,13 +30,29 @@ _TORCH_DTYPE_BY_NAME = {
     "complex128": _torch_complex128,
 }
 
+_TORCH_DTYPE_BY_TORCH_ALIAS = {
+    "byte": _torch_uint8,
+    "char": _torch_int8,
+    "short": _torch_int16,
+    "int": _torch_int32,
+    "long": _torch_int64,
+    "half": _torch_float16,
+    "float": _torch_float32,
+    "double": _torch_float64,
+    "cfloat": _torch_complex64,
+    "cdouble": _torch_complex128,
+}
+
 
 def _normalize_dtype(dtype):
     """Return a torch dtype for dtype-like values understood by PyTorch/NumPy."""
     if dtype is None or isinstance(dtype, _torch_dtype):
         return dtype
     if isinstance(dtype, str) and dtype.startswith("torch."):
-        dtype = dtype.split(".", 1)[1]
+        torch_alias = dtype.split(".", 1)[1]
+        if torch_alias in _TORCH_DTYPE_BY_TORCH_ALIAS:
+            return _TORCH_DTYPE_BY_TORCH_ALIAS[torch_alias]
+        dtype = torch_alias
     try:
         np_dtype = _np.dtype(dtype)
     except (TypeError, ValueError):
