@@ -31,6 +31,20 @@ class LinearDiracDistributionTest(TestAbstractDiracDistribution):
         npt.assert_allclose(multidimensional.d, array([[1.0, 2.0], [3.0, 4.0]]))
         npt.assert_allclose(multidimensional.w, array([0.25, 0.75]))
 
+    def test_constructor_accepts_scalar_location(self):
+        scalar_dist = LinearDiracDistribution(2.5)
+
+        self.assertEqual(scalar_dist.dim, 1)
+        npt.assert_allclose(scalar_dist.d, array([2.5]))
+        npt.assert_allclose(scalar_dist.w, array([1.0]))
+        npt.assert_allclose(scalar_dist.covariance(), array([[0.0]]))
+
+    def test_weighted_samples_to_mean_and_cov_accepts_scalar_sample(self):
+        mean, covariance = LinearDiracDistribution.weighted_samples_to_mean_and_cov(2.5)
+
+        npt.assert_allclose(mean, array([2.5]))
+        npt.assert_allclose(covariance, array([[0.0]]))
+
     def test_from_distribution(self):
         random.seed(0)
         C = wishart.rvs(3, eye(3))
