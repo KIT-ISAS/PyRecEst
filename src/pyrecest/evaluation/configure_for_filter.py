@@ -53,6 +53,18 @@ def _gen_next_state_with_noise_is_vectorized(scenario_config) -> bool:
     return False
 
 
+def _require_periodic_particle_prediction_source(scenario_config) -> None:
+    if (
+        "gen_next_state_with_noise" not in scenario_config
+        and "sys_noise" not in scenario_config
+    ):
+        raise ValueError(
+            "Periodic particle filters require either "
+            "scenario_config['gen_next_state_with_noise'] or "
+            "scenario_config['sys_noise']."
+        )
+
+
 # pylint: disable=too-many-branches
 # pylint: disable=too-many-statements
 # pylint: disable=too-many-locals
@@ -119,6 +131,7 @@ def configure_for_filter(filter_config, scenario_config, precalculated_params=No
                 raise ValueError(
                     "Inputs currently not supported for the current setting."
                 )
+            _require_periodic_particle_prediction_source(scenario_config)
 
             filter_obj = HypertoroidalParticleFilter(
                 no_particles, scenario_config["initial_prior"].dim
