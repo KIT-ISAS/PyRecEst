@@ -4,6 +4,10 @@ from __future__ import annotations
 
 import importlib
 
+from pyrecest.backend_support._pytorch_random_device_contract import (
+    patch_pytorch_random_device_contract as _patch_pytorch_random_device_contract,
+)
+
 
 def _preferred_pytorch_device(torch_module, *values):
     """Return a non-CPU tensor device when mixed-device operands are present."""
@@ -136,3 +140,4 @@ def patch_pytorch_minmax_device_contract() -> None:
         },
         "_pyrecest_comparison_device_contract",
     )
+    _patch_pytorch_random_device_contract()
