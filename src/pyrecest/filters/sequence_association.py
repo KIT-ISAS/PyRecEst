@@ -254,10 +254,13 @@ def solve_top_k_viterbi_sequence_associations(
 def _validate_frames(
     frames: Sequence[Sequence[SequenceAssociationNode]],
 ) -> tuple[tuple[SequenceAssociationNode, ...], ...]:
-    if not frames:
-        raise ValueError("frames must contain at least one frame")
     normalized: list[tuple[SequenceAssociationNode, ...]] = []
-    for frame_pos, frame in enumerate(frames):
+    try:
+        frame_iterator = enumerate(frames)
+    except TypeError as exc:
+        raise ValueError("frames must contain at least one frame") from exc
+
+    for frame_pos, frame in frame_iterator:
         nodes = tuple(frame)
         if not nodes:
             raise ValueError(f"frame {frame_pos} must contain at least one node")
@@ -267,6 +270,8 @@ def _validate_frames(
                     "all frames must contain SequenceAssociationNode objects"
                 )
         normalized.append(nodes)
+    if not normalized:
+        raise ValueError("frames must contain at least one frame")
     return tuple(normalized)
 
 
