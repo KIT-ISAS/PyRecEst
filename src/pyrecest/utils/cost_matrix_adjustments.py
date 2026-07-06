@@ -1,4 +1,11 @@
-"""Composable cost-matrix adjustment helpers."""
+"""Composable cost-matrix adjustment helpers.
+
+These helpers provide a small domain-neutral interface for applying priors,
+uncertainty corrections, consistency penalties, or other transformations to
+pairwise association cost matrices before assignment.  Domain-specific projects
+should construct the matrices and any metadata themselves, then expose only a
+matrix-shaped adjustment to PyRecEst.
+"""
 
 from __future__ import annotations
 
@@ -11,6 +18,8 @@ import numpy as np
 
 
 def _metadata_dict(value: Any, *, name: str) -> dict[str, Any]:
+    """Return a diagnostics/metadata dictionary, treating ``None`` as absent."""
+
     if value is None:
         return {}
     try:
@@ -28,7 +37,9 @@ class CostMatrixAdjustmentResult:
 
     def __post_init__(self) -> None:
         object.__setattr__(
-            self, "diagnostics", _metadata_dict(self.diagnostics, name="diagnostics")
+            self,
+            "diagnostics",
+            _metadata_dict(self.diagnostics, name="diagnostics"),
         )
 
 
@@ -51,7 +62,12 @@ AdjustmentFunction = Callable[[np.ndarray, Mapping[str, Any]], Any]
 
 @dataclass(frozen=True)
 class CallableCostMatrixAdjustment:
-    """Cost adjustment backed by a callable."""
+    """Cost adjustment backed by a callable.
+
+    The callable receives a validated numeric matrix and merged metadata.  It may
+    return either an adjusted matrix, a ``(matrix, diagnostics)`` tuple, or a
+    ``CostMatrixAdjustmentResult``.
+    """
 
     name: str
     function: AdjustmentFunction
@@ -62,7 +78,11 @@ class CallableCostMatrixAdjustment:
             raise ValueError("name must be a non-empty string")
         if not callable(self.function):
             raise ValueError("function must be callable")
-        object.__setattr__(self, "metadata", _metadata_dict(self.metadata, name="metadata"))
+        object.__setattr__(
+            self,
+            "metadata",
+            _metadata_dict(self.metadata, name="metadata"),
+        )
 
     def apply(
         self,
@@ -76,17 +96,25 @@ class CallableCostMatrixAdjustment:
         merged_metadata = dict(self.metadata)
         merged_metadata.update(_metadata_dict(metadata, name="metadata"))
         return _coerce_adjustment_output(
-            self.function(matrix.copy(), merged_metadata), expected_shape=matrix.shape
+            self.function(matrix.copy(), merged_metadata),
+            expected_shape=matrix.shape,
         )
 
 
 def apply_cost_matrix_adjustment(
     cost_matrix: Any,
-    adjustment: CostMatrixAdjustment | Callable[[np.ndarray], Any] | CallableCostMatrixAdjustment,
+    adjustment: CostMatrixAdjustment
+    | Callable[[np.ndarray], Any]
+    | CallableCostMatrixAdjustment,
     *,
     metadata: Mapping[str, Any] | None = None,
 ) -> CostMatrixAdjustmentResult:
-    """Apply one shape-preserving adjustment to a cost matrix."""
+    """Apply one shape-preserving adjustment to a cost matrix.
+
+    ``adjustment`` may be an object exposing ``apply(cost_matrix, metadata=...)``
+    or a simple callable that accepts a validated matrix.  The adjusted matrix is
+    validated to have the same shape as the input.
+    """
 
     matrix = _as_cost_matrix(cost_matrix)
     if hasattr(adjustment, "apply"):
@@ -100,7 +128,9 @@ def apply_cost_matrix_adjustment(
 
 def compose_cost_matrix_adjustments(
     cost_matrix: Any,
-    adjustments: Sequence[CostMatrixAdjustment | Callable[[np.ndarray], Any] | CallableCostMatrixAdjustment],
+    adjustments: Sequence[
+        CostMatrixAdjustment | Callable[[np.ndarray], Any] | CallableCostMatrixAdjustment
+    ],
     *,
     metadata: Mapping[str, Any] | None = None,
 ) -> CostMatrixAdjustmentResult:
@@ -118,7 +148,11 @@ def compose_cost_matrix_adjustments(
             name = f"{base_name}_{suffix}"
             suffix += 1
         diagnostic_keys.add(name)
-        result = apply_cost_matrix_adjustment(current, adjustment, metadata=metadata)
+        result = apply_cost_matrix_adjustment(
+            current,
+            adjustment,
+            metadata=metadata,
+        )
         current = result.adjusted_cost_matrix
         diagnostics["adjustment_order"].append(name)
         diagnostics[name] = dict(result.diagnostics)
@@ -136,7 +170,10 @@ def additive_cost_matrix_adjustment(
     penalty = _as_cost_matrix(penalty_matrix)
     stored_diagnostics = _metadata_dict(diagnostics, name="diagnostics")
 
-    def _add(matrix: np.ndarray, _metadata: Mapping[str, Any]) -> CostMatrixAdjustmentResult:
+    def _add(
+        matrix: np.ndarray,
+        _metadata: Mapping[str, Any],
+    ) -> CostMatrixAdjustmentResult:
         if matrix.shape != penalty.shape:
             raise ValueError(
                 f"penalty_matrix shape {penalty.shape} does not match cost_matrix shape {matrix.shape}"
@@ -156,7 +193,11 @@ def _adjustment_name(adjustment: Any, *, index: int) -> str:
     return f"adjustment_{index}"
 
 
-def _coerce_adjustment_output(output: Any, *, expected_shape: tuple[int, int]) -> CostMatrixAdjustmentResult:
+def _coerce_adjustment_output(
+    output: Any,
+    *,
+    expected_shape: tuple[int, int],
+) -> CostMatrixAdjustmentResult:
     if isinstance(output, CostMatrixAdjustmentResult):
         adjusted = _as_cost_matrix(output.adjusted_cost_matrix)
         diagnostics = _metadata_dict(output.diagnostics, name="diagnostics")
@@ -167,7 +208,9 @@ def _coerce_adjustment_output(output: Any, *, expected_shape: tuple[int, int]) -
         adjusted = _as_cost_matrix(output)
         diagnostics = {}
     if adjusted.shape != expected_shape:
-        raise ValueError(f"adjusted cost matrix has shape {adjusted.shape}, expected {expected_shape}")
+        raise ValueError(
+            f"adjusted cost matrix has shape {adjusted.shape}, expected {expected_shape}"
+        )
     return CostMatrixAdjustmentResult(adjusted, diagnostics)
 
 
