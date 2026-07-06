@@ -1,3 +1,4 @@
+import copy
 from numbers import Integral
 
 import matplotlib.pyplot as plt
@@ -38,11 +39,13 @@ class LinearDiracDistribution(AbstractDiracDistribution, AbstractLinearDistribut
                 f"new_mean must have shape ({self.dim},), got {new_mean.shape}."
             )
 
+        shifted = copy.deepcopy(self)
         mean_offset = new_mean - self.mean()
-        if self.d.ndim == 1:
-            self.d += mean_offset
+        if shifted.d.ndim == 1:
+            shifted.d = shifted.d + mean_offset
         else:
-            self.d += reshape(mean_offset, (1, -1))
+            shifted.d = shifted.d + reshape(mean_offset, (1, -1))
+        return shifted
 
     def covariance(self):
         _, C = LinearDiracDistribution.weighted_samples_to_mean_and_cov(self.d, self.w)
@@ -71,7 +74,6 @@ class LinearDiracDistribution(AbstractDiracDistribution, AbstractLinearDistribut
         elif self.dim == 3:
             fig = plt.figure()
             ax = fig.add_subplot(111, projection="3d")
-            # You can adjust 's' for marker size as needed
             ax.scatter(
                 sample_locs[:, 0],
                 sample_locs[:, 1],
