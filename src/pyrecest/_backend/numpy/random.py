@@ -1,5 +1,7 @@
 """Numpy based random backend."""
 
+from operator import index as _operator_index
+
 import numpy as _np
 from numpy.random import default_rng as _default_rng
 from numpy.random import (  # For PyRecEst
@@ -11,7 +13,7 @@ from numpy.random import (  # For PyRecEst
 from .._shared_numpy.random import (
     _normalize_probability_values,
     _normalize_size,
-    choice,
+    choice as _shared_choice,
     multivariate_normal,
     normal,
     rand,
@@ -19,6 +21,7 @@ from .._shared_numpy.random import (
 )
 
 _BOOLEAN_TYPES = (bool, _np.bool_)
+_CHOICE_POPULATION_ERROR = "a must be a positive integer or a non-empty array"
 
 
 def _contains_boolean_value(value):
@@ -64,6 +67,44 @@ def randint(low, high=None, size=None, dtype=int):
     _validate_randint_bound(low, "low")
     _validate_randint_bound(high, "high")
     return _np.random.randint(low, high=high, size=size, dtype=dtype)
+
+
+def _normalize_choice_axis(axis, ndim):
+    if isinstance(axis, _BOOLEAN_TYPES):
+        raise TypeError("axis must be an integer")
+    try:
+        axis = _operator_index(axis)
+    except TypeError as exc:
+        raise TypeError("axis must be an integer") from exc
+    if axis < -ndim or axis >= ndim:
+        raise ValueError(f"axis {axis} is out of bounds for array of dimension {ndim}")
+    return axis % ndim
+
+
+def _validate_choice_population_size(a, axis):
+    a_array = _np.asarray(a)
+    if a_array.ndim == 0:
+        scalar = a_array.item()
+        if isinstance(scalar, _BOOLEAN_TYPES):
+            raise ValueError(_CHOICE_POPULATION_ERROR)
+        try:
+            population_size = _operator_index(scalar)
+        except TypeError:
+            return
+        if population_size <= 0:
+            raise ValueError(_CHOICE_POPULATION_ERROR)
+        return
+
+    axis = _normalize_choice_axis(axis, a_array.ndim)
+    if a_array.shape[axis] <= 0:
+        raise ValueError(_CHOICE_POPULATION_ERROR)
+
+
+def choice(a, size=None, replace=True, p=None, axis=0, shuffle=True):
+    """Draw samples from a non-empty integer or array population."""
+
+    _validate_choice_population_size(a, axis)
+    return _shared_choice(a, size=size, replace=replace, p=p, axis=axis, shuffle=shuffle)
 
 
 def _validate_multinomial_sample_count(n):
