@@ -81,6 +81,20 @@ class BackendContractTest(unittest.TestCase):
 
         npt.assert_allclose(to_numpy(added), [3.0, 0.0, 4.0])
 
+    def test_assignment_by_sum_uses_full_coordinate_tuples(self):
+        if backend.__backend_name__ != "numpy":
+            self.skipTest("NumPy backend coordinate tuple regression test")
+        added = backend.assignment_by_sum(
+            np.zeros((2, 2, 2)),
+            [2.0, 3.0],
+            [(0, 0, 0), (1, 1, 1)],
+        )
+        expected = np.zeros((2, 2, 2))
+        expected[0, 0, 0] = 2.0
+        expected[1, 1, 1] = 3.0
+
+        npt.assert_allclose(to_numpy(added), expected)
+
     def test_assignment_empty_indices_coerces_array_like_inputs(self):
         assigned = backend.assignment([1.0, 2.0, 3.0], 99.0, [])
         added = backend.assignment_by_sum([1.0, 2.0, 3.0], 99.0, [])
