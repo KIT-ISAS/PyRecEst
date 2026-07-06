@@ -35,6 +35,12 @@ assert backend.to_numpy(flat_result).tolist() == [0, 1, 2, 3]
 
 axis_result = backend.sort([[3, 1], [2, 0]], axis=0)
 assert backend.to_numpy(axis_result).tolist() == [[2, 0], [3, 1]]
+
+descending_result = backend.sort([[3, 1], [2, 0]], axis=None, descending=True)
+assert backend.to_numpy(descending_result).tolist() == [3, 2, 1, 0]
+
+stable_result = backend.sort([[3, 1], [2, 0]], axis=None, kind="stable")
+assert backend.to_numpy(stable_result).tolist() == [0, 1, 2, 3]
 """
     subprocess.run([sys.executable, "-c", code], check=True, env=env)
 
@@ -58,5 +64,11 @@ assert raw_pytorch.to_numpy(flat_result).tolist() == [0, 1, 2, 3]
 
 axis_result = raw_pytorch.sort([[3, 1], [2, 0]], axis=0)
 assert raw_pytorch.to_numpy(axis_result).tolist() == [[2, 0], [3, 1]]
+
+descending_result = raw_pytorch.sort([[3, 1], [2, 0]], axis=None, descending=True)
+assert raw_pytorch.to_numpy(descending_result).tolist() == [3, 2, 1, 0]
+
+stable_result = raw_pytorch.sort([[3, 1], [2, 0]], axis=None, kind="stable")
+assert raw_pytorch.to_numpy(stable_result).tolist() == [0, 1, 2, 3]
 """
     subprocess.run([sys.executable, "-c", code], check=True, env=env)
