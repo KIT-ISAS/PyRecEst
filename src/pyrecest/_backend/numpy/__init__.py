@@ -217,7 +217,6 @@ def assignment_by_sum(x, values, indices, axis=0):
     if _assignment_by_sum_is_iterable(indices) and len(indices) == 0:
         return x_new
 
-    use_vectorization = hasattr(indices, "__len__") and len(indices) < ndim(x_new)
     if _assignment_by_sum_is_boolean(indices):
         x_new[indices] += values
         return x_new
@@ -225,11 +224,16 @@ def assignment_by_sum(x, values, indices, axis=0):
     zip_indices = _assignment_by_sum_is_iterable(
         indices
     ) and _assignment_by_sum_is_iterable(indices[0])
+    len_indices = len(indices) if _assignment_by_sum_is_iterable(indices) else 1
+    use_vectorization = (
+        hasattr(indices, "__len__") and len(indices) < ndim(x_new) and not zip_indices
+    )
     if zip_indices:
         indices = tuple(zip(*indices))
 
     if not use_vectorization:
-        len_indices = len(indices) if _assignment_by_sum_is_iterable(indices) else 1
+        if not zip_indices:
+            len_indices = len(indices) if _assignment_by_sum_is_iterable(indices) else 1
         len_values = len(values) if _assignment_by_sum_is_iterable(values) else 1
         if len_values > 1 and len_values != len_indices:
             raise ValueError("Either one value or as many values as indices")
