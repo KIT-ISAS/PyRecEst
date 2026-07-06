@@ -45,8 +45,7 @@ class MeasurementUpdateDiagnostics:
                     "active_measurement_indices must be smaller than measurement_count"
                 )
             object.__setattr__(self, "measurement_count", measurement_count)
-        metadata = {} if self.metadata is None else dict(self.metadata)
-        object.__setattr__(self, "metadata", metadata)
+        object.__setattr__(self, "metadata", _normalize_metadata(self.metadata))
 
     @property
     def active_measurement_count(self) -> int:
@@ -99,6 +98,14 @@ def _normalize_active_measurement_indices(
             "active_measurement_indices must not contain duplicate indices"
         )
     return indices
+
+
+def _normalize_metadata(metadata: Mapping[str, Any] | None) -> dict[str, Any]:
+    if metadata is None:
+        return {}
+    if not isinstance(metadata, Mapping):
+        raise ValueError("metadata must be a mapping or None")
+    return dict(metadata)
 
 
 def _as_nonnegative_integer(value: Any, name: str) -> int:
