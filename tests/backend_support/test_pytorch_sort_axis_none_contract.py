@@ -33,6 +33,9 @@ assert backend.__backend_name__ == "pytorch"
 flat_result = backend.sort([[3, 1], [2, 0]], axis=None)
 assert backend.to_numpy(flat_result).tolist() == [0, 1, 2, 3]
 
+descending_flat = backend.sort([[3, 1], [2, 0]], axis=None, descending=True)
+assert backend.to_numpy(descending_flat).tolist() == [3, 2, 1, 0]
+
 axis_result = backend.sort([[3, 1], [2, 0]], axis=0)
 assert backend.to_numpy(axis_result).tolist() == [[2, 0], [3, 1]]
 """
@@ -55,6 +58,9 @@ assert public_backend.__backend_name__ == "numpy"
 
 flat_result = raw_pytorch.sort([[3, 1], [2, 0]], axis=None)
 assert raw_pytorch.to_numpy(flat_result).tolist() == [0, 1, 2, 3]
+
+descending_flat = raw_pytorch.sort([[3, 1], [2, 0]], axis=None, descending=True)
+assert raw_pytorch.to_numpy(descending_flat).tolist() == [3, 2, 1, 0]
 
 axis_result = raw_pytorch.sort([[3, 1], [2, 0]], axis=0)
 assert raw_pytorch.to_numpy(axis_result).tolist() == [[2, 0], [3, 1]]
