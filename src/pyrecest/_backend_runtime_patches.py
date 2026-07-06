@@ -108,3 +108,63 @@ def patch_pytorch_repeat_numpy_contract() -> None:
     raw_pytorch.repeat = repeat
     if active_pytorch_backend:
         backend.repeat = repeat
+
+
+def patch_pytorch_dot_numpy_contract() -> None:
+    """Make PyTorch ``dot`` follow NumPy's matrix/vector contraction contract."""
+
+    try:
+        import pyrecest.backend as backend  # pylint: disable=import-outside-toplevel
+        import pyrecest._backend.pytorch as raw_pytorch  # pylint: disable=import-outside-toplevel
+        import torch  # pylint: disable=import-outside-toplevel
+    except ModuleNotFoundError:  # pragma: no cover - PyTorch backend may be unavailable
+        return
+
+    active_pytorch_backend = getattr(backend, "__backend_name__", None) == "pytorch"
+    original_dot = getattr(raw_pytorch, "dot", None)
+    if getattr(original_dot, "_pyrecest_numpy_dot_contract", False):
+        if active_pytorch_backend:
+            backend.dot = original_dot
+        return
+
+    def _preferred_device(*values):
+        for value in values:
+            if torch.is_tensor(value) and value.device.type != "cpu":
+                return value.device
+        for value in values:
+            if torch.is_tensor(value):
+                return value.device
+        return None
+
+    def _tensor_on_device(value, *, device):
+        if torch.is_tensor(value):
+            if device is not None and value.device != device:
+                return value.to(device=device)
+            return value
+        return torch.as_tensor(value, device=device)
+
+    def _promoted_pair(a, b):
+        device = _preferred_device(a, b)
+        a = _tensor_on_device(a, device=device)
+        b = _tensor_on_device(b, device=device)
+        dtype = torch.promote_types(a.dtype, b.dtype)
+        return a.to(dtype=dtype), b.to(dtype=dtype)
+
+    def dot(a, b):
+        a, b = _promoted_pair(a, b)
+        if a.ndim == 0 or b.ndim == 0:
+            return torch.multiply(a, b)
+        if a.ndim == 1 and b.ndim == 1:
+            return torch.dot(a, b)
+        if b.ndim == 1:
+            return torch.tensordot(a, b, dims=([-1], [0]))
+        if a.ndim == 1:
+            return torch.tensordot(a, b, dims=([0], [-2]))
+        return torch.tensordot(a, b, dims=([-1], [-2]))
+
+    dot.__name__ = getattr(original_dot, "__name__", "dot")
+    dot.__doc__ = getattr(original_dot, "__doc__", None)
+    dot._pyrecest_numpy_dot_contract = True
+    raw_pytorch.dot = dot
+    if active_pytorch_backend:
+        backend.dot = dot
