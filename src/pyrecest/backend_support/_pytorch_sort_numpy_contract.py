@@ -18,3 +18,8 @@ def flatten_axis_for_sort(axis):
     if normalized_axis is None:
         return 0
     return normalized_axis
+
+
+def flatten_sort_values(torch_module, values):
+    """Flatten values before sorting along the synthetic first axis."""
+    return torch_module.flatten(values)
