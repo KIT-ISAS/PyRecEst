@@ -32,6 +32,8 @@ def tracker_signed_normal_flows_vectorized(
         return np.empty(0, dtype=float)
 
     velocity = np.asarray(event_velocity, dtype=float).reshape(2)
+    if not np.isfinite(velocity).all():
+        raise ValueError("event_velocity must contain finite values")
     velocity_norm = float(np.linalg.norm(velocity))
     if velocity_norm <= 1e-12:
         return np.zeros(measurements.shape[0], dtype=float)
