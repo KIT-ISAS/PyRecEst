@@ -1,7 +1,10 @@
 def _normalize_manifold_name(manifold_name):
     if not isinstance(manifold_name, str) or not manifold_name.strip():
         raise ValueError("manifold_name must be a non-empty string")
-    return manifold_name.strip().lower()
+    compact_name = "".join(char for char in manifold_name.strip().lower() if char.isalnum())
+    if not compact_name:
+        raise ValueError("manifold_name must be a non-empty string")
+    return compact_name
 
 
 def get_axis_label(manifold_name):
