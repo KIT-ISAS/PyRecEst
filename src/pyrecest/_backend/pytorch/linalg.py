@@ -66,8 +66,21 @@ def _as_linalg_tensor(value):
     return tensor
 
 
+def _is_boolean_scalar(value):
+    """Return whether ``value`` is a scalar boolean exponent candidate."""
+    if isinstance(value, (bool, _np.bool_)):
+        return True
+    if isinstance(value, _np.ndarray):
+        return value.shape == () and value.dtype == _np.bool_
+    if _torch.is_tensor(value):
+        return value.ndim == 0 and value.dtype == _torch.bool
+    return False
+
+
 def _as_integer_scalar(value, name):
-    """Return a Python integer for Torch integer-scalar arguments."""
+    """Return a non-boolean Python integer for Torch integer-scalar arguments."""
+    if _is_boolean_scalar(value):
+        raise TypeError(f"{name} must be an integer scalar, not boolean")
     try:
         return _operator_index(value)
     except TypeError as exc:
