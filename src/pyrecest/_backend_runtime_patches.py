@@ -71,3 +71,37 @@ def patch_pytorch_close_equal_nan_device_contract() -> None:
         setattr(raw_pytorch, helper_name, helper)
         if active_pytorch_backend:
             setattr(backend, helper_name, helper)
+
+
+def patch_pytorch_repeat_numpy_contract() -> None:
+    """Preserve the raw PyTorch repeat contract for non-PyTorch public backends."""
+
+    try:
+        import numpy as np  # pylint: disable=import-outside-toplevel
+        import pyrecest.backend as backend  # pylint: disable=import-outside-toplevel
+        import pyrecest._backend.pytorch as raw_pytorch  # pylint: disable=import-outside-toplevel
+        import torch  # pylint: disable=import-outside-toplevel
+        from pyrecest._backend_submodules import (  # pylint: disable=import-outside-toplevel
+            _pytorch_repeat_with_arraylike_inputs,
+        )
+    except ModuleNotFoundError:  # pragma: no cover - PyTorch backend may be unavailable
+        return
+
+    active_pytorch_backend = getattr(backend, "__backend_name__", None) == "pytorch"
+    original_repeat = getattr(raw_pytorch, "repeat", None)
+    if original_repeat is None:
+        return
+    if getattr(original_repeat, "_pyrecest_repeat_contract", False):
+        if active_pytorch_backend:
+            setattr(backend, "repeat", original_repeat)
+        return
+
+    repeat = _pytorch_repeat_with_arraylike_inputs(
+        original_repeat,
+        raw_pytorch.array,
+        np,
+        torch,
+    )
+    raw_pytorch.repeat = repeat
+    if active_pytorch_backend:
+        backend.repeat = repeat
