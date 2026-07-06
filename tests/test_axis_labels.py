@@ -28,7 +28,22 @@ def test_generic_manifold_axis_labels_are_preserved(manifold_name, expected_labe
     assert get_axis_label(manifold_name) == expected_label
 
 
-@pytest.mark.parametrize("manifold_name", [None, "", "   "])
+@pytest.mark.parametrize(
+    ("manifold_name", "expected_label"),
+    [
+        ("SE(2)", "Error in meters"),
+        ("SE(2)-linear", "Error in meters"),
+        ("SE(3)-bounded", "Error in radian"),
+        ("hypersphere_symmetric", "Angular error in radian"),
+    ],
+)
+def test_axis_label_accepts_common_mathematical_notation(
+    manifold_name, expected_label
+):
+    assert get_axis_label(manifold_name) == expected_label
+
+
+@pytest.mark.parametrize("manifold_name", [None, "", "   ", "---"])
 def test_axis_label_rejects_invalid_manifold_names(manifold_name):
     with pytest.raises(ValueError, match="manifold_name must be a non-empty string"):
         get_axis_label(manifold_name)
