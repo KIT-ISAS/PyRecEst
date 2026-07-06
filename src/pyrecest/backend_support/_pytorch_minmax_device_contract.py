@@ -7,6 +7,10 @@ from operator import index as _operator_index
 
 import numpy as _np
 
+from pyrecest.backend_support._pytorch_random_device_contract import (
+    patch_pytorch_random_device_contract as _patch_pytorch_random_device_contract,
+)
+
 _AXIS_TYPE_ERROR = "axis must be None, an integer, or a tuple of integers"
 
 
@@ -223,3 +227,4 @@ def patch_pytorch_minmax_device_contract() -> None:
         "_pyrecest_comparison_device_contract",
     )
     _patch_pytorch_linalg_norm_axis_contract(raw_pytorch, backend, torch)
+    _patch_pytorch_random_device_contract()
