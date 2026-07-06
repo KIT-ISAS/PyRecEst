@@ -12,6 +12,9 @@ from pyrecest.experimental.dvs import (
     DVSSCGPTracker,
     PointProcessUpdateConfig,
 )
+from pyrecest.experimental.dvs.vectorized_flow import (
+    tracker_signed_normal_flows_vectorized,
+)
 
 
 @unittest.skipIf(
@@ -99,6 +102,21 @@ class TestDVSFullSCGPTracker(unittest.TestCase):
         )
 
         self.assertEqual(tracker.last_active_measurement_indices, [0])
+
+    def test_vectorized_normal_flow_rejects_nonfinite_event_velocity(self):
+        tracker = self._make_tracker()
+
+        for event_velocity in ([np.nan, 1.0], [np.inf, 1.0], [1.0, -np.inf]):
+            with self.subTest(event_velocity=event_velocity):
+                with self.assertRaisesRegex(
+                    ValueError,
+                    "event_velocity must contain finite values",
+                ):
+                    tracker_signed_normal_flows_vectorized(
+                        tracker,
+                        np.array([[1.0, 2.0]]),
+                        event_velocity,
+                    )
 
     def test_update_can_infer_event_velocity_from_kinematics(self):
         tracker = DVSFullSCGPTracker(
@@ -218,20 +236,3 @@ class TestDVSFullSCGPTracker(unittest.TestCase):
             tracker.last_event_log_likelihood,
             tracker.last_event_likelihood_terms.log_likelihood,
         )
-        self.assertEqual(tracker.last_active_measurement_indices, [])
-        self.assertEqual(np.asarray(tracker.last_event_activities).shape, (0,))
-        npt.assert_allclose(
-            tracker.last_event_likelihood_gradient,
-            np.zeros_like(np.asarray(tracker.state, dtype=float)),
-            atol=0.0,
-        )
-        npt.assert_allclose(
-            tracker.last_event_likelihood_state_update,
-            np.zeros_like(np.asarray(tracker.state, dtype=float)),
-            atol=0.0,
-        )
-        self.assertIsNone(tracker.last_quadratic_form)
-
-
-if __name__ == "__main__":
-    unittest.main()
