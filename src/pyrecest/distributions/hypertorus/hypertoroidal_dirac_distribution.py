@@ -7,9 +7,7 @@ import matplotlib.pyplot as plt
 
 # pylint: disable=redefined-builtin,no-name-in-module,no-member
 # pylint: disable=no-name-in-module,no-member
-from pyrecest.backend import (
-    abs,
-)
+from pyrecest.backend import abs
 from pyrecest.backend import any as backend_any
 from pyrecest.backend import (
     arctan2,
@@ -120,6 +118,7 @@ class HypertoroidalDiracDistribution(
             raise ValueError("Plotting not supported for this dimension")
 
     def set_mean(self, mean):
+        mean = as_shift_vector(mean, self.dim, name="mean")
         dist = copy.deepcopy(self)
         dist.d = mod(dist.d - dist.mean_direction() + mean, 2.0 * pi)
         return dist
