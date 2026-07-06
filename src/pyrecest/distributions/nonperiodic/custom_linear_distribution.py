@@ -52,11 +52,12 @@ class CustomLinearDistribution(
         return cd
 
     def set_mean(self, new_mean):
+        """Return a shifted copy whose mean equals ``new_mean``."""
         new_mean = _as_shift_vector(new_mean, self.dim, name="new_mean")
         mean_offset = new_mean - self.mean()
-        self.shift_by = self.shift_by + mean_offset
-        if self._mean_numerical is not None:
-            self._mean_numerical = new_mean
+        cd = self.shift(mean_offset)
+        cd._mean_numerical = new_mean
+        return cd
 
     def pdf(self, xs):
         xs = array(xs)
