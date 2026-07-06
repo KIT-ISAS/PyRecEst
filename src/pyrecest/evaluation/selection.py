@@ -21,6 +21,29 @@ def _is_text_scalar(value) -> bool:
     return isinstance(value, (str, bytes, np.str_, np.bytes_))
 
 
+def _contains_invalid_score_values(values: np.ndarray) -> bool:
+    if values.dtype == np.bool_ or values.dtype.kind in "bUScMm":
+        return True
+    if values.dtype == object:
+        return any(
+            item is None
+            or isinstance(
+                item,
+                (
+                    bool,
+                    np.bool_,
+                    complex,
+                    np.complexfloating,
+                    np.datetime64,
+                    np.timedelta64,
+                ),
+            )
+            or _is_text_scalar(item)
+            for item in values.reshape(-1)
+        )
+    return False
+
+
 def _normalize_nonnegative_integer(value, name: str) -> int:
     message = f"{name} must be a non-negative integer."
     try:
@@ -121,8 +144,18 @@ def sanitized_score_vector(values, *, nonnegative: bool = True) -> np.ndarray:
     clipped to zero, matching the common interpretation of scores as confidence,
     reliability, probability, or non-negative utility.
     """
+    message = "scores must contain real numeric values."
     nonnegative = _normalize_bool_flag(nonnegative, "nonnegative")
-    clean = np.asarray(values, dtype=np.float64).reshape(-1).copy()
+    try:
+        raw = np.asarray(values)
+    except (TypeError, ValueError, RuntimeError) as exc:
+        raise ValueError(message) from exc
+    if _contains_invalid_score_values(raw):
+        raise ValueError(message)
+    try:
+        clean = raw.astype(np.float64, copy=False).reshape(-1).copy()
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(message) from exc
     clean[~np.isfinite(clean)] = 0.0
     if nonnegative:
         clean = np.maximum(clean, 0.0)
