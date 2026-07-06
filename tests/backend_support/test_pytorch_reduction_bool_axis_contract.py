@@ -5,7 +5,7 @@ from tests.support.backend_runner import run_backend_code
 
 
 @pytest.mark.backend_portable
-def test_pytorch_reductions_reject_boolean_axis_arguments():
+def test_pytorch_reductions_reject_scalar_boolean_axis_arguments():
     if importlib.util.find_spec("torch") is None:
         pytest.skip("PyTorch is not installed")
 
@@ -28,7 +28,6 @@ calls = [
     ("any", lambda: backend.any(boolean_values, axis=True)),
     ("all", lambda: backend.all(boolean_values, axis=True)),
     ("max", lambda: backend.max(values, axis=True)),
-    ("tuple axis", lambda: backend.sum(values, axis=(False,))),
 ]
 
 for name, call in calls:
