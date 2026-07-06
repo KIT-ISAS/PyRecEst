@@ -6,4 +6,22 @@ experiments unless the documentation for an experimental object says
 otherwise.
 """
 
-__all__: list[str] = []
+from .multisensor_ddp_association import (
+    BIRTH_LABEL,
+    CLUTTER_LABEL,
+    MultisensorDDPAssociationResult,
+    SensorAssociationBlock,
+    SensorAssociationPosterior,
+    multisensor_ddp_association_update,
+    predict_ddp_base_weights,
+)
+
+__all__ = [
+    "BIRTH_LABEL",
+    "CLUTTER_LABEL",
+    "MultisensorDDPAssociationResult",
+    "SensorAssociationBlock",
+    "SensorAssociationPosterior",
+    "multisensor_ddp_association_update",
+    "predict_ddp_base_weights",
+]
