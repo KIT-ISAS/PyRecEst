@@ -33,6 +33,16 @@ from .fixed_lag_velocity_locked_mem_qkf_smoother import (
     VelocityLockedMEMQKFSmootherGain,
     VelocityLockedMEMQKFTrackerState,
 )
+from .hypertoroidal_fourier_smoother import (
+    HFFSmoother,
+    HypertoroidalFourierBackwardInformationSmoother,
+    HypertoroidalFourierSmoother,
+)
+from .hypertoroidal_grid_smoother import (
+    HGSmoother,
+    HypertoroidalGridBackwardInformationSmoother,
+    HypertoroidalGridSmoother,
+)
 from .mem_rbpf_ffbsi_smoother import (
     MEMRBPF_FFBSiSmoother,
     MEMRBPFFFBSiSmoother,
@@ -87,6 +97,12 @@ __all__ = [
     "FLVLMEMQKFSmoother",
     "VelocityLockedMEMQKFSmootherGain",
     "VelocityLockedMEMQKFTrackerState",
+    "HFFSmoother",
+    "HGSmoother",
+    "HypertoroidalFourierBackwardInformationSmoother",
+    "HypertoroidalFourierSmoother",
+    "HypertoroidalGridBackwardInformationSmoother",
+    "HypertoroidalGridSmoother",
     "MEMRBPFForwardRecord",
     "MEMRBPF_FFBSiSmoother",
     "MEMRBPFFFBSiSmoother",
