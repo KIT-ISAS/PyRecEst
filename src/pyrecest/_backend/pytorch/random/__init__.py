@@ -17,6 +17,8 @@ _LEGACY = _importlib_util.module_from_spec(_LEGACY_SPEC)
 _sys.modules[_LEGACY_MODULE_NAME] = _LEGACY
 _LEGACY_SPEC.loader.exec_module(_LEGACY)
 
+_BOOLEAN_SCALAR_TYPES = (bool, _np.bool_)
+
 
 def _validate_multivariate_normal_check_valid(check_valid):
     if check_valid not in {"warn", "raise", "ignore"}:
@@ -44,6 +46,20 @@ def _validate_multivariate_normal_tol(tol):
     return tol_value
 
 
+def _reject_boolean_randint_bound(value, name):
+    if isinstance(value, _BOOLEAN_SCALAR_TYPES):
+        raise TypeError(f"{name} must contain integer values")
+
+
+def randint(low, high=None, size=None, *args, **kwargs):
+    """Draw integer samples, rejecting boolean scalar bounds consistently."""
+
+    _reject_boolean_randint_bound(low, "low" if high is not None else "high")
+    if high is not None:
+        _reject_boolean_randint_bound(high, "high")
+    return _LEGACY.randint(low, high, size, *args, **kwargs)
+
+
 def multivariate_normal(mean, cov, size=None, *args, **kwargs):
     """Draw samples with NumPy-compatible validation keyword handling."""
 
@@ -60,7 +76,7 @@ __all__ = sorted(
         for name in dir(_LEGACY)
         if not (name.startswith("__") and name.endswith("__"))
     }
-    | {"multivariate_normal"}
+    | {"multivariate_normal", "randint"}
 )
 
 
