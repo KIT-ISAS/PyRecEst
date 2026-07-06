@@ -1,6 +1,7 @@
 from math import isinf as _isinf
 
 from . import model_comparison as _model_comparison
+from . import pareto as _pareto
 from .check_and_fix_config import check_and_fix_config
 from .configure_for_filter import configure_for_filter
 from .determine_all_deviations import determine_all_deviations
@@ -71,6 +72,7 @@ from .simulation_database import simulation_database
 from .summarize_filter_results import summarize_filter_results
 
 _original_classify_evidence_margin = classify_evidence_margin
+_original_has_front_eligible_objectives = _pareto._has_front_eligible_objectives
 
 
 def _classify_evidence_margin(delta_log_evidence: float) -> str:
@@ -80,8 +82,22 @@ def _classify_evidence_margin(delta_log_evidence: float) -> str:
     return _original_classify_evidence_margin(delta_log_evidence)
 
 
+def _has_front_eligible_numeric_objectives(record, objectives, *, allow_missing: bool) -> bool:
+    if not allow_missing:
+        return _original_has_front_eligible_objectives(
+            record,
+            objectives,
+            allow_missing=allow_missing,
+        )
+    return any(
+        not _pareto._is_missing(_pareto._lookup_numeric(record, objective))
+        for objective in objectives
+    )
+
+
 _model_comparison.classify_evidence_margin = _classify_evidence_margin
 classify_evidence_margin = _classify_evidence_margin
+_pareto._has_front_eligible_objectives = _has_front_eligible_numeric_objectives
 
 __all__ = [
     "generate_groundtruth",
