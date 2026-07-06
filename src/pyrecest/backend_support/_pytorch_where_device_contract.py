@@ -61,6 +61,9 @@ def patch_pytorch_where_device_contract() -> None:
         return
 
     def where(condition, x=None, y=None):
+        if (x is None) != (y is None):
+            raise ValueError("either both or neither of x and y should be given")
+
         device = _preferred_pytorch_device(torch, condition, x, y)
         condition = _tensor_on_device(
             torch,

@@ -19,10 +19,21 @@ import pyrecest.backend as backend
 import pyrecest._backend.pytorch as raw_pytorch
 
 
+
 def _non_cpu_device():
     if torch.cuda.is_available():
         return torch.device("cuda")
     return torch.device("meta")
+
+
+
+def _assert_one_sided_where_raises(*args, **kwargs):
+    try:
+        target.where(*args, **kwargs)
+    except ValueError as exc:
+        assert "either both or neither" in str(exc)
+    else:
+        raise AssertionError("one-sided where did not raise ValueError")
 
 
 target = {target_module}
@@ -41,6 +52,9 @@ assert result.device.type == device.type
 assert tuple(result.shape) == (2,)
 if device.type != "meta":
     assert torch.allclose(result.cpu(), torch.tensor([1.0, 4.0]))
+
+_assert_one_sided_where_raises([True, False], [1.0, 2.0])
+_assert_one_sided_where_raises([True, False], y=[1.0, 2.0])
 
 print("ok")
 """
