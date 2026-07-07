@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from math import prod, sqrt
+from operator import index as _operator_index
 
 import numpy as np
 
@@ -24,6 +25,17 @@ def _choose_rank(singular_values, max_rank, local_tolerance):
             raise ValueError("max_rank must be positive when provided.")
         rank = min(rank, max_rank)
     return max(1, rank)
+
+
+def _as_integer_index(value, axis, mode_size):
+    if isinstance(value, (bool, np.bool_)):
+        raise TypeError("TT entry indices must be integers.")
+    index = _operator_index(value)
+    if not -mode_size <= index < mode_size:
+        raise IndexError(
+            f"TT entry index {index} is out of bounds for axis {axis} with size {mode_size}."
+        )
+    return index
 
 
 class TensorTrain:
@@ -104,9 +116,11 @@ class TensorTrain:
     def entry(self, multi_index):
         if len(multi_index) != self.ndim:
             raise ValueError("multi_index must contain one index per TT core.")
-        value = self.cores[0][:, int(multi_index[0]), :]
+        first_index = _as_integer_index(multi_index[0], 0, self.cores[0].shape[1])
+        value = self.cores[0][:, first_index, :]
         for axis, index in enumerate(multi_index[1:], start=1):
-            value = value @ self.cores[axis][:, int(index), :]
+            axis_index = _as_integer_index(index, axis, self.cores[axis].shape[1])
+            value = value @ self.cores[axis][:, axis_index, :]
         return complex(value.reshape(()))
 
     def norm_squared(self):
