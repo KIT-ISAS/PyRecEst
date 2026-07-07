@@ -151,3 +151,43 @@ def patch_pytorch_repeat_numpy_contract() -> None:
     raw_pytorch.repeat = repeat
     if active_pytorch_backend:
         backend.repeat = repeat
+
+
+def patch_pytorch_concatenate_axis_none_contract() -> None:
+    """Make PyTorch concatenate flatten inputs for NumPy's ``axis=None`` contract."""
+
+    try:
+        import pyrecest.backend as backend  # pylint: disable=import-outside-toplevel
+        import pyrecest._backend.pytorch as raw_pytorch  # pylint: disable=import-outside-toplevel
+        import torch  # pylint: disable=import-outside-toplevel
+    except ModuleNotFoundError:  # pragma: no cover - PyTorch backend may be unavailable
+        return
+
+    active_pytorch_backend = getattr(backend, "__backend_name__", None) == "pytorch"
+    original_concatenate = getattr(raw_pytorch, "concatenate", None)
+    if original_concatenate is None:
+        return
+    if getattr(original_concatenate, "_pyrecest_axis_none_contract", False):
+        if active_pytorch_backend:
+            backend.concatenate = original_concatenate
+        return
+
+    def _tensor_sequence(seq):
+        tensors = [raw_pytorch.array(item) for item in seq]
+        if not tensors:
+            return tensors
+        return raw_pytorch.convert_to_wider_dtype(tensors)
+
+    def concatenate(seq, axis=0, out=None):
+        tensors = _tensor_sequence(seq)
+        if axis is None:
+            tensors = [tensor.reshape(-1) for tensor in tensors]
+            axis = 0
+        return torch.cat(tensors, dim=axis, out=out)
+
+    concatenate.__name__ = getattr(original_concatenate, "__name__", "concatenate")
+    concatenate.__doc__ = getattr(original_concatenate, "__doc__", None)
+    concatenate._pyrecest_axis_none_contract = True
+    raw_pytorch.concatenate = concatenate
+    if active_pytorch_backend:
+        backend.concatenate = concatenate
