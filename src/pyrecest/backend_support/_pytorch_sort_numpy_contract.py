@@ -11,6 +11,8 @@ _SORT_KIND_MESSAGE = (
     "sort kind must be one of 'quicksort', 'heapsort', 'stable', or 'mergesort'"
 )
 _SORT_CONFLICT_MESSAGE = "sort() got both 'kind' and 'stable' arguments"
+_ARGSORT_CONFLICT_MESSAGE = "argsort() got conflicting 'kind' and 'stable' arguments"
+_ARGSORT_DEFAULT_AXIS = object()
 
 
 def normalize_sort_axis(axis):
@@ -65,3 +67,71 @@ def sort_axis_none(
         descending=bool(descending),
         stable=bool(stable) if stable is not None else False,
     ).values
+
+
+def patch_argsort_stability_contract() -> None:
+    """Patch PyTorch argsort to reject simultaneous ``kind`` and ``stable``."""
+    try:
+        import pyrecest._backend.pytorch as raw_pytorch  # pylint: disable=import-outside-toplevel
+        import pyrecest.backend as backend  # pylint: disable=import-outside-toplevel
+    except ModuleNotFoundError:  # pragma: no cover - PyTorch backend may be unavailable
+        return
+
+    original_argsort = getattr(raw_pytorch, "argsort", None)
+    if original_argsort is None:
+        return
+    if getattr(original_argsort, "_pyrecest_argsort_stability_contract", False):
+        if getattr(backend, "__backend_name__", None) == "pytorch":
+            backend.argsort = original_argsort
+        return
+
+    def argsort(
+        a,
+        axis=_ARGSORT_DEFAULT_AXIS,
+        kind=None,
+        order=None,
+        *,
+        stable=None,
+        dim=None,
+        descending=False,
+    ):
+        if kind is not None and stable is not None:
+            raise TypeError(_ARGSORT_CONFLICT_MESSAGE)
+        if axis is _ARGSORT_DEFAULT_AXIS:
+            return original_argsort(
+                a,
+                kind=kind,
+                order=order,
+                stable=stable,
+                dim=dim,
+                descending=descending,
+            )
+        return original_argsort(
+            a,
+            axis=axis,
+            kind=kind,
+            order=order,
+            stable=stable,
+            dim=dim,
+            descending=descending,
+        )
+
+    argsort.__name__ = getattr(original_argsort, "__name__", "argsort")
+    argsort.__doc__ = getattr(original_argsort, "__doc__", None)
+    argsort._pyrecest_arraylike_contract = getattr(
+        original_argsort,
+        "_pyrecest_arraylike_contract",
+        True,
+    )
+    argsort._pyrecest_numpy_contract = getattr(
+        original_argsort,
+        "_pyrecest_numpy_contract",
+        True,
+    )
+    argsort._pyrecest_argsort_stability_contract = True
+    raw_pytorch.argsort = argsort
+    if getattr(backend, "__backend_name__", None) == "pytorch":
+        backend.argsort = argsort
+
+
+patch_argsort_stability_contract()
