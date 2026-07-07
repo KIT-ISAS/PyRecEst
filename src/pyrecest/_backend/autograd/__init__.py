@@ -1,5 +1,7 @@
 """Autograd based computation backend."""
 
+import builtins as _builtins
+
 import autograd.numpy as _np
 from autograd.numpy import (
     all,
@@ -205,17 +207,29 @@ def vmap(pyfunc, randomness="error"):
         raise ValueError("randomness must be either 'error' or 'different'")
 
     def vmapped_fun(*args):
-        if not all([arg.shape[0] == args[0].shape[0] for arg in args]):
+        if not args:
+            raise ValueError("vmap requires at least one positional argument")
+        mapped_args = [_np.asarray(arg) for arg in args]
+        leading_sizes = [arg.shape[0] if arg.ndim > 0 else None for arg in mapped_args]
+        sized_leading = [size for size in leading_sizes if size is not None]
+        if sized_leading and not _builtins.all(
+            size == sized_leading[0] for size in sized_leading
+        ):
             raise ValueError(
                 "All arguments must have the same size in the first dimension"
             )
+        if _builtins.any(size is None for size in leading_sizes):
+            raise ValueError("vmap arguments must have at least one dimension")
 
         # Use autograd.numpy.stack instead of preallocating and assigning into
         # an output array.  The old implementation coerced integer/complex
         # results to the backend default float dtype and in-place assignment is
         # not a reliable autograd operation when pyfunc returns ArrayBox values.
         return _np.stack(
-            [pyfunc(*(arg[i, ...] for arg in args)) for i in range(args[0].shape[0])]
+            [
+                pyfunc(*(arg[index, ...] for arg in mapped_args))
+                for index in range(sized_leading[0])
+            ]
         )
 
     return vmapped_fun
