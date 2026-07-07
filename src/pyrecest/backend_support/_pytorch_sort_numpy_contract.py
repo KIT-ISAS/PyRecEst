@@ -30,6 +30,8 @@ def resolve_sort_stability(kind, stable):
         raise ValueError(_SORT_CONFLICT_MESSAGE)
     if kind is None:
         return stable
+    if stable is not None:
+        raise TypeError(_SORT_CONFLICT_MESSAGE)
     if kind in {"stable", "mergesort"}:
         return True
     if kind in {"quicksort", "heapsort"}:
