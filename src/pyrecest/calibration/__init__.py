@@ -50,8 +50,8 @@ def _as_nonnegative_time_delta(value: Any, name: str) -> float:
         result = float(scalar)
     except (TypeError, ValueError, OverflowError) as exc:
         raise ValueError(f"{name} must be nonnegative") from exc
-    if result < 0.0 or np.isnan(result):
-        raise ValueError(f"{name} must be nonnegative")
+    if not np.isfinite(result) or result < 0.0:
+        raise ValueError(f"{name} must be finite and nonnegative")
     return result
 
 
