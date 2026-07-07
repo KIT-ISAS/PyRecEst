@@ -3,6 +3,14 @@
 # pylint: disable=no-name-in-module,no-member
 from pyrecest.backend import array
 
+_BOOLEAN_DTYPE_NAMES = {"bool", "bool_", "torch.bool"}
+
+
+def _reject_boolean_array(value, name: str) -> None:
+    dtype = getattr(value, "dtype", None)
+    if dtype is not None and str(dtype) in _BOOLEAN_DTYPE_NAMES:
+        raise ValueError(f"{name} must contain real angles, not boolean values.")
+
 
 def as_shift_vector(shift_by, dim: int, *, name: str = "shift_by"):
     """Return ``shift_by`` as a one-dimensional backend vector of length ``dim``.
@@ -12,6 +20,7 @@ def as_shift_vector(shift_by, dim: int, *, name: str = "shift_by"):
     shape validation is performed.
     """
     shift_by = array(shift_by)
+    _reject_boolean_array(shift_by, name)
     if shift_by.ndim == 0:
         if dim != 1:
             raise ValueError(f"{name} must have shape ({dim},), got scalar.")
@@ -30,6 +39,7 @@ def as_hypertoroidal_points(xs, dim: int, *, name: str = "xs"):
     ``dim`` is treated as a single query point.
     """
     xs = array(xs)
+    _reject_boolean_array(xs, name)
     if xs.ndim == 0:
         if dim != 1:
             raise ValueError(f"{name} must have trailing dimension {dim}, got scalar.")
