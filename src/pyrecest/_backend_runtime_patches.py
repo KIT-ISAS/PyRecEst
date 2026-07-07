@@ -236,6 +236,89 @@ def patch_pytorch_edge_pad_contract() -> None:
         backend.pad = pad
 
 
+def _pytorch_squeeze_axes(axis, ndim, numpy_module, torch_module):
+    """Return normalized NumPy-style squeeze axes for a PyTorch tensor."""
+
+    if torch_module.is_tensor(axis):
+        axis = axis.detach().cpu().numpy()
+
+    axis_array = numpy_module.asarray(axis)
+    if axis_array.shape == ():
+        try:
+            axes = (_operator_index(axis_array.item()),)
+        except TypeError as exc:
+            raise TypeError(
+                "only integer scalar arrays can be converted to a scalar index"
+            ) from exc
+    else:
+        if axis_array.ndim != 1:
+            raise ValueError("axis must be None, an integer, or a tuple of integers")
+        try:
+            axes = tuple(_operator_index(one_axis) for one_axis in axis_array.tolist())
+        except TypeError as exc:
+            raise TypeError("axis entries must be integers") from exc
+
+    normalized_axes = tuple(
+        one_axis + ndim if one_axis < 0 else one_axis for one_axis in axes
+    )
+    if len(set(normalized_axes)) != len(normalized_axes):
+        raise ValueError("duplicate value in 'axis'")
+    for original_axis, normalized_axis in zip(axes, normalized_axes):
+        if normalized_axis < 0 or normalized_axis >= ndim:
+            raise IndexError(
+                f"axis {original_axis} is out of bounds for array of dimension {ndim}"
+            )
+    return normalized_axes
+
+
+def patch_pytorch_squeeze_axis_contract() -> None:
+    """Make PyTorch squeeze reject non-singleton explicitly requested axes."""
+
+    try:
+        import numpy as np  # pylint: disable=import-outside-toplevel
+        import pyrecest.backend as backend  # pylint: disable=import-outside-toplevel
+        import pyrecest._backend.pytorch as raw_pytorch  # pylint: disable=import-outside-toplevel
+        import torch  # pylint: disable=import-outside-toplevel
+    except ModuleNotFoundError:  # pragma: no cover - PyTorch backend may be unavailable
+        return
+
+    active_pytorch_backend = getattr(backend, "__backend_name__", None) == "pytorch"
+    original_squeeze = getattr(raw_pytorch, "squeeze", None)
+    if original_squeeze is None:
+        return
+    if getattr(original_squeeze, "_pyrecest_numpy_axis_contract", False):
+        if active_pytorch_backend:
+            backend.squeeze = original_squeeze
+        return
+
+    def squeeze(x, axis=None):
+        values = raw_pytorch.array(x)
+        if axis is None:
+            return original_squeeze(values, axis=None)
+
+        axes = _pytorch_squeeze_axes(axis, values.ndim, np, torch)
+        if not axes:
+            return values
+        for one_axis in axes:
+            if values.shape[one_axis] != 1:
+                raise ValueError(
+                    "cannot select an axis to squeeze out which has "
+                    "size not equal to one"
+                )
+
+        result = values
+        for one_axis in sorted(axes, reverse=True):
+            result = torch.squeeze(result, dim=one_axis)
+        return result
+
+    squeeze.__name__ = getattr(original_squeeze, "__name__", "squeeze")
+    squeeze.__doc__ = getattr(original_squeeze, "__doc__", None)
+    squeeze._pyrecest_numpy_axis_contract = True
+    raw_pytorch.squeeze = squeeze
+    if active_pytorch_backend:
+        backend.squeeze = squeeze
+
+
 def patch_pytorch_transpose_boolean_axes_contract() -> None:
     """Make PyTorch ``transpose`` reject boolean axes sequences like NumPy."""
 
