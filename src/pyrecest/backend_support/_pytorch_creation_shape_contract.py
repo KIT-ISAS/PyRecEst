@@ -160,6 +160,42 @@ def patch_pytorch_creation_shape_contract() -> None:
         creation_helper._pyrecest_boolean_shape_contract = True
         return creation_helper
 
+    def _wrap_like_creation_helper(helper_name, torch_helper, *, has_fill_value=False):
+        original_helper = getattr(raw_pytorch, helper_name, None)
+        if original_helper is None:
+            return None
+        if getattr(original_helper, "_pyrecest_arraylike_contract", False):
+            if active_pytorch_backend:
+                setattr(backend, helper_name, original_helper)
+            return original_helper
+
+        if has_fill_value:
+
+            def like_creation_helper(a, fill_value, dtype=None, *args, **kwargs):
+                return torch_helper(
+                    raw_pytorch.array(a),
+                    fill_value,
+                    *args,
+                    dtype=_normalize_dtype(dtype),
+                    **kwargs,
+                )
+
+        else:
+
+            def like_creation_helper(a, dtype=None, *args, **kwargs):
+                return torch_helper(
+                    raw_pytorch.array(a),
+                    *args,
+                    dtype=_normalize_dtype(dtype),
+                    **kwargs,
+                )
+
+        like_creation_helper.__name__ = getattr(original_helper, "__name__", helper_name)
+        like_creation_helper.__doc__ = getattr(original_helper, "__doc__", None)
+        like_creation_helper._pyrecest_numpy_contract = True
+        like_creation_helper._pyrecest_arraylike_contract = True
+        return like_creation_helper
+
     for helper_name, torch_helper, has_fill_value in (
         ("empty", torch.empty, False),
         ("zeros", torch.zeros, False),
@@ -167,6 +203,23 @@ def patch_pytorch_creation_shape_contract() -> None:
         ("full", torch.full, True),
     ):
         helper = _wrap_creation_helper(
+            helper_name,
+            torch_helper,
+            has_fill_value=has_fill_value,
+        )
+        if helper is None:
+            continue
+        setattr(raw_pytorch, helper_name, helper)
+        if active_pytorch_backend:
+            setattr(backend, helper_name, helper)
+
+    for helper_name, torch_helper, has_fill_value in (
+        ("empty_like", torch.empty_like, False),
+        ("zeros_like", torch.zeros_like, False),
+        ("ones_like", torch.ones_like, False),
+        ("full_like", torch.full_like, True),
+    ):
+        helper = _wrap_like_creation_helper(
             helper_name,
             torch_helper,
             has_fill_value=has_fill_value,
