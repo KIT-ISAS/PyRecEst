@@ -207,6 +207,14 @@ def _resolve_pytorch_argsort_axis(axis, dim, torch_module) -> int | None:
     return _normalize_pytorch_argsort_axis(axis, torch_module)
 
 
+def _raise_pytorch_argsort_kind_stable_conflict() -> None:
+    """Raise NumPy's error for simultaneous ``kind`` and ``stable`` arguments."""
+    raise ValueError(
+        "`kind` and `stable` parameters can't be provided at the same time. "
+        "Use only one of them."
+    )
+
+
 def _patch_pytorch_argsort_contracts() -> None:
     try:
         import pyrecest._backend.pytorch as raw_pytorch  # pylint: disable=import-outside-toplevel
@@ -236,18 +244,12 @@ def _patch_pytorch_argsort_contracts() -> None:
         axis_value = _resolve_pytorch_argsort_axis(axis, dim, torch)
         if order is not None:
             raise ValueError("order is not supported by the PyTorch backend")
+        if kind is not None and stable is not None:
+            _raise_pytorch_argsort_kind_stable_conflict()
         if kind is not None:
             if kind in {"stable", "mergesort"}:
-                if stable is False:
-                    raise TypeError(
-                        "argsort() got conflicting 'kind' and 'stable' arguments"
-                    )
                 stable = True
             elif kind in {"quicksort", "heapsort"}:
-                if stable is True:
-                    raise TypeError(
-                        "argsort() got conflicting 'kind' and 'stable' arguments"
-                    )
                 stable = False
             else:
                 raise ValueError(
