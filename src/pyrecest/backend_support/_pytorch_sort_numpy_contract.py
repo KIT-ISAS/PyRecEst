@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from operator import index as _operator_index
 
+import numpy as _np
+
 
 _SORT_KIND_MESSAGE = (
     "sort kind must be one of 'quicksort', 'heapsort', 'stable', or 'mergesort'"
@@ -15,6 +17,8 @@ def normalize_sort_axis(axis):
     """Return a sort axis while preserving NumPy's flatten-all sentinel."""
     if axis is None:
         return None
+    if isinstance(axis, (bool, _np.bool_)):
+        raise TypeError("an integer is required for the axis")
     return _operator_index(axis)
 
 
