@@ -86,6 +86,40 @@ def test_paired_model_margin_decisions_treats_exact_ties_as_ambiguous():
     assert decisions["positive_minus_reference_log_evidence"].tolist() == [0.0]
 
 
+def test_paired_model_margin_thresholds_reject_nonfinite_values():
+    scores = pd.DataFrame(
+        [
+            _score("s1", 0, "positive", 4.0),
+            _score("s1", 0, "reference", 3.0),
+        ]
+    )
+
+    for margin_threshold in (np.nan, np.inf, -np.inf):
+        with pytest.raises(
+            ValueError,
+            match="margin_threshold must be finite and non-negative",
+        ):
+            paired_model_margin_decisions(
+                scores,
+                positive_model="positive",
+                reference_model="reference",
+                margin_threshold=margin_threshold,
+                group_cols=("session", "event_index"),
+            )
+
+    with pytest.raises(
+        ValueError,
+        match="margin_threshold must be finite and non-negative",
+    ):
+        paired_model_margin_threshold_sweep(
+            scores,
+            positive_model="positive",
+            reference_model="reference",
+            thresholds=(0.0, np.nan),
+            group_cols=("session", "event_index"),
+        )
+
+
 def test_grouped_leave_one_out_and_cluster_bootstrap_are_generic():
     decisions = pd.DataFrame(
         [
