@@ -105,11 +105,31 @@ class NonparametricCardinalityPriorTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             PitmanYorBirthProbability(minimum_probability=0.9, maximum_probability=0.1)
 
+    def test_boolean_parameters_are_rejected(self):
+        with self.assertRaises(TypeError):
+            PitmanYorProcessCardinalityPrior(discount=False, strength=1.0)
+        with self.assertRaises(TypeError):
+            DirichletProcessCardinalityPrior(concentration=True)
+        with self.assertRaises(TypeError):
+            PitmanYorBirthProbability(base_birth_existence_probability=True)
+        with self.assertRaises(TypeError):
+            PitmanYorBirthProbability(prior_observation_count=True)
+
+        birth_probability = PitmanYorBirthProbability()
+        with self.assertRaises(TypeError):
+            birth_probability(num_existing_components=True)
+
     def test_invalid_cluster_sizes_are_rejected(self):
         prior = PitmanYorProcessCardinalityPrior(discount=0.2, strength=1.0)
 
         with self.assertRaises(ValueError):
             prior.predictive_assignment_probabilities([2, 0])
+        with self.assertRaises(TypeError):
+            prior.predictive_assignment_probabilities([2, True])
+        with self.assertRaises(TypeError):
+            prior.predictive_assignment_probabilities([2, 1.5])
+        with self.assertRaises(TypeError):
+            prior.predictive_assignment_probabilities([2, "1"])
         with self.assertRaises(ValueError):
             prior.predictive_new_cluster_probability_from_counts(2, 3)
 
