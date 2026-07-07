@@ -541,7 +541,17 @@ def array_from_sparse(indices, data, target_shape):
     # flattened positions would address the first axis instead of the flat
     # storage order and can therefore put values into the wrong entries or
     # raise out-of-bounds errors for multidimensional target shapes.
-    linear_indices = _jnp.ravel_multi_index(indices.T, target_shape)
+    linear_indices = _jnp.atleast_1d(_jnp.ravel_multi_index(indices.T, target_shape))
+    if linear_indices.size:
+        linear_count = linear_indices.size
+        _, reversed_first_positions = _jnp.unique(
+            linear_indices[::-1],
+            return_index=True,
+        )
+        keep_positions = _jnp.sort(linear_count - 1 - reversed_first_positions)
+        linear_indices = linear_indices[keep_positions]
+        if data.ndim > 0 and data.shape[0] == linear_count:
+            data = data[keep_positions]
     out = out.reshape(-1).at[linear_indices].set(data).reshape(target_shape)
 
     return out
