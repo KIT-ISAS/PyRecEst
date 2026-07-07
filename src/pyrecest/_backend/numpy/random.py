@@ -9,6 +9,7 @@ from numpy.random import (  # For PyRecEst
 )
 
 from .._shared_numpy.random import (
+    _normalize_probability_values,
     _normalize_size,
     choice,
     multivariate_normal,
@@ -90,16 +91,13 @@ def _validate_multinomial_pvals(pvals):
     if pvals_array.dtype.kind not in "iuf":
         raise TypeError("pvals must be real numeric")
 
-    pvals_array = pvals_array.astype(float, copy=False)
+    pvals_array = pvals_array.astype(_np.float64, copy=False)
     if pvals_array.ndim != 1:
         raise ValueError("pvals must be 1-dimensional")
     if pvals_array.size == 0:
         raise ValueError("pvals must contain at least one probability")
 
-    pvals_sum = pvals_array.sum()
-    if _np.any(pvals_array < 0) or not _np.isfinite(pvals_sum) or pvals_sum <= 0:
-        raise ValueError("probabilities do not sum to a positive value")
-    return pvals_array / pvals_sum
+    return _normalize_probability_values(pvals_array)
 
 
 def _validate_multinomial_size(size):
