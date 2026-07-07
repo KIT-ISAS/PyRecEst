@@ -210,6 +210,7 @@ def patch_pytorch_repeat_numpy_contract() -> None:
         return
 
     _patch_pytorch_triangular_vector_rectangular_contract(raw_pytorch, backend)
+    patch_pytorch_assignment_uint8_index_contract()
 
     active_pytorch_backend = getattr(backend, "__backend_name__", None) == "pytorch"
     original_repeat = getattr(raw_pytorch, "repeat", None)
@@ -417,4 +418,54 @@ def patch_jax_take_arraylike_contract() -> None:
         backend.take = take
 
 
+def patch_pytorch_assignment_uint8_index_contract() -> None:
+    """Treat uint8 PyTorch assignment indices as integer indices, not masks."""
+
+    try:
+        import pyrecest.backend as backend  # pylint: disable=import-outside-toplevel
+        import pyrecest._backend.pytorch as raw_pytorch  # pylint: disable=import-outside-toplevel
+        import torch  # pylint: disable=import-outside-toplevel
+    except ModuleNotFoundError:  # pragma: no cover - PyTorch backend may be unavailable
+        return
+
+    current_is_boolean = getattr(raw_pytorch, "_is_boolean", None)
+    current_as_assignment_index = getattr(raw_pytorch, "_as_assignment_index", None)
+    if (
+        getattr(current_is_boolean, "_pyrecest_uint8_assignment_index_contract", False)
+        and getattr(
+            current_as_assignment_index,
+            "_pyrecest_uint8_assignment_index_contract",
+            False,
+        )
+    ):
+        return
+
+    def _is_boolean(x):
+        if isinstance(x, bool):
+            return True
+        if isinstance(x, (tuple, list)):
+            if not x:
+                return False
+            return _is_boolean(x[0])
+        if torch.is_tensor(x):
+            return x.dtype == torch.bool
+        return False
+
+    def _as_assignment_index(index, *, device):
+        if torch.is_tensor(index):
+            if index.dtype == torch.bool:
+                return index.to(device=device)
+            return index.to(device=device, dtype=torch.long)
+        return torch.as_tensor(index, dtype=torch.long, device=device)
+
+    _is_boolean._pyrecest_uint8_assignment_index_contract = True
+    _as_assignment_index._pyrecest_uint8_assignment_index_contract = True
+    raw_pytorch._is_boolean = _is_boolean
+    raw_pytorch._as_assignment_index = _as_assignment_index
+    if getattr(backend, "__backend_name__", None) == "pytorch":
+        backend.assignment = raw_pytorch.assignment
+        backend.assignment_by_sum = raw_pytorch.assignment_by_sum
+
+
 patch_jax_take_arraylike_contract()
+patch_pytorch_assignment_uint8_index_contract()
