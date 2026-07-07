@@ -41,9 +41,11 @@ def evaluate_for_file(
     else:
         scenario_config["n_timesteps"] = data["groundtruths"].shape[1]
 
-    n_meas_at_individual_time_step = np.zeros(data["measurements"].shape[1], dtype=int)
+    measurements = np.asarray(data["measurements"], dtype=object)
+    measurement_time_steps = measurements if measurements.ndim == 1 else measurements[0]
+    n_meas_at_individual_time_step = np.zeros(len(measurement_time_steps), dtype=int)
 
-    for idx, inner_array in enumerate(data["measurements"][0]):
+    for idx, inner_array in enumerate(measurement_time_steps):
         inner_array = np.asarray(inner_array)
         if inner_array.ndim == 2:
             n_meas_at_individual_time_step[idx] = inner_array.shape[0]
