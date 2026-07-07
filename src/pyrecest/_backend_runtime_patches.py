@@ -339,3 +339,6 @@ def patch_jax_take_arraylike_contract() -> None:
     raw_jax.take = take
     if getattr(backend, "__backend_name__", None) == "jax":
         backend.take = take
+
+
+patch_jax_take_arraylike_contract()
