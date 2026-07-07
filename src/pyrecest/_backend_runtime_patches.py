@@ -119,6 +119,82 @@ def _patch_pytorch_triangular_vector_rectangular_contract(
             setattr(backend, helper_name, triangular_to_vec)
 
 
+def patch_pytorch_searchsorted_contract() -> None:
+    """Restore PyTorch ``searchsorted`` with NumPy-style array-like inputs."""
+
+    try:
+        import pyrecest.backend as backend  # pylint: disable=import-outside-toplevel
+        import pyrecest._backend.pytorch as raw_pytorch  # pylint: disable=import-outside-toplevel
+        import torch  # pylint: disable=import-outside-toplevel
+    except ModuleNotFoundError:  # pragma: no cover - PyTorch backend may be unavailable
+        return
+
+    active_pytorch_backend = getattr(backend, "__backend_name__", None) == "pytorch"
+    original_searchsorted = getattr(raw_pytorch, "searchsorted", None)
+    if getattr(original_searchsorted, "_pyrecest_searchsorted_contract", False):
+        if active_pytorch_backend:
+            backend.searchsorted = original_searchsorted
+        return
+
+    def _preferred_device(*values):
+        for value in values:
+            if torch.is_tensor(value) and value.device.type != "cpu":
+                return value.device
+        for value in values:
+            if torch.is_tensor(value):
+                return value.device
+        return None
+
+    def _as_ordered_tensor(value, *, device):
+        if torch.is_tensor(value):
+            return value.to(device=device) if device is not None else value
+        return torch.as_tensor(value, device=device)
+
+    def _as_sorter(sorter, *, device):
+        if sorter is None:
+            return None
+        if torch.is_tensor(sorter):
+            return sorter.to(device=device, dtype=torch.long)
+        return torch.as_tensor(sorter, device=device, dtype=torch.long)
+
+    def searchsorted(
+        a,
+        v,
+        side="left",
+        sorter=None,
+        *,
+        out=None,
+        right=False,
+        out_int32=False,
+    ):
+        if side not in ("left", "right"):
+            raise ValueError("side must be 'left' or 'right'")
+        if right and side == "left":
+            side = "right"
+
+        device = _preferred_device(a, v, sorter)
+        a = _as_ordered_tensor(a, device=device)
+        v = _as_ordered_tensor(v, device=device)
+        dtype = torch.promote_types(a.dtype, v.dtype)
+        a = a.to(dtype=dtype)
+        v = v.to(dtype=dtype)
+        return torch.searchsorted(
+            a,
+            v,
+            out_int32=out_int32,
+            right=side == "right",
+            out=out,
+            sorter=_as_sorter(sorter, device=a.device),
+        )
+
+    searchsorted.__name__ = getattr(original_searchsorted, "__name__", "searchsorted")
+    searchsorted.__doc__ = getattr(original_searchsorted, "__doc__", None)
+    searchsorted._pyrecest_searchsorted_contract = True
+    raw_pytorch.searchsorted = searchsorted
+    if active_pytorch_backend:
+        backend.searchsorted = searchsorted
+
+
 def patch_pytorch_repeat_numpy_contract() -> None:
     """Preserve the raw PyTorch repeat contract for non-PyTorch public backends."""
 
