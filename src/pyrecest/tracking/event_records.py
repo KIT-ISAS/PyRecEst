@@ -104,6 +104,9 @@ def _optional_bool(value: Any, *, name: str) -> bool | None:
         return None
     if isinstance(value, (bool, np.bool_)):
         return bool(value)
+    array = np.asarray(value)
+    if array.shape == () and array.dtype == np.bool_:
+        return bool(array.item())
     raise ValueError(f"{name} must be a boolean or None")
 
 
