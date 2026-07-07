@@ -313,6 +313,106 @@ def patch_pytorch_edge_pad_contract() -> None:
         backend.pad = pad
 
 
+def _normalize_sparse_target_shape(target_shape, np, torch) -> tuple[int, ...]:
+    """Return a plain tuple shape for dense sparse-reconstruction output."""
+    if torch.is_tensor(target_shape):
+        target_shape = target_shape.detach().cpu().numpy()
+    shape_array = np.asarray(target_shape)
+    if shape_array.shape == ():
+        normalized_shape = (_operator_index(shape_array.item()),)
+    else:
+        normalized_shape = tuple(_operator_index(size) for size in shape_array.tolist())
+    if any(size < 0 for size in normalized_shape):
+        raise ValueError("negative dimensions are not allowed")
+    return normalized_shape
+
+
+def _torch_sparse_indices(indices, target_shape, data, torch):
+    """Return sparse coordinate indices with shape ``(n_entries, ndim)``."""
+    indices = torch.as_tensor(indices, dtype=torch.long, device=data.device)
+    if indices.numel() == 0:
+        return indices
+    if indices.ndim == 1 and len(target_shape) == 1:
+        return indices.reshape(-1, 1)
+    if indices.ndim != 2 or indices.shape[1] != len(target_shape):
+        raise ValueError("indices must have shape (n_entries, ndim)")
+    return indices
+
+
+def _ravel_sparse_indices(indices, target_shape, torch):
+    """Return C-order flat indices with NumPy ``ravel_multi_index`` checks."""
+    shape_tensor = torch.as_tensor(
+        target_shape,
+        dtype=torch.long,
+        device=indices.device,
+    )
+    if bool(torch.any(indices < 0)) or bool(torch.any(indices >= shape_tensor)):
+        raise ValueError("invalid entry in coordinates array")
+
+    strides = []
+    stride = 1
+    for size in reversed(target_shape):
+        strides.insert(0, stride)
+        stride *= size
+    stride_tensor = torch.as_tensor(strides, dtype=torch.long, device=indices.device)
+    return torch.sum(indices * stride_tensor, dim=1)
+
+
+def patch_pytorch_array_from_sparse_assignment_contract() -> None:
+    """Make PyTorch ``array_from_sparse`` match NumPy duplicate-index semantics."""
+
+    try:
+        import numpy as np  # pylint: disable=import-outside-toplevel
+        import pyrecest.backend as backend  # pylint: disable=import-outside-toplevel
+        import pyrecest._backend.pytorch as raw_pytorch  # pylint: disable=import-outside-toplevel
+        import torch  # pylint: disable=import-outside-toplevel
+    except ModuleNotFoundError:  # pragma: no cover - PyTorch backend may be unavailable
+        return
+
+    active_pytorch_backend = getattr(backend, "__backend_name__", None) == "pytorch"
+    original_array_from_sparse = getattr(raw_pytorch, "array_from_sparse", None)
+    if original_array_from_sparse is None:
+        return
+    if getattr(
+        original_array_from_sparse,
+        "_pyrecest_sparse_assignment_contract",
+        False,
+    ):
+        if active_pytorch_backend:
+            backend.array_from_sparse = original_array_from_sparse
+        return
+
+    def array_from_sparse(indices, data, target_shape):
+        data = raw_pytorch.array(data)
+        target_shape = _normalize_sparse_target_shape(target_shape, np, torch)
+        output = torch.zeros(
+            torch.Size(target_shape),
+            dtype=data.dtype,
+            device=data.device,
+        )
+        sparse_indices = _torch_sparse_indices(indices, target_shape, data, torch)
+
+        if sparse_indices.numel() == 0:
+            if data.numel() != 0:
+                raise ValueError("data must be empty when indices are empty")
+            return output
+
+        flat_indices = _ravel_sparse_indices(sparse_indices, target_shape, torch)
+        output.reshape(-1)[flat_indices] = data
+        return output
+
+    array_from_sparse.__name__ = getattr(
+        original_array_from_sparse,
+        "__name__",
+        "array_from_sparse",
+    )
+    array_from_sparse.__doc__ = getattr(original_array_from_sparse, "__doc__", None)
+    array_from_sparse._pyrecest_sparse_assignment_contract = True
+    raw_pytorch.array_from_sparse = array_from_sparse
+    if active_pytorch_backend:
+        backend.array_from_sparse = array_from_sparse
+
+
 def patch_raw_pytorch_reduction_alias_contract() -> None:
     """Expose PyTorch ``dim``/``keepdim`` aliases on raw reductions always."""
 
@@ -519,4 +619,5 @@ def patch_pytorch_assignment_uint8_index_contract() -> None:
 
 
 patch_jax_take_arraylike_contract()
+patch_pytorch_array_from_sparse_assignment_contract()
 patch_pytorch_assignment_uint8_index_contract()
