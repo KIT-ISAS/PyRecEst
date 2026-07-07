@@ -87,9 +87,8 @@ def generate_groundtruth(simulation_param, x0=None):
                         )
                     state_to_add_noise_to = previous_state
 
-                groundtruth[t][target_no, :] = state_to_add_noise_to + simulation_param[
-                    "sys_noise"
-                ].sample(1)
+                sys_noise_sample = squeeze(simulation_param["sys_noise"].sample(1))
+                groundtruth[t][target_no, :] = state_to_add_noise_to + sys_noise_sample
 
             else:
                 raise ValueError("Cannot generate groundtruth.")
