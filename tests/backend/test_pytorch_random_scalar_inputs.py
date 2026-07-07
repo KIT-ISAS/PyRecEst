@@ -61,6 +61,39 @@ def test_choice_rejects_complex_probabilities(probabilities):
 
 
 @pytest.mark.parametrize(
+    "probabilities",
+    [
+        [1e300, 1e300],
+        torch.tensor([1e38, 1e38], dtype=torch.float32),
+    ],
+)
+def test_choice_normalizes_large_unnormalized_probabilities_without_overflow(
+    probabilities,
+):
+    random.seed(0)
+
+    samples = random.choice(2, size=8, p=probabilities)
+
+    assert samples.shape == (8,)
+    assert set(samples.tolist()).issubset({0, 1})
+
+
+def test_multinomial_normalizes_large_unnormalized_probabilities_without_overflow():
+    random.seed(0)
+
+    sample = random.multinomial(12, [1e300, 1e300])
+    float32_sample = random.multinomial(
+        12,
+        torch.tensor([1e38, 1e38], dtype=torch.float32),
+    )
+
+    assert sample.shape == (2,)
+    assert int(sample.sum()) == 12
+    assert float32_sample.shape == (2,)
+    assert int(float32_sample.sum()) == 12
+
+
+@pytest.mark.parametrize(
     ("mean", "cov", "match"),
     [
         ([True], [[1.0]], "mean.*boolean"),
