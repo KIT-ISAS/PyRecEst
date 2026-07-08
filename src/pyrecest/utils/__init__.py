@@ -40,12 +40,15 @@ if not hasattr(_assignment_module, "_solve_subproblem_without_full_assignment"):
 
 
 def _normalize_roi_unmatched_value(unmatched_value):
+    if isinstance(unmatched_value, _TEXT_SCALAR_TYPES):
+        raise ValueError("unmatched_value must be an integer.")
+
     value_array = _roi_assignment_module.asarray(unmatched_value)
     if value_array.shape != ():
         raise ValueError("unmatched_value must be an integer.")
 
     scalar = value_array.item() if hasattr(value_array, "item") else value_array
-    if isinstance(scalar, bool):
+    if isinstance(scalar, (bool, _np.bool_) + _TEXT_SCALAR_TYPES):
         raise ValueError("unmatched_value must be an integer.")
     if isinstance(scalar, int):
         return int(scalar)
