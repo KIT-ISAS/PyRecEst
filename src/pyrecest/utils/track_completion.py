@@ -212,8 +212,8 @@ def occupied_observations_by_session(track_matrix: Any) -> dict[tuple[int, int],
 
     matrix = normalize_track_matrix(track_matrix)
     counts: dict[tuple[int, int], int] = {}
-    for _, session_index in np.ndindex(matrix.shape):
-        value = matrix[_, session_index]
+    for track_index, session_index in np.ndindex(matrix.shape):
+        value = matrix[track_index, session_index]
         if value is not None:
             key = (int(session_index), int(value))
             counts[key] = counts.get(key, 0) + 1
@@ -348,15 +348,28 @@ def _candidate_sessions(
 
 
 def _coerce_candidate_session(value: Any) -> int | None:
-    if isinstance(value, (bool, np.bool_)):
+    try:
+        value_array = np.asarray(value)
+    except (TypeError, ValueError):
         return None
-    if isinstance(value, (int, np.integer)):
-        return int(value)
-    if isinstance(value, (float, np.floating)):
-        if np.isfinite(value) and float(value).is_integer():
-            return int(value)
+    if value_array.shape != () or value_array.dtype == np.bool_:
         return None
-    return None
+
+    scalar = value_array.item()
+    if isinstance(
+        scalar, (bool, np.bool_, str, bytes, bytearray, np.str_, np.bytes_)
+    ):
+        return None
+    if isinstance(scalar, (int, np.integer)):
+        return int(scalar)
+    if isinstance(scalar, (float, np.floating)):
+        if np.isfinite(scalar) and float(scalar).is_integer():
+            return int(scalar)
+        return None
+    try:
+        return int(operator.index(scalar))
+    except TypeError:
+        return None
 
 
 def _completion_step(
