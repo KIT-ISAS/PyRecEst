@@ -10,7 +10,7 @@ predictive diagnostics.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from math import exp, log
+from math import exp, isfinite, log
 from numbers import Integral, Real
 
 from scipy.special import gammaln
@@ -19,7 +19,10 @@ from scipy.special import gammaln
 def _as_float(value, name):
     if isinstance(value, bool) or not isinstance(value, Real):
         raise TypeError(f"{name} must be a real scalar.")
-    return float(value)
+    value = float(value)
+    if not isfinite(value):
+        raise ValueError(f"{name} must be finite.")
+    return value
 
 
 def _validate_nonnegative_integer(value, name):

@@ -105,6 +105,22 @@ class NonparametricCardinalityPriorTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             PitmanYorBirthProbability(minimum_probability=0.9, maximum_probability=0.1)
 
+    def test_nonfinite_parameters_are_rejected(self):
+        for discount in (math.nan, math.inf, -math.inf):
+            with self.subTest(discount=discount):
+                with self.assertRaises(ValueError):
+                    PitmanYorProcessCardinalityPrior(discount=discount, strength=1.0)
+
+        for strength in (math.nan, math.inf, -math.inf):
+            with self.subTest(strength=strength):
+                with self.assertRaises(ValueError):
+                    PitmanYorProcessCardinalityPrior(discount=0.2, strength=strength)
+
+        with self.assertRaises(ValueError):
+            DirichletProcessCardinalityPrior(concentration=math.nan)
+        with self.assertRaises(ValueError):
+            PitmanYorBirthProbability(strength=math.inf)
+
     def test_boolean_parameters_are_rejected(self):
         with self.assertRaises(TypeError):
             PitmanYorProcessCardinalityPrior(discount=False, strength=1.0)
