@@ -23,7 +23,10 @@ _INVALID_TOLERANCE_SCALAR_TYPES = (
     np.bool_,
     np.str_,
     np.bytes_,
+    np.datetime64,
+    np.timedelta64,
 )
+_INVALID_NUMERIC_DTYPE_KINDS = frozenset("mM")
 
 
 def _package_version(name: str) -> str | None:
@@ -41,7 +44,7 @@ def _validate_tolerance(value: Any) -> float:
     except (TypeError, ValueError, RuntimeError) as exc:
         raise ValueError(_INVALID_TOLERANCE_MESSAGE) from exc
 
-    if value_array.shape != ():
+    if value_array.shape != () or value_array.dtype.kind in _INVALID_NUMERIC_DTYPE_KINDS:
         raise ValueError(_INVALID_TOLERANCE_MESSAGE)
 
     scalar = value_array.item()
@@ -60,7 +63,7 @@ def _validate_tolerance(value: Any) -> float:
 def _is_finite_real_number(value: Any) -> bool:
     return (
         isinstance(value, Real)
-        and not isinstance(value, bool)
+        and not isinstance(value, _INVALID_TOLERANCE_SCALAR_TYPES)
         and math.isfinite(float(value))
     )
 
@@ -84,6 +87,8 @@ def _coerce_finite_real_sequence(value: Any, *, field_name: str) -> list[float]:
 def _comparison_value(value: Any) -> Any:
     if isinstance(value, np.ndarray):
         return _comparison_value(value.tolist())
+    if isinstance(value, (np.datetime64, np.timedelta64)):
+        return value
     if isinstance(value, np.generic):
         return _comparison_value(value.item())
     if isinstance(value, dict):
