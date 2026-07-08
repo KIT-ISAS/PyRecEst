@@ -40,7 +40,7 @@ for kind in ("stable", "mergesort", "quicksort", "heapsort"):
     for stable in stable_values:
         try:
             backend.argsort(values, kind=kind, stable=stable)
-        except TypeError as exc:
+        except ValueError as exc:
             assert "conflicting" in str(exc)
         else:
             raise AssertionError(f"accepted kind={kind!r}, stable={stable!r}")
