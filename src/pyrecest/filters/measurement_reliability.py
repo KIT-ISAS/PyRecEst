@@ -201,6 +201,10 @@ def normalize_measurement_weights(measurement_weights, n_measurements: int):
             scalar_weight = float(weights)
         except (TypeError, ValueError, OverflowError) as exc:
             raise ValueError("measurement_weights must be real numeric") from exc
+        if not np.isfinite(scalar_weight):
+            raise ValueError("measurement_weights must be finite")
+        if scalar_weight < 0.0:
+            raise ValueError("measurement_weights must be non-negative")
         weights = ones(n_measurements) * scalar_weight
     else:
         weights = reshape(weights, (-1,))
