@@ -44,6 +44,16 @@ class HypersphericalDiracDistributionTest(unittest.TestCase):
     def test_instance_creation(self):
         self.assertIsInstance(self.hdd, HypersphericalDiracDistribution)
 
+    def test_constructor_accepts_array_like_locations_and_weights(self):
+        locations = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]
+        weights = [0.25, 0.75]
+
+        dist = HypersphericalDiracDistribution(locations, weights)
+
+        self.assertEqual(dist.dim, 2)
+        npt.assert_allclose(dist.d, array(locations))
+        npt.assert_allclose(dist.w, array(weights))
+
     def test_sampling(self):
         nSamples = 5
         s = self.hdd.sample(nSamples)

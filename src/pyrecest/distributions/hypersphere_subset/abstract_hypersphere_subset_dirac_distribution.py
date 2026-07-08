@@ -1,6 +1,6 @@
 # pylint: disable=redefined-builtin,no-name-in-module,no-member
 # pylint: disable=no-name-in-module,no-member
-from pyrecest.backend import linalg, log, outer, reshape, sum, zeros
+from pyrecest.backend import asarray, linalg, log, outer, reshape, sum, zeros
 
 from ..abstract_dirac_distribution import AbstractDiracDistribution
 from .abstract_hypersphere_subset_distribution import (
@@ -12,6 +12,7 @@ class AbstractHypersphereSubsetDiracDistribution(
     AbstractDiracDistribution, AbstractHypersphereSubsetDistribution
 ):
     def __init__(self, d, w=None):
+        d = asarray(d)
         AbstractHypersphereSubsetDistribution.__init__(self, d.shape[-1] - 1)
         AbstractDiracDistribution.__init__(self, d, w=w)
 
