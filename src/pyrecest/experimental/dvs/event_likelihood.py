@@ -8,6 +8,20 @@ import numpy as np
 
 _TEXT_SCALAR_TYPES = (str, bytes, bytearray, np.str_, np.bytes_)
 _BOOL_SCALAR_TYPES = (bool, np.bool_)
+_TEMPORAL_SCALAR_TYPES = (np.datetime64, np.timedelta64)
+_TEMPORAL_DTYPE_KINDS = {"M", "m"}
+
+
+def _is_temporal_scalar_array(value_array: np.ndarray) -> bool:
+    if value_array.dtype.kind in _TEMPORAL_DTYPE_KINDS:
+        return True
+    if value_array.shape != ():
+        return False
+    try:
+        scalar = value_array.item()
+    except (TypeError, ValueError):
+        return False
+    return isinstance(scalar, _TEMPORAL_SCALAR_TYPES)
 
 
 def _as_finite_scalar(value: float, message: str) -> float:
@@ -15,10 +29,17 @@ def _as_finite_scalar(value: float, message: str) -> float:
         value_array = np.asarray(value)
     except (TypeError, ValueError) as exc:
         raise ValueError(message) from exc
-    if value_array.shape != () or value_array.dtype == np.bool_:
+    if (
+        value_array.shape != ()
+        or value_array.dtype == np.bool_
+        or _is_temporal_scalar_array(value_array)
+    ):
         raise ValueError(message)
     scalar = value_array.item()
-    if isinstance(scalar, (*_BOOL_SCALAR_TYPES, *_TEXT_SCALAR_TYPES)):
+    if isinstance(
+        scalar,
+        (*_BOOL_SCALAR_TYPES, *_TEXT_SCALAR_TYPES, *_TEMPORAL_SCALAR_TYPES),
+    ):
         raise ValueError(message)
     try:
         result = float(scalar)
@@ -50,10 +71,17 @@ def _as_integer_scalar(value: int, message: str) -> int:
         value_array = np.asarray(value)
     except (TypeError, ValueError) as exc:
         raise ValueError(message) from exc
-    if value_array.shape != () or value_array.dtype == np.bool_:
+    if (
+        value_array.shape != ()
+        or value_array.dtype == np.bool_
+        or _is_temporal_scalar_array(value_array)
+    ):
         raise ValueError(message)
     scalar = value_array.item()
-    if isinstance(scalar, (*_BOOL_SCALAR_TYPES, *_TEXT_SCALAR_TYPES)):
+    if isinstance(
+        scalar,
+        (*_BOOL_SCALAR_TYPES, *_TEXT_SCALAR_TYPES, *_TEMPORAL_SCALAR_TYPES),
+    ):
         raise ValueError(message)
     if isinstance(scalar, (int, np.integer)):
         return int(scalar)
