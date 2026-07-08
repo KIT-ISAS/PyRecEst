@@ -10,6 +10,7 @@ import numpy as np
 
 _ERROR_METRIC_NAMES = frozenset({"max", "mean", "p95", "rmse", "std"})
 _ERROR_METRIC_MESSAGE = "metric must be one of 'max', 'mean', 'p95', 'rmse', or 'std'"
+_TEMPORAL_SCALAR_TYPES = (np.datetime64, np.timedelta64)
 
 
 @dataclass(frozen=True)
@@ -59,12 +60,19 @@ def _validate_error_metric(metric: Any) -> str:
     return normalized
 
 
+def _is_datetime_like_scalar(value: Any) -> bool:
+    if isinstance(value, _TEMPORAL_SCALAR_TYPES):
+        return True
+    dtype = getattr(value, "dtype", None)
+    return getattr(dtype, "kind", None) in ("M", "m")
+
+
 def _as_finite_float(value: Any, name: str) -> float:
     arr = np.asarray(value)
-    if arr.ndim != 0 or arr.dtype == np.bool_:
+    if arr.ndim != 0 or arr.dtype == np.bool_ or arr.dtype.kind in "Mm":
         raise ValueError(f"{name} must be a finite scalar")
     scalar = arr.item()
-    if isinstance(scalar, (bool, np.bool_, str, bytes, bytearray)):
+    if isinstance(scalar, (bool, np.bool_, str, bytes, bytearray, complex, np.complexfloating)) or _is_datetime_like_scalar(scalar):
         raise ValueError(f"{name} must be a finite scalar")
     try:
         result = float(scalar)
@@ -77,10 +85,10 @@ def _as_finite_float(value: Any, name: str) -> float:
 
 def _as_nonnegative_time_delta(value: Any, name: str) -> float:
     arr = np.asarray(value)
-    if arr.ndim != 0 or arr.dtype == np.bool_:
+    if arr.ndim != 0 or arr.dtype == np.bool_ or arr.dtype.kind in "Mm":
         raise ValueError(f"{name} must be nonnegative")
     scalar = arr.item()
-    if isinstance(scalar, (bool, np.bool_, str, bytes, bytearray)):
+    if isinstance(scalar, (bool, np.bool_, str, bytes, bytearray, complex, np.complexfloating)) or _is_datetime_like_scalar(scalar):
         raise ValueError(f"{name} must be nonnegative")
     try:
         result = float(scalar)
@@ -97,7 +105,7 @@ def _as_real_numeric_array(value: Any, name: str) -> np.ndarray:
         raise ValueError(f"{name} must contain real numeric values")
     if arr.dtype.kind == "O":
         for item in arr.reshape(-1):
-            if item is None or isinstance(item, (bool, np.bool_, str, bytes, bytearray, complex, np.complexfloating)):
+            if item is None or isinstance(item, (bool, np.bool_, str, bytes, bytearray, complex, np.complexfloating)) or _is_datetime_like_scalar(item):
                 raise ValueError(f"{name} must contain real numeric values")
     try:
         return np.asarray(value, dtype=float)
@@ -110,7 +118,7 @@ def _as_summary_scalar(value: Any, name: str, *, allow_nan: bool = False) -> flo
     if arr.ndim != 0 or arr.dtype == np.bool_ or arr.dtype.kind in "USbcMm":
         raise ValueError(f"{name} must be a real scalar")
     scalar = arr.item()
-    if isinstance(scalar, (bool, np.bool_, str, bytes, bytearray)):
+    if isinstance(scalar, (bool, np.bool_, str, bytes, bytearray, complex, np.complexfloating)) or _is_datetime_like_scalar(scalar):
         raise ValueError(f"{name} must be a real scalar")
     try:
         result = float(scalar)
