@@ -104,6 +104,31 @@ class TestHypertoroidalWNDistribution(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, message):
                     HypertoroidalWNDistribution(mu, C)
 
+    def test_constructor_rejects_non_real_numeric_parameters(self):
+        invalid_cases = [
+            (True, 1.0),
+            ([True], [[1.0]]),
+            (1.0 + 0.0j, [[1.0]]),
+            (["0.0"], [[1.0]]),
+            (0.0, True),
+            ([0.0], [[True]]),
+            ([0.0], [[1.0 + 0.0j]]),
+            ([0.0], [["1.0"]]),
+        ]
+
+        for mu, C in invalid_cases:
+            with self.subTest(mu=mu, C=C):
+                with self.assertRaisesRegex(ValueError, "finite real values"):
+                    HypertoroidalWNDistribution(mu, C)
+
+    def test_set_mean_and_mode_reject_boolean_angles(self):
+        dist = HypertoroidalWNDistribution(0.3, 0.7)
+
+        with self.assertRaisesRegex(ValueError, "finite real values"):
+            dist.set_mean(True)
+        with self.assertRaisesRegex(ValueError, "finite real values"):
+            dist.set_mode(True)
+
     def test_vector_pdf_accepts_single_point_sequence(self):
         dist = HypertoroidalWNDistribution(
             array([0.3, 0.4]), array([[0.7, 0.0], [0.0, 0.5]])
