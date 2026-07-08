@@ -23,6 +23,12 @@ _TEMPORAL_DTYPE_KINDS = {"M", "m"}
 def _as_backend_array(value: Any, name: str):
     """Convert ``value`` to a backend array and raise a user-facing error."""
     try:
+        value_array = np.asarray(value)
+    except (TypeError, ValueError, RuntimeError, OverflowError):
+        value_array = None
+    if value_array is not None and _has_temporal_dtype(value_array):
+        raise ValueError(f"{name} must contain numeric non-boolean values.")
+    try:
         return backend.asarray(value)
     except Exception as exc:  # pragma: no cover - backend-specific exception type
         raise ValueError(f"{name} must be convertible to a backend array.") from exc
