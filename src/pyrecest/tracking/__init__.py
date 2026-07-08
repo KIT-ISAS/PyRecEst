@@ -209,3 +209,13 @@ __all__ += [
     "symmetrize",
     "wrap_ellipse_angle_to_reference",
 ]
+
+from .nonparametric_cardinality import (
+    DirichletProcessCardinalityPrior,
+    PitmanYorCardinalityPrior,
+)
+
+__all__ += [
+    "DirichletProcessCardinalityPrior",
+    "PitmanYorCardinalityPrior",
+]
