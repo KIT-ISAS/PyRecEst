@@ -96,7 +96,7 @@ def patch_argsort_stability_contract() -> None:
         descending=False,
     ):
         if kind is not None and stable is not None:
-            raise TypeError(_ARGSORT_CONFLICT_MESSAGE)
+            raise ValueError(_ARGSORT_CONFLICT_MESSAGE)
         if axis is _ARGSORT_DEFAULT_AXIS:
             return original_argsort(
                 a,
