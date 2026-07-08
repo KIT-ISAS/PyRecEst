@@ -49,11 +49,11 @@ def _pytorch_creation_scalar(value, numpy_module, torch_module, *, argument_name
     """Normalize one NumPy-style scalar creation argument."""
     if torch_module.is_tensor(value):
         if value.ndim != 0:
-            raise TypeError(f"arange {argument_name} must be a scalar")
+            raise TypeError(f"{argument_name} must be a scalar")
         return value.item()
     value_array = numpy_module.asarray(value)
     if value_array.shape != ():
-        raise TypeError(f"arange {argument_name} must be a scalar")
+        raise TypeError(f"{argument_name} must be a scalar")
     return value_array.item()
 
 
@@ -88,7 +88,7 @@ def patch_pytorch_creation_shape_contract() -> None:
                     start,
                     np,
                     torch,
-                    argument_name="start",
+                    argument_name="arange start",
                 )
                 if end is _ARANGE_SENTINEL:
                     return torch.arange(
@@ -100,13 +100,13 @@ def patch_pytorch_creation_shape_contract() -> None:
                     end,
                     np,
                     torch,
-                    argument_name="end",
+                    argument_name="arange end",
                 )
                 step = _pytorch_creation_scalar(
                     step,
                     np,
                     torch,
-                    argument_name="step",
+                    argument_name="arange step",
                 )
                 return torch.arange(
                     start,
@@ -136,6 +136,12 @@ def patch_pytorch_creation_shape_contract() -> None:
         if has_fill_value:
 
             def creation_helper(shape, fill_value, dtype=None, *args, **kwargs):
+                fill_value = _pytorch_creation_scalar(
+                    fill_value,
+                    np,
+                    torch,
+                    argument_name="full fill_value",
+                )
                 return torch_helper(
                     _pytorch_creation_shape(shape, np, torch),
                     fill_value,
