@@ -34,6 +34,18 @@ class TestMeasurementReliability(unittest.TestCase):
         self.assertEqual(weights.shape, (3,))
         self.assertEqual([float(value) for value in weights], [0.25, 0.25, 0.25])
 
+    def test_empty_measurement_scalar_weights_are_validated(self):
+        weights = normalize_measurement_weights(0.25, 0)
+
+        self.assertEqual(weights.shape, (0,))
+
+        with self.assertRaisesRegex(ValueError, "finite"):
+            normalize_measurement_weights(float("nan"), 0)
+        with self.assertRaisesRegex(ValueError, "finite"):
+            normalize_measurement_weights(float("inf"), 0)
+        with self.assertRaisesRegex(ValueError, "non-negative"):
+            normalize_measurement_weights(-0.1, 0)
+
     def test_weight_vector_is_validated(self):
         weights = normalize_measurement_weights(array([1.0, 0.5, 0.0]), 3)
 
