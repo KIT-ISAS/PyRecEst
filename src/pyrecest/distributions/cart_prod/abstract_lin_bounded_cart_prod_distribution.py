@@ -1,10 +1,36 @@
 from abc import abstractmethod
+from operator import index as _operator_index
 from typing import Union
 
 # pylint: disable=no-name-in-module,no-member
 from pyrecest.backend import int32, int64
 
 from .abstract_cart_prod_distribution import AbstractCartProdDistribution
+
+
+def _validate_nonnegative_dimension_count(value, name: str) -> int:
+    """Return ``value`` as a non-negative Python integer dimension count."""
+    message = f"{name} must be a non-negative integer"
+    if isinstance(value, bool):
+        raise ValueError(message)
+
+    dtype = getattr(value, "dtype", None)
+    if getattr(dtype, "kind", None) == "b" or str(dtype) == "torch.bool":
+        raise ValueError(message)
+
+    ndim = getattr(value, "ndim", None)
+    if ndim not in (None, 0):
+        raise ValueError(message)
+    if ndim == 0 and hasattr(value, "item"):
+        value = value.item()
+
+    try:
+        count = _operator_index(value)
+    except (OverflowError, TypeError, ValueError) as exc:
+        raise ValueError(message) from exc
+    if count < 0:
+        raise ValueError(message)
+    return int(count)
 
 
 class AbstractLinBoundedCartProdDistribution(AbstractCartProdDistribution):
@@ -25,10 +51,8 @@ class AbstractLinBoundedCartProdDistribution(AbstractCartProdDistribution):
                 number of linear dimensions
 
         """
-        if not bound_dim >= 0:
-            raise ValueError("bound_dim must be a non-negative integer")
-        if not lin_dim >= 0:
-            raise ValueError("lin_dim must be a non-negative integer")
+        bound_dim = _validate_nonnegative_dimension_count(bound_dim, "bound_dim")
+        lin_dim = _validate_nonnegative_dimension_count(lin_dim, "lin_dim")
         if not bound_dim + lin_dim >= 1:
             raise ValueError("total dimension must be positive")
 
