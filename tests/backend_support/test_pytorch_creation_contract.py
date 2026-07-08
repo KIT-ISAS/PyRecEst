@@ -47,10 +47,17 @@ for creation_backend in (backend, raw_backend):
     assert tuple(empty.shape) == (2,)
     assert empty.dtype == creation_backend.float32
 
-    full = creation_backend.full(np.array([2]), 7, dtype=np.int64)
+    full = creation_backend.full(np.array([2]), np.array(7), dtype=np.int64)
     assert tuple(full.shape) == (2,)
     assert full.dtype == creation_backend.int64
     assert creation_backend.to_numpy(full).tolist() == [7, 7]
+
+    full_from_torch_scalar = creation_backend.full(
+        np.array([2]), torch.tensor(8), dtype=np.int64
+    )
+    assert tuple(full_from_torch_scalar.shape) == (2,)
+    assert full_from_torch_scalar.dtype == creation_backend.int64
+    assert creation_backend.to_numpy(full_from_torch_scalar).tolist() == [8, 8]
 
     try:
         creation_backend.zeros(np.array([-1]))
@@ -92,10 +99,15 @@ empty = raw_backend.empty(np.array(2), dtype=np.float32)
 assert tuple(empty.shape) == (2,)
 assert empty.dtype == raw_backend.float32
 
-full = raw_backend.full(torch.tensor([2]), 5, dtype=np.int64)
+full = raw_backend.full(torch.tensor([2]), np.array(5), dtype=np.int64)
 assert tuple(full.shape) == (2,)
 assert full.dtype == raw_backend.int64
 assert raw_backend.to_numpy(full).tolist() == [5, 5]
+
+torch_scalar_full = raw_backend.full(np.array([2]), torch.tensor(6), dtype=np.int64)
+assert tuple(torch_scalar_full.shape) == (2,)
+assert torch_scalar_full.dtype == raw_backend.int64
+assert raw_backend.to_numpy(torch_scalar_full).tolist() == [6, 6]
 """
     subprocess.run(
         [sys.executable, "-c", code], check=True, env=_backend_test_env("numpy")
