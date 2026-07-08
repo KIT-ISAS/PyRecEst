@@ -21,7 +21,16 @@ def test_scale_increases_for_high_nis_ratio_and_decreases_for_low_ratio():
 
 @pytest.mark.parametrize(
     "ratio",
-    [np.nan, np.inf, -np.inf, -0.1, True, "1.0", np.array([1.0])],
+    [
+        np.nan,
+        np.inf,
+        -np.inf,
+        -0.1,
+        True,
+        "1.0",
+        np.array([1.0]),
+        np.array(np.timedelta64(2, "ns"), dtype=object),
+    ],
 )
 def test_scale_rejects_invalid_ratios(ratio):
     with pytest.raises(ValueError, match="ratio must be a nonnegative finite scalar"):
@@ -59,7 +68,17 @@ def test_config_normalizes_scalar_numeric_values():
 
 
 def test_config_rejects_nonfinite_or_nonscalar_values():
-    invalid_values = (np.nan, np.inf, -np.inf, True, np.array([1.0]))
+    invalid_values = (
+        np.nan,
+        np.inf,
+        -np.inf,
+        True,
+        "1.0",
+        b"1.0",
+        np.array([1.0]),
+        np.timedelta64(2, "ns"),
+        np.array(np.timedelta64(2, "ns"), dtype=object),
+    )
 
     for field_name in (
         "base_scale",
