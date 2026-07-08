@@ -27,7 +27,8 @@ from scipy.optimize import linear_sum_assignment
 _TEXT_TYPES = (str, bytes, bytearray, _np.str_, _np.bytes_)
 _BOOLEAN_TYPES = (bool, _np.bool_)
 _COMPLEX_TYPES = (complex, _np.complexfloating)
-_INVALID_SCALAR_TYPES = _BOOLEAN_TYPES + _TEXT_TYPES
+_TEMPORAL_TYPES = (_np.datetime64, _np.timedelta64)
+_INVALID_SCALAR_TYPES = _BOOLEAN_TYPES + _TEXT_TYPES + _TEMPORAL_TYPES
 
 
 @dataclass(frozen=True)
@@ -51,7 +52,7 @@ def _validate_assignment_count(k: int) -> int:
         k_array = _asarray(k)
     except (TypeError, ValueError) as exc:
         raise ValueError("k must be an integer") from exc
-    if k_array.ndim != 0:
+    if k_array.ndim != 0 or _has_temporal_dtype(k_array):
         raise ValueError("k must be an integer")
 
     try:
@@ -90,6 +91,20 @@ def _has_complex_dtype(value) -> bool:
         }
 
 
+def _has_temporal_dtype(value) -> bool:
+    dtype = getattr(value, "dtype", None)
+    if dtype is None:
+        return False
+    try:
+        return bool(
+            _np.issubdtype(dtype, _np.datetime64)
+            or _np.issubdtype(dtype, _np.timedelta64)
+        )
+    except TypeError:
+        dtype_name = str(dtype).lower()
+        return "datetime64" in dtype_name or "timedelta64" in dtype_name
+
+
 def _contains_boolean_values(value) -> bool:
     if isinstance(value, _BOOLEAN_TYPES):
         return True
@@ -110,6 +125,16 @@ def _contains_text_values(value) -> bool:
     return any(isinstance(item, _TEXT_TYPES) for item in values)
 
 
+def _contains_temporal_values(value) -> bool:
+    if isinstance(value, _TEMPORAL_TYPES):
+        return True
+    try:
+        values = _np.asarray(value, dtype=object).reshape(-1)
+    except (TypeError, ValueError, RuntimeError):
+        return False
+    return any(isinstance(item, _TEMPORAL_TYPES) for item in values)
+
+
 def _contains_complex_values(value) -> bool:
     if isinstance(value, _COMPLEX_TYPES):
         return True
@@ -123,7 +148,7 @@ def _contains_complex_values(value) -> bool:
 def _coerce_cost_matrix(cost_matrix):
     if _contains_boolean_values(cost_matrix):
         raise ValueError("cost_matrix must be numeric, not boolean")
-    if _contains_text_values(cost_matrix):
+    if _contains_text_values(cost_matrix) or _contains_temporal_values(cost_matrix):
         raise ValueError("cost_matrix must be numeric")
     if _contains_complex_values(cost_matrix):
         raise ValueError("cost_matrix must be real-valued")
@@ -137,7 +162,12 @@ def _coerce_cost_matrix(cost_matrix):
         raw_cost_matrix
     ):
         raise ValueError("cost_matrix must be numeric, not boolean")
-    if _contains_text_values(cost_matrix) or _contains_text_values(raw_cost_matrix):
+    if (
+        _contains_text_values(cost_matrix)
+        or _contains_text_values(raw_cost_matrix)
+        or _has_temporal_dtype(raw_cost_matrix)
+        or _contains_temporal_values(raw_cost_matrix)
+    ):
         raise ValueError("cost_matrix must be numeric")
     if _has_complex_dtype(raw_cost_matrix) or _contains_complex_values(raw_cost_matrix):
         raise ValueError("cost_matrix must be real-valued")
@@ -161,6 +191,8 @@ def _coerce_non_assignment_costs(costs, size: int, name: str):
     if costs is None:
         return _zeros(size, dtype=float)
 
+    if _contains_temporal_values(costs):
+        raise ValueError(f"{name} must be numeric and finite")
     if _contains_complex_values(costs):
         raise ValueError(f"{name} must be real-valued")
     try:
@@ -171,7 +203,12 @@ def _coerce_non_assignment_costs(costs, size: int, name: str):
         raise ValueError(f"{name} must be numeric and finite")
     if _contains_boolean_values(costs) or _contains_boolean_values(raw_costs_array):
         raise ValueError(f"{name} must be numeric and finite")
-    if _contains_text_values(costs) or _contains_text_values(raw_costs_array):
+    if (
+        _contains_text_values(costs)
+        or _contains_text_values(raw_costs_array)
+        or _has_temporal_dtype(raw_costs_array)
+        or _contains_temporal_values(raw_costs_array)
+    ):
         raise ValueError(f"{name} must be numeric and finite")
     if _has_complex_dtype(raw_costs_array) or _contains_complex_values(raw_costs_array):
         raise ValueError(f"{name} must be real-valued")
