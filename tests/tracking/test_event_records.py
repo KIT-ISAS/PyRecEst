@@ -46,8 +46,28 @@ def test_accepted_flags_must_be_boolean_or_none() -> None:
     event = event_from_measurement(time=0.0, source="rf", accepted=np.bool_(False))
     assert event.accepted is False
 
+    scalar_array_event = event_from_measurement(
+        time=0.0,
+        source="rf",
+        accepted=np.array(True),
+    )
+    assert scalar_array_event.accepted is True
+
+    scalar_array_record = record_from_update(
+        event=event,
+        prior_mean=[0.0, 0.0],
+        prior_cov=np.eye(2),
+        posterior_mean=[0.0, 0.0],
+        posterior_cov=np.eye(2),
+        accepted=np.array(False),
+    )
+    assert scalar_array_record.accepted is False
+
     with pytest.raises(ValueError, match="accepted must be a boolean or None"):
         TrackingEvent(time=0.0, source="rf", accepted="False")
+
+    with pytest.raises(ValueError, match="accepted must be a boolean or None"):
+        TrackingEvent(time=0.0, source="rf", accepted=np.array([True]))
 
     with pytest.raises(ValueError, match="accepted must be a boolean or None"):
         record_from_update(
