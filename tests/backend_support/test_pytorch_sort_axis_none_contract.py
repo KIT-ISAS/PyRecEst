@@ -5,6 +5,7 @@ import sys
 
 import numpy as np
 import pytest
+from pyrecest.backend_support._pytorch_sort_numpy_contract import resolve_sort_stability
 
 from pyrecest.backend_support._pytorch_sort_numpy_contract import (
     resolve_sort_stability,
@@ -92,3 +93,12 @@ stable_result = raw_pytorch.sort([[3, 1], [2, 0]], axis=None, kind="stable")
 assert raw_pytorch.to_numpy(stable_result).tolist() == [0, 1, 2, 3]
 """
     subprocess.run([sys.executable, "-c", code], check=True, env=env)
+
+
+def test_sort_stability_rejects_kind_and_stable_combinations():
+    stable_values = (True, False, np.bool_(True), np.bool_(False), 1, 0)
+
+    for kind in ("stable", "mergesort", "quicksort", "heapsort"):
+        for stable in stable_values:
+            with pytest.raises(ValueError, match="kind.*stable"):
+                resolve_sort_stability(kind, stable)
