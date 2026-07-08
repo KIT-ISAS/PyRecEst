@@ -28,19 +28,33 @@ from .abstract_manifold_specific_distribution import (
 _TEXT_TYPES = (str, bytes, bytearray, np.str_, np.bytes_)
 _BOOLEAN_TYPES = (bool, np.bool_)
 _COMPLEX_TYPES = (complex, np.complexfloating)
+_INVALID_SAMPLE_COUNT_TYPES = (
+    bool,
+    np.bool_,
+    str,
+    bytes,
+    bytearray,
+    np.str_,
+    np.bytes_,
+    np.datetime64,
+    np.timedelta64,
+)
+_TEMPORAL_DTYPE_KINDS = {"M", "m"}
 
 
 def _validate_positive_sample_count(n) -> int:
     message = "n must be a positive integer"
-    count_array = np.asarray(n)
+    try:
+        count_array = np.asarray(n)
+    except (OverflowError, TypeError, ValueError) as exc:
+        raise ValueError(message) from exc
     if count_array.ndim != 0:
+        raise ValueError(message)
+    if getattr(count_array.dtype, "kind", None) in _TEMPORAL_DTYPE_KINDS:
         raise ValueError(message)
 
     count = count_array.item()
-    if isinstance(
-        count,
-        (bool, np.bool_, str, bytes, bytearray, np.str_, np.bytes_),
-    ):
+    if isinstance(count, _INVALID_SAMPLE_COUNT_TYPES):
         raise ValueError(message)
 
     try:
