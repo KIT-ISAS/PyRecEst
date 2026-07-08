@@ -1,12 +1,21 @@
+import importlib.util
+
 import numpy as np
 import pytest
 
-torch = pytest.importorskip("torch")
 
-from pyrecest._backend.pytorch import random  # noqa: E402
+def _pytorch_random_backend():
+    if importlib.util.find_spec("torch") is None:
+        pytest.skip("torch is not installed")
+    import torch  # pylint: disable=import-outside-toplevel
+    from pyrecest._backend.pytorch import random  # pylint: disable=import-outside-toplevel
+
+    return torch, random
 
 
 def test_choice_normalizes_tiny_float64_probabilities_without_underflow():
+    torch, random = _pytorch_random_backend()
+
     random.seed(0)
     probabilities = np.array([1.0e-300, 1.0e-300], dtype=np.float64)
 
@@ -17,6 +26,8 @@ def test_choice_normalizes_tiny_float64_probabilities_without_underflow():
 
 
 def test_multinomial_normalizes_tiny_float64_probabilities_without_underflow():
+    torch, random = _pytorch_random_backend()
+
     random.seed(0)
     probabilities = np.array([1.0e-300, 1.0e-300], dtype=np.float64)
 
