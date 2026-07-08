@@ -478,6 +478,7 @@ def _as_event_xy(event_xy: np.ndarray) -> np.ndarray:
         return np.empty((0, 2), dtype=float)
     if events.ndim != 2 or events.shape[1] != 2:
         raise ValueError("event_xy must have shape (n, 2)")
+    _validate_finite_array(events, "event_xy")
     return events
 
 
