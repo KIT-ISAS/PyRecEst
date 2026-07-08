@@ -107,12 +107,43 @@ def test_plan_rejects_nonfinite_array_inputs():
             plan_linear_measurement_update(**kwargs)
 
 
+def test_plan_rejects_boolean_array_inputs():
+    base_kwargs = {
+        "mean": np.zeros(1),
+        "covariance_matrix": np.eye(1),
+        "measurement_vector": np.array([1.0]),
+        "measurement_covariance": np.eye(1),
+        "observation_matrix": np.eye(1),
+    }
+    invalid_overrides = (
+        {"measurement_vector": np.array([True])},
+        {"measurement_covariance": np.array([[True]])},
+        {"observation_matrix": np.array([[True]])},
+        {"mean": np.array([True])},
+        {"covariance_matrix": np.array([[True]])},
+    )
+
+    for overrides in invalid_overrides:
+        invalid_name = next(iter(overrides))
+        kwargs = {**base_kwargs, **overrides}
+        with pytest.raises(ValueError, match=invalid_name):
+            plan_linear_measurement_update(**kwargs)
+
+
 def test_normalized_innovation_squared_rejects_nonfinite_inputs():
     with pytest.raises(ValueError, match="residual"):
         normalized_innovation_squared(np.array([np.nan]), np.eye(1))
 
     with pytest.raises(ValueError, match="innovation_covariance"):
         normalized_innovation_squared(np.array([0.0]), np.array([[np.inf]]))
+
+
+def test_normalized_innovation_squared_rejects_boolean_inputs():
+    with pytest.raises(ValueError, match="residual"):
+        normalized_innovation_squared(np.array([True]), np.eye(1))
+
+    with pytest.raises(ValueError, match="innovation_covariance"):
+        normalized_innovation_squared(np.array([0.0]), np.array([[True]]))
 
 
 def test_robust_scale_rejects_nonfinite_parameters():
