@@ -28,7 +28,15 @@ class LowRankHypertoroidalFourierFilter(AbstractFilter, HypertoroidalFilterMixin
     after prediction and is left for later work.
     """
 
-    def __init__(self, n_coefficients, transformation="identity", *, max_rank=None, rtol=0.0):
+    def __init__(
+        self,
+        n_coefficients,
+        transformation="identity",
+        *,
+        max_rank=None,
+        rtol=0.0,
+        atol=0.0,
+    ):
         if pyrecest.backend.__backend_name__ != "numpy":  # pylint: disable=no-member
             raise NotImplementedError("LowRankHypertoroidalFourierFilter is NumPy-only.")
         if transformation != "identity":
@@ -37,6 +45,7 @@ class LowRankHypertoroidalFourierFilter(AbstractFilter, HypertoroidalFilterMixin
             )
         self.max_rank = max_rank
         self.rtol = rtol
+        self.atol = atol
         initial_state = LowRankHypertoroidalFourierDistribution.uniform(
             n_coefficients, transformation="identity"
         )
@@ -61,7 +70,7 @@ class LowRankHypertoroidalFourierFilter(AbstractFilter, HypertoroidalFilterMixin
                     self._filter_state.transformation,
                 )
             new_state = LowRankHypertoroidalFourierDistribution.from_dense(
-                new_state, max_rank=self.max_rank, rtol=self.rtol
+                new_state, max_rank=self.max_rank, rtol=self.rtol, atol=self.atol
             )
         if new_state.transformation != "identity":
             raise NotImplementedError("Only identity-transformed low-rank states are supported.")
@@ -72,7 +81,7 @@ class LowRankHypertoroidalFourierFilter(AbstractFilter, HypertoroidalFilterMixin
             return distribution
         if isinstance(distribution, HypertoroidalFourierDistribution):
             return LowRankHypertoroidalFourierDistribution.from_dense(
-                distribution, max_rank=self.max_rank, rtol=self.rtol
+                distribution, max_rank=self.max_rank, rtol=self.rtol, atol=self.atol
             )
         if isinstance(distribution, AbstractHypertoroidalDistribution):
             warnings.warn(
@@ -85,6 +94,7 @@ class LowRankHypertoroidalFourierFilter(AbstractFilter, HypertoroidalFilterMixin
                 "identity",
                 max_rank=self.max_rank,
                 rtol=self.rtol,
+                atol=self.atol,
             )
         raise TypeError("distribution must be hypertoroidal.")
 
@@ -93,7 +103,7 @@ class LowRankHypertoroidalFourierFilter(AbstractFilter, HypertoroidalFilterMixin
 
         d_sys = self._convert_noise(d_sys)
         self._filter_state = self._filter_state.convolve(
-            d_sys, max_rank=self.max_rank, rtol=self.rtol
+            d_sys, max_rank=self.max_rank, rtol=self.rtol, atol=self.atol
         )
 
     def update_identity(self, d_meas, z):
@@ -103,5 +113,5 @@ class LowRankHypertoroidalFourierFilter(AbstractFilter, HypertoroidalFilterMixin
         z = as_shift_vector(z, self._filter_state.dim, name="z")
         likelihood = d_meas.shift(z)
         self._filter_state = self._filter_state.multiply(
-            likelihood, max_rank=self.max_rank, rtol=self.rtol
+            likelihood, max_rank=self.max_rank, rtol=self.rtol, atol=self.atol
         )
