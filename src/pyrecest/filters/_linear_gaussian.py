@@ -213,7 +213,7 @@ def _robust_update_decision(
 
     if robust_update is None:
         if gate_threshold is not None:
-            gate_threshold = _as_positive_float(gate_threshold, "gate_threshold")
+            gate_threshold = _as_nonnegative_float(gate_threshold, "gate_threshold")
             if nis > gate_threshold:
                 return False, "rejected", 1.0
         return True, "updated", 1.0
