@@ -1,7 +1,7 @@
 import math
 import unittest
 
-import numpy as np
+from pyrecest.backend import array
 from pyrecest.distributions import GaussianDistribution
 from pyrecest.filters import KalmanFilter, NISGate
 from pyrecest.filters.survival_aware_association import (
@@ -19,7 +19,7 @@ from pyrecest.filters.track_manager import Track, TrackStatus
 
 
 def _track(mean, *, track_id=0, hits=3, misses=0, existence=1.0):
-    state = GaussianDistribution(np.array([float(mean)]), np.array([[0.2]]))
+    state = GaussianDistribution(array([float(mean)]), array([[0.2]]))
     return Track(
         track_id=track_id,
         single_target_filter=KalmanFilter(state),
@@ -130,9 +130,9 @@ class SurvivalAwareAssociationTest(unittest.TestCase):
 
         hypotheses = survival_aware_linear_gaussian_association_hypotheses(
             [track],
-            np.array([[0.05]]),
-            np.array([[1.0]]),
-            np.array([[0.1]]),
+            array([[0.05]]),
+            array([[1.0]]),
+            array([[0.1]]),
             measurement_axis="columns",
             config=config,
         )
@@ -146,7 +146,7 @@ class SurvivalAwareAssociationTest(unittest.TestCase):
 
     def test_track_manager_associator_keeps_far_measurement_unassigned(self):
         tracks = [_track(0.0, hits=5, misses=0, existence=0.95)]
-        measurements = np.array([[0.05, 6.0]])
+        measurements = array([[0.05, 6.0]])
         config = SurvivalAwareAssociationConfig(
             detection_probability=0.95,
             visibility_probability=1.0,
@@ -154,8 +154,8 @@ class SurvivalAwareAssociationTest(unittest.TestCase):
             clutter_weight=0.05,
         )
         associator = build_survival_aware_linear_gaussian_hypothesis_associator(
-            np.array([[1.0]]),
-            np.array([[0.1]]),
+            array([[1.0]]),
+            array([[0.1]]),
             gates=NISGate(threshold=9.0),
             config=config,
         )
