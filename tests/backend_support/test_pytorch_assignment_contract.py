@@ -25,6 +25,12 @@ summed = backend.assignment_by_sum(
     [5.0, 7.0],
     [(0, 1), (1, 2)],
 )
+singleton_assigned = backend.assignment(x, 9.0, [(2, 0)])
+singleton_summed = backend.assignment_by_sum(
+    backend.ones((3, 3)),
+    4.0,
+    [(2, 0)],
+)
 duplicate_sum = backend.assignment_by_sum(backend.zeros(3), [1.0, 2.0], [0, 0])
 
 assert backend.to_numpy(assigned).tolist() == [
@@ -36,6 +42,16 @@ assert backend.to_numpy(summed).tolist() == [
     [1.0, 6.0, 1.0],
     [1.0, 1.0, 8.0],
     [1.0, 1.0, 1.0],
+]
+assert backend.to_numpy(singleton_assigned).tolist() == [
+    [0.0, 0.0, 0.0],
+    [0.0, 0.0, 0.0],
+    [9.0, 0.0, 0.0],
+]
+assert backend.to_numpy(singleton_summed).tolist() == [
+    [1.0, 1.0, 1.0],
+    [1.0, 1.0, 1.0],
+    [5.0, 1.0, 1.0],
 ]
 assert backend.to_numpy(duplicate_sum).tolist() == [3.0, 0.0, 0.0]
 """,
