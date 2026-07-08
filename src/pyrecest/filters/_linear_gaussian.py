@@ -26,7 +26,7 @@ def _contains_boolean_value(x):
         values = np.asarray(x)
     except Exception:  # pragma: no cover - backend-specific conversion errors
         dtype = getattr(x, "dtype", None)
-        return dtype in (bool, np.bool_)
+        return dtype in (bool, np.bool_) or "bool" in str(dtype).lower()
     if values.dtype.kind == "b":
         return True
     if values.dtype == object:
