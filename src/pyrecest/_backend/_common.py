@@ -45,6 +45,11 @@ def _normalize_size_axis(axis):
 
 def _normalize_diagonal_integer(value):
     """Return NumPy-style integer scalar arguments for stricter tensor APIs."""
+    if isinstance(value, _AXIS_FLAG_TYPES):
+        raise TypeError("an integer is required")
+    dtype = getattr(value, "dtype", None)
+    if dtype is not None and str(dtype).lower() in {"bool", "bool_", "torch.bool"}:
+        raise TypeError("an integer is required")
     try:
         return _operator.index(value)
     except TypeError:
