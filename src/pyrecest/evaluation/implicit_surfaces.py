@@ -21,6 +21,15 @@ _INVALID_NUMERIC_SCALAR_TYPES = (
     np.complexfloating,
     type(None),
 )
+_INVALID_TENSOR_DTYPE_TOKENS = (
+    "bool",
+    "complex",
+    "str",
+    "string",
+    "bytes",
+    "datetime",
+    "timedelta",
+)
 
 
 def _surface_method(surface: Any, name: str) -> Callable[[Any], Any]:
@@ -124,14 +133,29 @@ def _positive_float(name: str, value: float) -> float:
     return parsed
 
 
+def _has_invalid_numeric_dtype(values: Any) -> bool:
+    dtype = getattr(values, "dtype", None)
+    if dtype is None:
+        return False
+    kind = getattr(dtype, "kind", None)
+    if kind in _INVALID_NUMERIC_KINDS:
+        return True
+    dtype_name = str(dtype).casefold()
+    return any(token in dtype_name for token in _INVALID_TENSOR_DTYPE_TOKENS)
+
+
 def _as_numeric_field(values: Any, name: str) -> Any:
     if hasattr(values, "clamp"):
+        if _has_invalid_numeric_dtype(values):
+            raise ValueError(f"{name} must contain numeric values.")
         return values
     return _as_numpy_numeric_array(values, name)
 
 
 def _nonnegative_finite_numeric_field(values: Any, name: str) -> Any:
     if hasattr(values, "clamp"):
+        if _has_invalid_numeric_dtype(values):
+            raise ValueError(f"{name} must contain numeric values.")
         if hasattr(values, "isfinite"):
             finite = values.isfinite()
             if bool((~finite).any()):
