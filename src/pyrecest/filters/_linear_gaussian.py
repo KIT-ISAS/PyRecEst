@@ -19,7 +19,24 @@ from pyrecest.backend import (
 from pyrecest.diagnostics import FilterDiagnostics
 
 
+def _contains_boolean_value(x):
+    if isinstance(x, (bool, np.bool_)):
+        return True
+    try:
+        values = np.asarray(x)
+    except Exception:  # pragma: no cover - backend-specific conversion errors
+        dtype = getattr(x, "dtype", None)
+        return dtype in (bool, np.bool_)
+    if values.dtype.kind == "b":
+        return True
+    if values.dtype == object:
+        return any(isinstance(item, (bool, np.bool_)) for item in values.reshape(-1))
+    return False
+
+
 def _as_vector(x, name):
+    if _contains_boolean_value(x):
+        raise ValueError(f"{name} must contain numeric values, not booleans")
     x = atleast_1d(asarray(x, dtype=float64))
     if len(x.shape) != 1:
         raise ValueError(f"{name} must be one-dimensional after coercion")
@@ -27,6 +44,8 @@ def _as_vector(x, name):
 
 
 def _as_matrix(x, name):
+    if _contains_boolean_value(x):
+        raise ValueError(f"{name} must contain numeric values, not booleans")
     x = atleast_2d(asarray(x, dtype=float64))
     if len(x.shape) != 2:
         raise ValueError(f"{name} must be two-dimensional after coercion")
@@ -71,6 +90,8 @@ def _as_nonnegative_float(x, name):
 
 
 def _as_nonnegative_nis(x, name="normalized_innovation_squared"):
+    if _contains_boolean_value(x):
+        raise ValueError(f"{name} must be finite and nonnegative")
     nis = asarray(x, dtype=float64)
     try:
         nis_values = np.asarray(to_numpy(nis), dtype=float)
