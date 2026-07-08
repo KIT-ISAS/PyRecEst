@@ -295,7 +295,10 @@ def _greedy_point_target_projection(log_scores: np.ndarray, num_targets: int) ->
             selected_column = int(column)
             break
         if selected_column is None:
-            selected_column = log_scores.shape[1] - 1
+            raise ValueError(
+                "point_target projection has no finite feasible association "
+                f"for measurement {measurement_index}"
+            )
         responsibilities[measurement_index, selected_column] = 1.0
         if selected_column < num_targets:
             used_targets.add(selected_column)

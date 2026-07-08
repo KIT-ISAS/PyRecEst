@@ -77,6 +77,24 @@ def test_point_target_projection_allows_each_existing_target_once_per_sensor():
     assert result.posterior_for_sensor("radar").hard_assignments.count(1) == 1
 
 
+def test_point_target_projection_rejects_infeasible_finite_assignments():
+    block = SensorAssociationBlock(
+        "radar",
+        log_likelihoods=np.log([[0.90], [0.85]]),
+        clutter_log_weights=[-np.inf, -np.inf],
+        birth_log_weights=[-np.inf, -np.inf],
+        concentration=1.0,
+    )
+
+    with pytest.raises(ValueError, match="no finite feasible association"):
+        multisensor_ddp_association_update(
+            [1.0],
+            [block],
+            birth_weight=0.0,
+            point_target=True,
+        )
+
+
 def test_predict_ddp_base_weights_applies_survival_and_birth_mass():
     target_weights, birth_weight = predict_ddp_base_weights(
         [0.7, 0.3],
