@@ -92,6 +92,83 @@ print("ok")
 
 
 @pytest.mark.backend_portable
+def test_jax_linalg_norm_normalizes_static_axis_inputs():
+    if importlib.util.find_spec("jax") is None:
+        pytest.skip("JAX is not installed")
+
+    result = run_backend_code(
+        "jax",
+        """
+import jax.numpy as jnp
+import numpy as np
+import pyrecest.backend as backend
+
+values = backend.array([[3.0, 4.0], [5.0, 12.0]])
+expected = backend.array([5.0, 13.0])
+
+axis_cases = [
+    np.int64(1),
+    np.array(1),
+    jnp.array(1),
+    [1],
+    (1,),
+    np.array([1]),
+    jnp.array([1]),
+]
+
+for axis in axis_cases:
+    result = backend.linalg.norm(values, axis=axis)
+    assert bool(jnp.allclose(result, expected)), axis
+print("ok")
+""",
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "ok" in result.stdout
+
+
+@pytest.mark.backend_portable
+def test_jax_linalg_norm_rejects_boolean_axes():
+    if importlib.util.find_spec("jax") is None:
+        pytest.skip("JAX is not installed")
+
+    result = run_backend_code(
+        "jax",
+        """
+import jax.numpy as jnp
+import numpy as np
+import pyrecest.backend as backend
+
+values = backend.array([[3.0, 4.0], [5.0, 12.0]])
+
+
+def assert_rejects(axis):
+    try:
+        backend.linalg.norm(values, axis=axis)
+    except TypeError:
+        return
+    raise AssertionError(f"axis {axis!r} should have raised TypeError")
+
+for axis in [
+    True,
+    np.bool_(True),
+    np.array(True),
+    jnp.array(True),
+    [True],
+    (True,),
+    np.array([True]),
+    jnp.array([True]),
+]:
+    assert_rejects(axis)
+print("ok")
+""",
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "ok" in result.stdout
+
+
+@pytest.mark.backend_portable
 def test_jax_qr_accepts_numpy_economic_mode():
     if importlib.util.find_spec("jax") is None:
         pytest.skip("JAX is not installed")
