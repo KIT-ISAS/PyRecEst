@@ -389,7 +389,19 @@ def _symmetrized(matrix: np.ndarray) -> np.ndarray:
     return 0.5 * (matrix + matrix.T)
 
 
+def _contains_boolean_value(value: Any) -> bool:
+    if isinstance(value, (bool, np.bool_)):
+        return True
+    try:
+        values = np.asarray(value, dtype=object).reshape(-1)
+    except (TypeError, ValueError, RuntimeError):
+        return False
+    return any(isinstance(item, (bool, np.bool_)) for item in values)
+
+
 def _as_finite_array(value: Any, name: str) -> np.ndarray:
+    if _contains_boolean_value(value):
+        raise ValueError(f"{name} must contain finite numeric values")
     try:
         array = np.asarray(value, dtype=float)
     except (TypeError, ValueError, OverflowError) as exc:
