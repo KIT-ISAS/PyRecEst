@@ -147,12 +147,25 @@ class LowRankHypertoroidalFourierDistribution(AbstractHypertoroidalDistribution)
                 single = True
             elif points.ndim == 1:
                 points = points.reshape(-1, 1)
-            elif points.shape[-1] != 1:
-                raise ValueError("Expected one-dimensional points.")
+            elif points.ndim == 2:
+                if points.shape[-1] != 1:
+                    raise ValueError("Expected one-dimensional points.")
+            else:
+                raise ValueError(
+                    "Expected one-dimensional points as a scalar, vector, or column array."
+                )
         else:
+            if points.ndim == 0:
+                raise ValueError(
+                    f"Expected points with shape ({self.dim},) or (n, {self.dim})."
+                )
             if points.ndim == 1:
                 points = points.reshape(1, -1)
                 single = True
+            elif points.ndim != 2:
+                raise ValueError(
+                    f"Expected points with shape ({self.dim},) or (n, {self.dim})."
+                )
             if points.shape[-1] != self.dim:
                 raise ValueError(f"Expected points with {self.dim} columns.")
 
