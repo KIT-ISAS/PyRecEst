@@ -10,6 +10,18 @@ import numpy as np
 
 _ERROR_METRIC_NAMES = frozenset({"max", "mean", "p95", "rmse", "std"})
 _ERROR_METRIC_MESSAGE = "metric must be one of 'max', 'mean', 'p95', 'rmse', or 'std'"
+_REJECTED_SCALAR_VALUE_TYPES = (
+    type(None),
+    bool,
+    np.bool_,
+    str,
+    bytes,
+    bytearray,
+    complex,
+    np.complexfloating,
+    np.datetime64,
+    np.timedelta64,
+)
 
 
 @dataclass(frozen=True)
@@ -59,12 +71,16 @@ def _validate_error_metric(metric: Any) -> str:
     return normalized
 
 
+def _is_temporal_dtype(arr: np.ndarray) -> bool:
+    return arr.dtype.kind in "Mm"
+
+
 def _as_finite_float(value: Any, name: str) -> float:
     arr = np.asarray(value)
-    if arr.ndim != 0 or arr.dtype == np.bool_:
+    if arr.ndim != 0 or arr.dtype == np.bool_ or _is_temporal_dtype(arr):
         raise ValueError(f"{name} must be a finite scalar")
     scalar = arr.item()
-    if isinstance(scalar, (bool, np.bool_, str, bytes, bytearray)):
+    if isinstance(scalar, _REJECTED_SCALAR_VALUE_TYPES):
         raise ValueError(f"{name} must be a finite scalar")
     try:
         result = float(scalar)
@@ -77,10 +93,10 @@ def _as_finite_float(value: Any, name: str) -> float:
 
 def _as_nonnegative_time_delta(value: Any, name: str) -> float:
     arr = np.asarray(value)
-    if arr.ndim != 0 or arr.dtype == np.bool_:
+    if arr.ndim != 0 or arr.dtype == np.bool_ or _is_temporal_dtype(arr):
         raise ValueError(f"{name} must be nonnegative")
     scalar = arr.item()
-    if isinstance(scalar, (bool, np.bool_, str, bytes, bytearray)):
+    if isinstance(scalar, _REJECTED_SCALAR_VALUE_TYPES):
         raise ValueError(f"{name} must be nonnegative")
     try:
         result = float(scalar)
@@ -97,7 +113,7 @@ def _as_real_numeric_array(value: Any, name: str) -> np.ndarray:
         raise ValueError(f"{name} must contain real numeric values")
     if arr.dtype.kind == "O":
         for item in arr.reshape(-1):
-            if item is None or isinstance(item, (bool, np.bool_, str, bytes, bytearray, complex, np.complexfloating)):
+            if isinstance(item, _REJECTED_SCALAR_VALUE_TYPES):
                 raise ValueError(f"{name} must contain real numeric values")
     try:
         return np.asarray(value, dtype=float)
@@ -110,7 +126,7 @@ def _as_summary_scalar(value: Any, name: str, *, allow_nan: bool = False) -> flo
     if arr.ndim != 0 or arr.dtype == np.bool_ or arr.dtype.kind in "USbcMm":
         raise ValueError(f"{name} must be a real scalar")
     scalar = arr.item()
-    if isinstance(scalar, (bool, np.bool_, str, bytes, bytearray)):
+    if isinstance(scalar, _REJECTED_SCALAR_VALUE_TYPES):
         raise ValueError(f"{name} must be a real scalar")
     try:
         result = float(scalar)
