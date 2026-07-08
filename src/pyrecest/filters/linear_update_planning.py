@@ -33,6 +33,8 @@ except Exception:  # pragma: no cover - only used by standalone downstream copie
 ROBUST_UPDATE_MODES = ("nis-inflate", "student-t", "huber")
 DEFAULT_STUDENT_T_DOF = 4.0
 DEFAULT_HUBER_THRESHOLD = 2.0
+_TEMPORAL_TYPES = (np.datetime64, np.timedelta64)
+_INVALID_REAL_NUMERIC_TYPES = (bool, np.bool_, *_TEMPORAL_TYPES)
 
 
 class MeasurementLike(Protocol):
@@ -389,34 +391,50 @@ def _symmetrized(matrix: np.ndarray) -> np.ndarray:
     return 0.5 * (matrix + matrix.T)
 
 
-def _contains_boolean_value(value: Any) -> bool:
-    if isinstance(value, (bool, np.bool_)):
+def _contains_values_of_type(value: Any, types: tuple[type, ...]) -> bool:
+    if isinstance(value, types):
         return True
     try:
         values = np.asarray(value, dtype=object).reshape(-1)
     except (TypeError, ValueError, RuntimeError):
         return False
-    return any(isinstance(item, (bool, np.bool_)) for item in values)
+    return any(isinstance(item, types) for item in values)
 
 
 def _as_finite_array(value: Any, name: str) -> np.ndarray:
-    if _contains_boolean_value(value):
-        raise ValueError(f"{name} must contain finite numeric values")
+    message = f"{name} must contain finite numeric values"
     try:
-        array = np.asarray(value, dtype=float)
+        raw_array = np.asarray(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(message) from exc
+    if raw_array.dtype == np.bool_ or raw_array.dtype.kind in "Mm":
+        raise ValueError(message)
+    if _contains_values_of_type(
+        value, _INVALID_REAL_NUMERIC_TYPES
+    ) or _contains_values_of_type(raw_array, _INVALID_REAL_NUMERIC_TYPES):
+        raise ValueError(message)
+    try:
+        array = np.asarray(raw_array, dtype=float)
     except (TypeError, ValueError, OverflowError) as exc:
-        raise ValueError(f"{name} must contain finite numeric values") from exc
+        raise ValueError(message) from exc
     if not np.all(np.isfinite(array)):
         raise ValueError(f"{name} must contain only finite values")
     return array
 
 
 def _as_finite_scalar(value: Any, name: str) -> float:
-    value_array = np.asarray(value)
-    if value_array.shape != () or value_array.dtype == np.bool_:
+    try:
+        value_array = np.asarray(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{name} must be a finite scalar") from exc
+    if (
+        value_array.shape != ()
+        or value_array.dtype == np.bool_
+        or value_array.dtype.kind in "Mm"
+    ):
         raise ValueError(f"{name} must be a finite scalar")
     scalar = value_array.item()
-    if isinstance(scalar, (bool, np.bool_)):
+    if isinstance(scalar, _INVALID_REAL_NUMERIC_TYPES):
         raise ValueError(f"{name} must be a finite scalar")
     try:
         parsed = float(scalar)
