@@ -139,6 +139,43 @@ def _patch_pytorch_linalg_norm_axis_contract(raw_pytorch, backend, torch_module)
         backend_linalg.norm = norm
 
 
+def _patch_pytorch_rectangular_triangular_vector_contract(raw_pytorch, backend) -> None:
+    """Patch triangular-vector helpers to respect rectangular matrix shapes."""
+    active_pytorch_backend = getattr(backend, "__backend_name__", None) == "pytorch"
+
+    def _make_triangular_to_vec(helper_name, index_helper, original_helper):
+        def triangular_to_vec(x, k=0):
+            x = raw_pytorch.array(x)
+            rows, cols = index_helper(x.shape[-2], k=k, m=x.shape[-1])
+            rows = rows.to(device=x.device)
+            cols = cols.to(device=x.device)
+            return x[..., rows, cols]
+
+        triangular_to_vec.__name__ = getattr(original_helper, "__name__", helper_name)
+        triangular_to_vec.__doc__ = getattr(original_helper, "__doc__", None)
+        triangular_to_vec._pyrecest_numpy_contract = True
+        triangular_to_vec._pyrecest_rectangular_triangular_contract = True
+        return triangular_to_vec
+
+    for helper_name, index_helper_name in (
+        ("tril_to_vec", "tril_indices"),
+        ("triu_to_vec", "triu_indices"),
+    ):
+        original_helper = getattr(raw_pytorch, helper_name, None)
+        index_helper = getattr(raw_pytorch, index_helper_name, None)
+        if original_helper is None or index_helper is None:
+            continue
+        if getattr(original_helper, "_pyrecest_rectangular_triangular_contract", False):
+            if active_pytorch_backend:
+                setattr(backend, helper_name, original_helper)
+            continue
+
+        helper = _make_triangular_to_vec(helper_name, index_helper, original_helper)
+        setattr(raw_pytorch, helper_name, helper)
+        if active_pytorch_backend:
+            setattr(backend, helper_name, helper)
+
+
 def _patch_binary_helpers(
     raw_pytorch,
     backend,
@@ -223,3 +260,4 @@ def patch_pytorch_minmax_device_contract() -> None:
         "_pyrecest_comparison_device_contract",
     )
     _patch_pytorch_linalg_norm_axis_contract(raw_pytorch, backend, torch)
+    _patch_pytorch_rectangular_triangular_vector_contract(raw_pytorch, backend)
