@@ -74,10 +74,9 @@ class TestBackendRandom(unittest.TestCase):
         for sample in pyrecest.backend.to_numpy(samples).tolist():
             self.assertIn(sample, (10, 20, 30))
 
-    def test_choice_accepts_zero_sized_integer_population_sample(self):
-        samples = random.choice(0, size=(0,))
-
-        self.assertEqual(samples.shape, (0,))
+    def test_choice_rejects_zero_sized_integer_population_sample(self):
+        with self.assertRaises(ValueError):
+            random.choice(0, size=(0,))
 
     @unittest.skipIf(
         pyrecest.backend.__backend_name__ != "jax",
