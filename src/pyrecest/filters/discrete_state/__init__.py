@@ -80,6 +80,46 @@ def _validated_positive_scalar(
     return parsed
 
 
+def _validated_probability_vector(
+    probabilities: Any,
+    n_entries: int,
+    name: str,
+    *,
+    valid_state_mask=None,
+) -> np.ndarray:
+    if probabilities is None:
+        return _module_globals["uniform_probabilities"](n_entries, valid_state_mask)
+    try:
+        raw_values = np.asarray(probabilities)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{name} must contain real probability values") from exc
+    if raw_values.shape != (n_entries,):
+        raise ValueError(f"{name} must have shape ({n_entries},)")
+    if raw_values.dtype.kind in _REJECTED_STATE_KINDS:
+        raise ValueError(f"{name} must contain real probability values")
+    if raw_values.dtype == object:
+        for value in raw_values.ravel():
+            if isinstance(
+                value,
+                _TEXT_TYPES + _BOOLEAN_TYPES + _COMPLEX_TYPES,
+            ):
+                raise ValueError(f"{name} must contain real probability values")
+    try:
+        values = raw_values.astype(float, copy=False)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(f"{name} must contain real probability values") from exc
+    if np.any(~np.isfinite(values)) or np.any(values < 0.0):
+        raise ValueError(f"{name} must be finite and non-negative")
+    values = values.copy()
+    mask = _module_globals["_coerce_valid_state_mask"](valid_state_mask, n_entries)
+    if mask is not None:
+        values[~mask] = 0.0
+    total = float(values.sum())
+    if total <= 0.0:
+        raise ValueError(f"{name} must contain positive probability mass")
+    return values / total
+
+
 def sparse_gaussian_transition_matrix(
     state_vectors,
     sigma,
@@ -103,6 +143,7 @@ def sparse_gaussian_transition_matrix(
 
 
 _module_globals["sparse_gaussian_transition_matrix"] = sparse_gaussian_transition_matrix
+_module_globals["_normalize_probability_vector"] = _validated_probability_vector
 for name in _module_globals["__all__"]:
     globals()[name] = _module_globals[name]
 __all__ = _module_globals["__all__"]
