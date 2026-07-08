@@ -18,7 +18,7 @@ _TEMPORAL_SCALAR_TYPES = (
     _datetime.datetime,
     _datetime.timedelta,
 )
-_TEMPORAL_REPR_MARKERS = ("datetime64(", "timedelta64(")
+_TEMPORAL_REPR_MARKERS = ("datetime64", "timedelta64")
 
 
 @dataclass(frozen=True)
@@ -74,10 +74,12 @@ def _contains_temporal_values(arr: np.ndarray) -> bool:
         return True
     if arr.dtype.kind != "O":
         return False
+    if _has_temporal_repr_marker(arr):
+        return True
     for item in arr.reshape(-1):
         if _is_temporal_value(item):
             return True
-    return _has_temporal_repr_marker(arr)
+    return False
 
 
 def _is_temporal_value(value: Any) -> bool:
@@ -88,12 +90,13 @@ def _is_temporal_value(value: Any) -> bool:
         return True
     if isinstance(value, np.ndarray):
         return _contains_temporal_values(value)
-    return False
+    return _has_temporal_repr_marker(value)
 
 
 def _has_temporal_repr_marker(value: Any) -> bool:
     """Catch NumPy object temporal scalars whose iterated value lost dtype info."""
-    return any(marker in repr(value) for marker in _TEMPORAL_REPR_MARKERS)
+    value_repr = repr(value).lower()
+    return any(marker in value_repr for marker in _TEMPORAL_REPR_MARKERS)
 
 
 def _as_finite_float(value: Any, name: str) -> float:
