@@ -8,6 +8,18 @@ from numbers import Integral
 
 import numpy as np
 
+_NON_NUMERIC_SCALAR_TYPES = (
+    bool,
+    np.bool_,
+    str,
+    bytes,
+    bytearray,
+    np.str_,
+    np.bytes_,
+    np.datetime64,
+    np.timedelta64,
+)
+
 
 @dataclass(frozen=True)
 class AdaptiveProcessNoiseConfig:
@@ -64,18 +76,23 @@ class AdaptiveProcessNoiseConfig:
 
 
 def _normalize_finite_scalar(value: float, name: str) -> float:
+    message = f"{name} must be a finite scalar"
     value_array = np.asarray(value)
-    if value_array.shape != () or value_array.dtype == np.bool_:
-        raise ValueError(f"{name} must be a finite scalar")
+    if (
+        value_array.shape != ()
+        or value_array.dtype == np.bool_
+        or value_array.dtype.kind in "USbcMm"
+    ):
+        raise ValueError(message)
     value_scalar = value_array.item()
-    if isinstance(value_scalar, (bool, np.bool_)):
-        raise ValueError(f"{name} must be a finite scalar")
+    if isinstance(value_scalar, _NON_NUMERIC_SCALAR_TYPES):
+        raise ValueError(message)
     try:
         value_float = float(value_scalar)
     except (TypeError, ValueError, OverflowError) as exc:
-        raise ValueError(f"{name} must be a finite scalar") from exc
+        raise ValueError(message) from exc
     if not np.isfinite(value_float):
-        raise ValueError(f"{name} must be a finite scalar")
+        raise ValueError(message)
     return value_float
 
 
@@ -89,7 +106,7 @@ def _normalize_nonnegative_finite_scalar(value: float, name: str) -> float:
     ):
         raise ValueError(message)
     value_scalar = value_array.item()
-    if isinstance(value_scalar, (bool, np.bool_, str, bytes, bytearray)):
+    if isinstance(value_scalar, _NON_NUMERIC_SCALAR_TYPES):
         raise ValueError(message)
     try:
         value_float = float(value_scalar)
