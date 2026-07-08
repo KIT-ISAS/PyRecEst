@@ -138,6 +138,11 @@ class TestReplayGridLikelihood(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "particle weights"):
                     effective_sample_size_fraction(weights)
 
+    def test_effective_sample_size_scales_large_finite_weights(self):
+        weights = np.asarray([1e308, 1e308])
+
+        self.assertAlmostEqual(effective_sample_size_fraction(weights), 1.0)
+
     def test_update_position_grid_likelihood_interpolates_particle_positions(self):
         centers = np.array(
             [
@@ -186,6 +191,15 @@ class TestReplayGridLikelihood(unittest.TestCase):
     def test_particle_position_log_posterior_accumulates_weighted_grid_masses(self):
         positions = np.asarray([[0.1, 0.0], [0.2, 0.0], [1.0, 0.0]])
         weights = np.asarray([0.25, 0.25, 0.5])
+        bin_centers = np.asarray([[0.0, 0.0], [1.0, 0.0]])
+
+        log_posterior = particle_position_log_posterior(positions, weights, bin_centers)
+
+        self.assertTrue(np.allclose(np.exp(log_posterior), [0.5, 0.5]))
+
+    def test_particle_position_log_posterior_scales_large_finite_weights(self):
+        positions = np.asarray([[0.0, 0.0], [1.0, 0.0]])
+        weights = np.asarray([1e308, 1e308])
         bin_centers = np.asarray([[0.0, 0.0], [1.0, 0.0]])
 
         log_posterior = particle_position_log_posterior(positions, weights, bin_centers)

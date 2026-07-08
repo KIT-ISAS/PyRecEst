@@ -219,10 +219,9 @@ def effective_sample_size_fraction(weights) -> float:
     weights = _coerce_particle_weights(weights)
     if weights.size == 0:
         return 0.0
-    total = float(np.sum(weights))
-    if total <= 0.0 or not np.isfinite(total):
+    normalized = _normalize_particle_weights(weights)
+    if normalized is None:
         return 0.0
-    normalized = weights / total
     ess = 1.0 / float(np.sum(normalized * normalized))
     return float(ess / weights.size)
 
@@ -281,13 +280,12 @@ def particle_position_log_posterior(
     weights = _coerce_particle_weights(weights)
     if weights.shape != (positions.shape[0],):
         raise ValueError("weights must contain one entry per position particle")
-    total = float(np.sum(weights))
-    if total <= 0.0 or not np.isfinite(total):
+    normalized = _normalize_particle_weights(weights)
+    if normalized is None:
         raise ValueError("particle weights must have positive finite total mass")
     if bin_tree is None:
         bin_tree = cKDTree(bin_centers)
 
-    normalized = weights / total
     indices = _nearest_bin_indices(positions, bin_tree)
     masses = np.zeros(bin_centers.shape[0], dtype=float)
     np.add.at(masses, indices, normalized)
@@ -307,6 +305,19 @@ def _coerce_particle_weights(weights) -> np.ndarray:
     if np.any(weights < 0.0):
         raise ValueError("particle weights must be nonnegative")
     return weights
+
+
+def _normalize_particle_weights(weights: np.ndarray) -> np.ndarray | None:
+    if weights.size == 0:
+        return weights
+    max_weight = float(np.max(weights))
+    if max_weight <= 0.0:
+        return None
+    scaled = weights / max_weight
+    total = float(np.sum(scaled))
+    if total <= 0.0 or not np.isfinite(total):
+        return None
+    return scaled / total
 
 
 def _coerce_bin_centers(bin_centers) -> np.ndarray:
