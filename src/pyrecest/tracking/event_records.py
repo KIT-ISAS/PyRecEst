@@ -26,7 +26,10 @@ _INVALID_NUMERIC_SCALAR_TYPES = (
     bytearray,
     complex,
     np.complexfloating,
+    np.datetime64,
+    np.timedelta64,
 )
+_TEMPORAL_ARRAY_KINDS = {"M", "m"}
 
 
 def _invalid_numeric_array_message(name: str) -> str:
@@ -35,6 +38,10 @@ def _invalid_numeric_array_message(name: str) -> str:
 
 def _dtype_is_real_numeric(dtype: np.dtype) -> bool:
     return np.dtype(dtype).kind in _REAL_NUMERIC_ARRAY_KINDS
+
+
+def _dtype_is_temporal(dtype: np.dtype) -> bool:
+    return np.dtype(dtype).kind in _TEMPORAL_ARRAY_KINDS
 
 
 def _raw_item_is_invalid_numeric(value: Any) -> bool:
@@ -112,11 +119,15 @@ def _optional_bool(value: Any, *, name: str) -> bool | None:
 
 def _finite_scalar(value: Any, *, name: str, message: str) -> float:
     value_array = np.asarray(value)
-    if value_array.shape != () or value_array.dtype == np.bool_:
+    if (
+        value_array.shape != ()
+        or value_array.dtype == np.bool_
+        or _dtype_is_temporal(value_array.dtype)
+    ):
         raise ValueError(message)
 
     scalar = value_array.item()
-    if isinstance(scalar, (bool, np.bool_, str, bytes, bytearray)):
+    if isinstance(scalar, _INVALID_NUMERIC_SCALAR_TYPES):
         raise ValueError(message)
     try:
         parsed = float(scalar)

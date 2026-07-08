@@ -4,6 +4,15 @@ import numpy as np
 from pyrecest.tracking.event_records import TrackingEvent, TrackingRecord
 
 
+def _temporal_scalars():
+    return (
+        np.datetime64("1970-01-01T00:00:00.000000001"),
+        np.timedelta64(1, "ns"),
+        np.array(np.datetime64("1970-01-01T00:00:00.000000001"), dtype=object),
+        np.array(np.timedelta64(1, "ns"), dtype=object),
+    )
+
+
 class TestTrackingEventScalarValidation(unittest.TestCase):
     def test_time_accepts_scalar_numeric_values(self):
         event = TrackingEvent(time=np.array(1.25), source="sensor")
@@ -24,6 +33,21 @@ class TestTrackingEventScalarValidation(unittest.TestCase):
             with self.subTest(time=time):
                 with self.assertRaisesRegex(ValueError, "time must be finite"):
                     TrackingEvent(time=time, source="sensor")
+
+    def test_time_rejects_temporal_scalars(self):
+        for time in _temporal_scalars():
+            with self.subTest(time=repr(time)):
+                with self.assertRaisesRegex(ValueError, "time must be finite"):
+                    TrackingEvent(time=time, source="sensor")
+
+    def test_measurement_and_covariance_reject_object_temporal_values(self):
+        temporal_measurement = np.array([np.timedelta64(1, "ns")], dtype=object)
+        temporal_covariance = np.array([[np.datetime64("1970-01-01")]], dtype=object)
+
+        with self.assertRaisesRegex(ValueError, "measurement must contain"):
+            TrackingEvent(time=0.0, source="sensor", measurement=temporal_measurement)
+        with self.assertRaisesRegex(ValueError, "covariance must contain"):
+            TrackingEvent(time=0.0, source="sensor", covariance=temporal_covariance)
 
 
 class TestTrackingRecordScalarValidation(unittest.TestCase):
@@ -60,6 +84,14 @@ class TestTrackingRecordScalarValidation(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "time must be finite"):
                     TrackingRecord(**kwargs)
 
+    def test_time_rejects_temporal_scalars(self):
+        for time in _temporal_scalars():
+            kwargs = self._valid_record_kwargs()
+            kwargs["time"] = time
+            with self.subTest(time=repr(time)):
+                with self.assertRaisesRegex(ValueError, "time must be finite"):
+                    TrackingRecord(**kwargs)
+
     def test_nis_rejects_bool_text_non_scalar_and_negative_values(self):
         invalid_nis_values = (
             True,
@@ -79,6 +111,29 @@ class TestTrackingRecordScalarValidation(unittest.TestCase):
                     "nis must be finite and nonnegative",
                 ):
                     TrackingRecord(**self._valid_record_kwargs(), nis=nis)
+
+    def test_nis_rejects_temporal_scalars(self):
+        for nis in _temporal_scalars():
+            with self.subTest(nis=repr(nis)):
+                with self.assertRaisesRegex(
+                    ValueError,
+                    "nis must be finite and nonnegative",
+                ):
+                    TrackingRecord(**self._valid_record_kwargs(), nis=nis)
+
+    def test_state_and_covariance_reject_object_temporal_values(self):
+        temporal_vector = np.array([np.timedelta64(1, "ns")], dtype=object)
+        temporal_matrix = np.array([[np.datetime64("1970-01-01")]], dtype=object)
+
+        kwargs = self._valid_record_kwargs()
+        kwargs["prior_mean"] = temporal_vector
+        with self.assertRaisesRegex(ValueError, "prior_mean must contain"):
+            TrackingRecord(**kwargs)
+
+        kwargs = self._valid_record_kwargs()
+        kwargs["prior_cov"] = temporal_matrix
+        with self.assertRaisesRegex(ValueError, "prior_cov must contain"):
+            TrackingRecord(**kwargs)
 
 
 if __name__ == "__main__":
