@@ -51,6 +51,12 @@ def block_diag_measurement_covariance(
             raise TypeError("weak_std must be a mapping when trusted_std is a mapping")
         trusted_map = dict(trusted_std or {})
         weak_map = dict(weak_std or {})
+        overlapping_keys = [key for key in trusted_map if key in weak_map]
+        if overlapping_keys:
+            raise ValueError(
+                "trusted_std and weak_std must not contain overlapping dimensions: "
+                f"{overlapping_keys}"
+            )
         provided_order = [
             *trusted_map.keys(),
             *(key for key in weak_map if key not in trusted_map),
