@@ -382,7 +382,7 @@ def _as_2d(values: np.ndarray, name: str) -> np.ndarray:
 
 def _as_nonnegative_int(value: Any, name: str) -> int:
     arr = np.asarray(value)
-    if arr.ndim != 0 or arr.dtype == np.bool_:
+    if arr.ndim != 0 or _contains_invalid_numeric_values(arr):
         raise ValueError(f"{name} must be a nonnegative integer")
     scalar = arr.item()
     if isinstance(scalar, (int, np.integer)) and not isinstance(scalar, bool):
@@ -409,7 +409,7 @@ def _as_positive_int(value: Any, name: str) -> int:
 
 def _as_nonnegative_finite_float(value: Any, name: str) -> float:
     arr = np.asarray(value)
-    if arr.ndim != 0 or arr.dtype == np.bool_:
+    if arr.ndim != 0 or _contains_invalid_numeric_values(arr):
         raise ValueError(f"{name} must be a nonnegative finite scalar")
     scalar = arr.item()
     if isinstance(scalar, (bool, np.bool_)) or not isinstance(scalar, Real):
