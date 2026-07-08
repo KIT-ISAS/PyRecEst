@@ -84,6 +84,9 @@ empty = raw_pytorch.empty_like(source)
 assert tuple(empty.shape) == (2, 2)
 assert empty.dtype == zeros.dtype
 
+typed = raw_pytorch.zeros_like(source, dtype="torch.float64")
+assert str(typed.dtype) == "torch.float64"
+
 print("ok")
 """
     completed = subprocess.run(

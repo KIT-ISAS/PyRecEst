@@ -164,7 +164,7 @@ def patch_pytorch_creation_shape_contract() -> None:
         original_helper = getattr(raw_pytorch, helper_name, None)
         if original_helper is None:
             return None
-        if getattr(original_helper, "_pyrecest_arraylike_contract", False):
+        if getattr(original_helper, "_pyrecest_like_creation_contract", False):
             if active_pytorch_backend:
                 setattr(backend, helper_name, original_helper)
             return original_helper
@@ -194,6 +194,7 @@ def patch_pytorch_creation_shape_contract() -> None:
         like_creation_helper.__doc__ = getattr(original_helper, "__doc__", None)
         like_creation_helper._pyrecest_numpy_contract = True
         like_creation_helper._pyrecest_arraylike_contract = True
+        like_creation_helper._pyrecest_like_creation_contract = True
         return like_creation_helper
 
     for helper_name, torch_helper, has_fill_value in (
