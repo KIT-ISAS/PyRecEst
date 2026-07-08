@@ -24,6 +24,10 @@ def _is_text_scalar(value: Any) -> bool:
     return isinstance(value, (str, bytes, np.str_, np.bytes_))
 
 
+def _is_temporal_scalar(value: Any) -> bool:
+    return isinstance(value, (np.datetime64, np.timedelta64))
+
+
 def pareto_front_indices(
     table: pd.DataFrame,
     objectives: Sequence[str],
@@ -176,7 +180,7 @@ def constraint_mask(
                 column,
             )
         else:
-            values = pd.to_numeric(table[column], errors="coerce").astype(float)
+            values = _coerce_constraint_values(table[column])
             present_values = values.notna()
             if op == "<=":
                 comparison = values <= threshold_value + eps
@@ -393,9 +397,11 @@ def _coerce_numeric(value: Any) -> float:
     if value_array.shape != () or value_array.dtype.kind in "bSUcMm":
         return float("nan")
     scalar = value_array.item()
-    if isinstance(
-        scalar, (bool, np.bool_, complex, np.complexfloating)
-    ) or _is_text_scalar(scalar):
+    if (
+        isinstance(scalar, (bool, np.bool_, complex, np.complexfloating))
+        or _is_text_scalar(scalar)
+        or _is_temporal_scalar(scalar)
+    ):
         return float("nan")
     try:
         return float(scalar)
@@ -403,13 +409,24 @@ def _coerce_numeric(value: Any) -> float:
         return float("nan")
 
 
+def _coerce_constraint_values(values: pd.Series) -> pd.Series:
+    value_array = values.to_numpy()
+    if value_array.dtype.kind in "Mm":
+        return pd.Series(np.nan, index=values.index, dtype=float)
+    return pd.to_numeric(values, errors="coerce").astype(float)
+
+
 def _validate_eps(eps: Any) -> float:
     message = "eps must be a finite non-negative scalar."
     value_array = np.asarray(eps)
-    if value_array.shape != () or value_array.dtype == np.bool_:
+    if value_array.shape != () or value_array.dtype.kind in "bMm":
         raise ValueError(message)
     scalar = value_array.item()
-    if isinstance(scalar, (bool, np.bool_)) or _is_text_scalar(scalar):
+    if (
+        isinstance(scalar, (bool, np.bool_))
+        or _is_text_scalar(scalar)
+        or _is_temporal_scalar(scalar)
+    ):
         raise ValueError(message)
     try:
         value = float(scalar)
@@ -452,12 +469,12 @@ def _coerce_constraint_threshold(value: Any, column: str) -> float | bool:
         value_array = np.asarray(value)
     except (TypeError, ValueError, OverflowError) as exc:
         raise ValueError(message) from exc
-    if value_array.shape != ():
+    if value_array.shape != () or value_array.dtype.kind in "Mm":
         raise ValueError(message)
     scalar = value_array.item()
     if isinstance(scalar, (bool, np.bool_)):
         return bool(scalar)
-    if _is_text_scalar(scalar):
+    if _is_text_scalar(scalar) or _is_temporal_scalar(scalar):
         raise ValueError(message)
     try:
         threshold = float(scalar)
