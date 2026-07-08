@@ -4,11 +4,12 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+from datetime import date, datetime, timedelta
 from numbers import Integral
 
 import numpy as np
 
-_NON_NUMERIC_SCALAR_TYPES = (
+_REJECTED_SCALAR_TYPES = (
     bool,
     np.bool_,
     str,
@@ -16,9 +17,26 @@ _NON_NUMERIC_SCALAR_TYPES = (
     bytearray,
     np.str_,
     np.bytes_,
+    complex,
+    np.complexfloating,
+    date,
+    datetime,
+    timedelta,
     np.datetime64,
     np.timedelta64,
 )
+_REJECTED_DTYPE_KINDS = "USbcMm"
+
+
+def _has_rejected_numeric_dtype(value: object) -> bool:
+    try:
+        return np.asarray(value).dtype.kind in _REJECTED_DTYPE_KINDS
+    except (TypeError, ValueError, RuntimeError):
+        return False
+
+
+def _is_rejected_scalar_payload(value: object) -> bool:
+    return isinstance(value, _REJECTED_SCALAR_TYPES) or _has_rejected_numeric_dtype(value)
 
 
 @dataclass(frozen=True)
@@ -78,14 +96,10 @@ class AdaptiveProcessNoiseConfig:
 def _normalize_finite_scalar(value: float, name: str) -> float:
     message = f"{name} must be a finite scalar"
     value_array = np.asarray(value)
-    if (
-        value_array.shape != ()
-        or value_array.dtype == np.bool_
-        or value_array.dtype.kind in "USbcMm"
-    ):
+    if value_array.shape != () or _is_rejected_scalar_payload(value):
         raise ValueError(message)
     value_scalar = value_array.item()
-    if isinstance(value_scalar, _NON_NUMERIC_SCALAR_TYPES):
+    if _is_rejected_scalar_payload(value_scalar):
         raise ValueError(message)
     try:
         value_float = float(value_scalar)
@@ -99,14 +113,10 @@ def _normalize_finite_scalar(value: float, name: str) -> float:
 def _normalize_nonnegative_finite_scalar(value: float, name: str) -> float:
     message = f"{name} must be a nonnegative finite scalar"
     value_array = np.asarray(value)
-    if (
-        value_array.shape != ()
-        or value_array.dtype == np.bool_
-        or value_array.dtype.kind in "USbcMm"
-    ):
+    if value_array.shape != () or _is_rejected_scalar_payload(value):
         raise ValueError(message)
     value_scalar = value_array.item()
-    if isinstance(value_scalar, _NON_NUMERIC_SCALAR_TYPES):
+    if _is_rejected_scalar_payload(value_scalar):
         raise ValueError(message)
     try:
         value_float = float(value_scalar)
@@ -128,13 +138,13 @@ def _normalize_bool_flag(value: bool, name: str) -> bool:
 
 def _normalize_positive_integer(value: int, name: str) -> int:
     message = f"{name} must be a positive integer"
-    if isinstance(value, (bool, np.bool_)):
+    if _is_rejected_scalar_payload(value):
         raise ValueError(message)
     value_array = np.asarray(value)
-    if value_array.shape != () or value_array.dtype == np.bool_:
+    if value_array.shape != () or _is_rejected_scalar_payload(value_array):
         raise ValueError(message)
     value_scalar = value_array.item()
-    if isinstance(value_scalar, (bool, np.bool_)) or not isinstance(
+    if _is_rejected_scalar_payload(value_scalar) or not isinstance(
         value_scalar, Integral
     ):
         raise ValueError(message)
