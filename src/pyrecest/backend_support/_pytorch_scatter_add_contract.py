@@ -19,9 +19,38 @@ def _normalize_pytorch_scatter_dim(dim, torch_module) -> int:
         raise TypeError("dim must be an integer") from exc
 
 
+def _is_integer_scatter_index_dtype(dtype, numpy_module) -> bool:
+    """Return whether ``dtype`` can safely represent scatter indices."""
+
+    return not numpy_module.issubdtype(
+        dtype,
+        numpy_module.bool_,
+    ) and numpy_module.issubdtype(dtype, numpy_module.integer)
+
+
+def _pytorch_scatter_index(index, numpy_module, torch_module, *, device):
+    """Return scatter indices as a long tensor without truncating bad inputs."""
+
+    if torch_module.is_tensor(index):
+        if (
+            index.dtype == torch_module.bool
+            or index.dtype.is_floating_point
+            or index.dtype.is_complex
+        ):
+            raise TypeError("scatter_add indices must be integers")
+        return index.to(device=device, dtype=torch_module.long)
+
+    index_array = numpy_module.asarray(index)
+    if isinstance(index, numpy_module.ndarray) or index_array.size:
+        if not _is_integer_scatter_index_dtype(index_array.dtype, numpy_module):
+            raise TypeError("scatter_add indices must be integers")
+    return torch_module.as_tensor(index_array, dtype=torch_module.long, device=device)
+
+
 def patch_pytorch_scatter_add_contract() -> None:
     """Make raw/public PyTorch ``scatter_add`` accept array-like operands."""
     try:
+        import numpy as np  # pylint: disable=import-outside-toplevel
         import pyrecest._backend.pytorch as raw_pytorch  # pylint: disable=import-outside-toplevel
         import pyrecest.backend as backend  # pylint: disable=import-outside-toplevel
         import torch  # pylint: disable=import-outside-toplevel
@@ -39,10 +68,7 @@ def patch_pytorch_scatter_add_contract() -> None:
     def scatter_add(input, dim, index, src):  # pylint: disable=redefined-builtin
         values = raw_pytorch.array(input)
         dim_value = _normalize_pytorch_scatter_dim(dim, torch)
-        if not torch.is_tensor(index):
-            index = torch.as_tensor(index, dtype=torch.long, device=values.device)
-        else:
-            index = index.to(device=values.device, dtype=torch.long)
+        index = _pytorch_scatter_index(index, np, torch, device=values.device)
         if not torch.is_tensor(src):
             src = torch.as_tensor(src, dtype=values.dtype, device=values.device)
         else:
