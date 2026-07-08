@@ -39,3 +39,21 @@ else:
 """
     result = run_backend_code("autograd", code)
     assert result.returncode == 0, result.stderr
+
+
+def test_autograd_vmap_remains_differentiable():
+    pytest.importorskip("autograd")
+
+    code = """
+import pyrecest.backend as backend
+from autograd import grad
+
+
+def vmap_square_sum(x):
+    return backend.sum(backend.vmap(lambda row: row * row)(x))
+
+actual = grad(vmap_square_sum)(backend.array([1.0, 2.0]))
+assert backend.to_numpy(actual).tolist() == [2.0, 4.0]
+"""
+    result = run_backend_code("autograd", code)
+    assert result.returncode == 0, result.stderr

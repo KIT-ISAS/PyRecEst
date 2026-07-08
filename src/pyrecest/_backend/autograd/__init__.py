@@ -206,10 +206,15 @@ def vmap(pyfunc, randomness="error"):
     if randomness not in ("error", "different"):
         raise ValueError("randomness must be either 'error' or 'different'")
 
+    def _as_mapped_arg(arg):
+        if hasattr(arg, "shape") and hasattr(arg, "ndim"):
+            return arg
+        return _np.asarray(arg)
+
     def vmapped_fun(*args):
         if not args:
             raise ValueError("vmap requires at least one positional argument")
-        mapped_args = [_np.asarray(arg) for arg in args]
+        mapped_args = [_as_mapped_arg(arg) for arg in args]
         leading_sizes = [arg.shape[0] if arg.ndim > 0 else None for arg in mapped_args]
         sized_leading = [size for size in leading_sizes if size is not None]
         if sized_leading and not _builtins.all(
