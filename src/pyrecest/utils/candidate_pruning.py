@@ -106,9 +106,21 @@ def _normalize_bool(value: Any, name: str) -> bool:
     raise ValueError(f"{name} must be a boolean")
 
 
+def _has_temporal_dtype(value: Any) -> bool:
+    try:
+        return np.asarray(value).dtype.kind in {"M", "m"}
+    except (TypeError, ValueError, RuntimeError):
+        return False
+
+
 def _normalize_positive_integer(value: Any, name: str) -> int:
-    value_array = np.asarray(value)
     message = f"{name} must be a positive integer or None"
+    if _has_temporal_dtype(value) or _contains_temporal_values(value):
+        raise ValueError(message)
+    try:
+        value_array = np.asarray(value)
+    except (TypeError, ValueError, RuntimeError) as exc:
+        raise ValueError(message) from exc
     if value_array.shape != () or value_array.dtype == np.bool_:
         raise ValueError(message)
 
@@ -132,7 +144,12 @@ def _normalize_positive_integer(value: Any, name: str) -> int:
 
 
 def _normalize_finite_scalar(value: Any, *, message: str) -> float:
-    value_array = np.asarray(value)
+    if _has_temporal_dtype(value) or _contains_temporal_values(value):
+        raise ValueError(message)
+    try:
+        value_array = np.asarray(value)
+    except (TypeError, ValueError, RuntimeError) as exc:
+        raise ValueError(message) from exc
     if value_array.shape != () or value_array.dtype == np.bool_:
         raise ValueError(message)
 
