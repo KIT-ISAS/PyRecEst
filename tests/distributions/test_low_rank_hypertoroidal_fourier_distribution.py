@@ -43,6 +43,28 @@ class TestLowRankHypertoroidalFourierDistribution(unittest.TestCase):
             dist.coefficient_at_zero(), 1.0 / (2.0 * np.pi) ** 3, atol=1e-12
         )
 
+    def test_accepts_numpy_integer_shape(self):
+        dist = LowRankHypertoroidalFourierDistribution.uniform(np.int64(3))
+        self.assertEqual(dist.coeff_shape, (3,))
+
+    def test_rejects_non_integral_shape_entries(self):
+        invalid_shapes = [
+            True,
+            np.bool_(True),
+            3.0,
+            np.float64(3.0),
+            "3",
+            (True,),
+            (np.bool_(True),),
+            (3.0,),
+            (np.float64(3.0),),
+            ("3",),
+        ]
+        for shape in invalid_shapes:
+            with self.subTest(shape=shape):
+                with self.assertRaises((TypeError, ValueError)):
+                    LowRankHypertoroidalFourierDistribution.uniform(shape)
+
     def test_value_and_pdf_match_dense_1d(self):
         dense = HypertoroidalFourierDistribution(_identity_coefficients_1d(), "identity")
         low_rank = LowRankHypertoroidalFourierDistribution.from_dense(dense)

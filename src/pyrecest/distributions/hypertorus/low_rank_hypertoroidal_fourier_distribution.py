@@ -13,24 +13,27 @@ from .abstract_hypertoroidal_distribution import AbstractHypertoroidalDistributi
 from .hypertoroidal_fourier_distribution import HypertoroidalFourierDistribution
 
 
-def _as_positive_odd_length(value):
+_SHAPE_ERROR = "Fourier coefficient side lengths must be positive odd integers."
+
+
+def _as_positive_odd_coefficient_count(value):
     if isinstance(value, (bool, np.bool_)) or not isinstance(value, Integral):
-        raise ValueError("Fourier coefficient side lengths must be positive odd integers.")
+        raise ValueError(_SHAPE_ERROR)
     value = int(value)
     if value < 1 or value % 2 != 1:
-        raise ValueError("Fourier coefficient side lengths must be positive and odd.")
+        raise ValueError(_SHAPE_ERROR)
     return value
 
 
 def _as_shape(shape, *, dim=None):
     if isinstance(shape, (bool, np.bool_)):
-        raise ValueError("Fourier coefficient side lengths must be positive odd integers.")
+        raise ValueError(_SHAPE_ERROR)
     if isinstance(shape, Integral):
-        value = _as_positive_odd_length(shape)
+        value = _as_positive_odd_coefficient_count(shape)
         normalized = (value,) if dim is None else (value,) * dim
     else:
         try:
-            normalized = tuple(_as_positive_odd_length(n) for n in shape)
+            normalized = tuple(_as_positive_odd_coefficient_count(n) for n in shape)
         except TypeError as exc:
             raise TypeError("shape must be an integer or a sequence of integers.") from exc
     if not normalized:

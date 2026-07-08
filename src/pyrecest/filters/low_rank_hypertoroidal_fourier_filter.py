@@ -35,9 +35,6 @@ class LowRankHypertoroidalFourierFilter(AbstractFilter, HypertoroidalFilterMixin
             raise NotImplementedError(
                 "The first low-rank prototype supports only transformation='identity'."
             )
-        if isinstance(n_coefficients, int):
-            n_coefficients = (n_coefficients,)
-        n_coefficients = tuple(int(n) for n in n_coefficients)
         self.max_rank = max_rank
         self.rtol = rtol
         initial_state = LowRankHypertoroidalFourierDistribution.uniform(
