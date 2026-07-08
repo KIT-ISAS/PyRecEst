@@ -59,6 +59,9 @@ def _build_stack_helpers(raw_pytorch, torch_module):
     def concatenate(tup, axis=0, out=None):
         tensors = _tensor_sequence(raw_pytorch, torch_module, tup)
         _require_nonempty_stack_sequence(tensors)
+        if axis is None:
+            tensors = [tensor.reshape(-1) for tensor in tensors]
+            axis = 0
         return torch_module.cat(tensors, dim=axis, out=out)
 
     def stack(seq, axis=0, out=None, *, dim=None):
