@@ -25,6 +25,18 @@ from .association_hypotheses import (
 )
 
 CostMode = Literal["auto", "cost", "log_likelihood"]
+_INVALID_SCALAR_TYPES = (
+    bool,
+    str,
+    bytes,
+    bytearray,
+    np.bool_,
+    np.str_,
+    np.bytes_,
+    np.datetime64,
+    np.timedelta64,
+)
+_INVALID_NUMERIC_DTYPE_KINDS = frozenset("mM")
 
 
 @dataclass(frozen=True)
@@ -276,10 +288,45 @@ def _components_for_track(tracks, track_index, *, current_step, config):
     steps_since_seen = _steps_since_seen(track, current_step=current_step)
     base_mass = _resolve_track_nonnegative(config.track_mass, tracks, track_index, "track_mass", current_step=current_step, default_value=max(float(_hits(track)), 1.0))
     track_mass = max(base_mass * float(config.track_mass_decay) ** miss_count, float(config.minimum_track_mass))
-    survival = _resolve_track_probability(config.survival_probability, tracks, track_index, "survival_probability", current_step=current_step, default_value=1.0) ** steps_since_seen
-    existence = _resolve_track_probability(config.existence_probability, tracks, track_index, "existence_probability", current_step=current_step, attr_name="existence_probability", metadata_key="existence_probability", default_value=1.0)
-    detection = _resolve_track_probability(config.detection_probability, tracks, track_index, "detection_probability", current_step=current_step, metadata_key="detection_probability", default_value=1.0)
-    visibility = _resolve_track_probability(config.visibility_probability, tracks, track_index, "visibility_probability", current_step=current_step, metadata_key="visibility_probability", default_value=1.0)
+    survival = (
+        _resolve_track_probability(
+            config.survival_probability,
+            tracks,
+            track_index,
+            "survival_probability",
+            current_step=current_step,
+            default_value=1.0,
+        )
+        ** steps_since_seen
+    )
+    existence = _resolve_track_probability(
+        config.existence_probability,
+        tracks,
+        track_index,
+        "existence_probability",
+        current_step=current_step,
+        attr_name="existence_probability",
+        metadata_key="existence_probability",
+        default_value=1.0,
+    )
+    detection = _resolve_track_probability(
+        config.detection_probability,
+        tracks,
+        track_index,
+        "detection_probability",
+        current_step=current_step,
+        metadata_key="detection_probability",
+        default_value=1.0,
+    )
+    visibility = _resolve_track_probability(
+        config.visibility_probability,
+        tracks,
+        track_index,
+        "visibility_probability",
+        current_step=current_step,
+        metadata_key="visibility_probability",
+        default_value=1.0,
+    )
     return TrackSurvivalPriorComponents(
         track_mass=track_mass,
         existence_probability=existence,
@@ -325,7 +372,7 @@ def _resolve_track_value(value, tracks, index, name, *, current_step, attr_name,
         return value(track, track_index=index, current_step=current_step)
     values = np.asarray(value)
     if values.shape == ():
-        return values.item()
+        return _scalar_array_item(values, name)
     if values.size != len(tracks):
         raise ValueError(f"{name} must be scalar, callable, or have length {len(tracks)}")
     return values.reshape(-1)[index]
@@ -339,12 +386,19 @@ def _resolve_measurement_probability(value, measurements, index, name, *, curren
     else:
         values = np.asarray(value)
         if values.shape == ():
-            resolved = values.item()
+            resolved = _scalar_array_item(values, name)
         else:
             if values.size != len(measurements):
                 raise ValueError(f"{name} must be scalar, callable, or have length {len(measurements)}")
             resolved = values.reshape(-1)[index]
     return _as_probability(resolved, name)
+
+
+def _scalar_array_item(values, name):
+    dtype_kind = getattr(values.dtype, "kind", None)
+    if dtype_kind in _INVALID_NUMERIC_DTYPE_KINDS:
+        raise ValueError(f"{name} must be a scalar number")
+    return values.item()
 
 
 def _metadata(track):
@@ -373,7 +427,8 @@ def _steps_since_seen(track, *, current_step):
 
 def _valid_track_index(value, num_tracks):
     values = np.asarray(value)
-    if values.shape != () or values.dtype == np.bool_:
+    dtype_kind = getattr(values.dtype, "kind", None)
+    if values.shape != () or values.dtype == np.bool_ or dtype_kind in _INVALID_NUMERIC_DTYPE_KINDS:
         raise ValueError("hypothesis.track_index must be a nonnegative integer")
     scalar = values.item()
     if isinstance(scalar, (bool, np.bool_)):
@@ -396,10 +451,14 @@ def _validate_cost_mode(cost_mode):
 
 def _as_scalar_float(value, name):
     values = np.asarray(value)
-    if values.shape != () or values.dtype == np.bool_:
+    dtype_kind = getattr(values.dtype, "kind", None)
+    if values.shape != () or values.dtype == np.bool_ or dtype_kind in _INVALID_NUMERIC_DTYPE_KINDS:
+        raise ValueError(f"{name} must be a scalar number")
+    scalar = values.item()
+    if isinstance(scalar, _INVALID_SCALAR_TYPES):
         raise ValueError(f"{name} must be a scalar number")
     try:
-        scalar = float(values.item())
+        scalar = float(scalar)
     except (TypeError, ValueError, OverflowError) as exc:
         raise ValueError(f"{name} must be a scalar number") from exc
     if not np.isfinite(scalar):
