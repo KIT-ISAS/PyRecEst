@@ -12,6 +12,15 @@ except ModuleNotFoundError:
 
 @unittest.skipIf(pytorch_backend is None, "PyTorch is not installed")
 class TestPytorchLinalgToleranceContract(unittest.TestCase):
+    @staticmethod
+    def _temporal_tolerances():
+        return (
+            np.timedelta64(1, "ns"),
+            np.datetime64("1970-01-01T00:00:00.000000001"),
+            np.array(np.timedelta64(1, "ns")),
+            np.array(np.datetime64("1970-01-01T00:00:00.000000001")),
+        )
+
     def test_matrix_rank_accepts_numpy_scalar_array_tolerances(self):
         value = pytorch_backend.diag(pytorch_backend.array([1.0, 1e-5]))
 
@@ -36,6 +45,17 @@ class TestPytorchLinalgToleranceContract(unittest.TestCase):
         )
 
         self.assertEqual(pytorch_backend.to_numpy(result).tolist(), [1, 2])
+
+    def test_matrix_rank_rejects_numpy_temporal_tolerances(self):
+        value = pytorch_backend.diag(
+            pytorch_backend.array([1.0, 1e-5], dtype=pytorch_backend.float64)
+        )
+
+        for keyword in ("tol", "rtol", "atol"):
+            for tolerance in self._temporal_tolerances():
+                with self.subTest(keyword=keyword, tolerance=repr(tolerance)):
+                    with self.assertRaises(TypeError):
+                        pytorch_backend.linalg.matrix_rank(value, **{keyword: tolerance})
 
     def test_pinv_accepts_numpy_scalar_array_tolerances(self):
         value = pytorch_backend.diag(
@@ -80,6 +100,17 @@ class TestPytorchLinalgToleranceContract(unittest.TestCase):
 
                 self.assertEqual(result.dtype, pytorch_backend.float64)
                 self.assertTrue(pytorch_backend.allclose(result, expected))
+
+    def test_pinv_rejects_numpy_temporal_tolerances(self):
+        value = pytorch_backend.diag(
+            pytorch_backend.array([1.0, 1e-5], dtype=pytorch_backend.float64)
+        )
+
+        for keyword in ("rcond", "rtol", "atol"):
+            for tolerance in self._temporal_tolerances():
+                with self.subTest(keyword=keyword, tolerance=repr(tolerance)):
+                    with self.assertRaises(TypeError):
+                        pytorch_backend.linalg.pinv(value, **{keyword: tolerance})
 
 
 if __name__ == "__main__":
