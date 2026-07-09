@@ -313,7 +313,31 @@ def _normalize_base_weights(target_weights: np.ndarray, birth_weight: float) -> 
     return target_weights.astype(float, copy=False) / total, float(birth / total)
 
 
+def _reject_temporal_values(value: Any, name: str) -> None:
+    if _contains_temporal_value(value):
+        raise ValueError(f"{name} must not contain datetime64 or timedelta64 values")
+
+
+def _contains_temporal_value(value: Any, *, _depth: int = 0) -> bool:
+    if isinstance(value, (np.datetime64, np.timedelta64)):
+        return True
+    try:
+        array = np.asarray(value)
+    except (TypeError, ValueError):
+        return False
+    if _is_temporal_dtype(array.dtype):
+        return True
+    if array.dtype != object or _depth >= 4:
+        return False
+    return any(_contains_temporal_value(item, _depth=_depth + 1) for item in array.ravel())
+
+
+def _is_temporal_dtype(dtype: np.dtype) -> bool:
+    return np.issubdtype(dtype, np.datetime64) or np.issubdtype(dtype, np.timedelta64)
+
+
 def _coerce_log_likelihoods(value: Any, num_targets: int, sensor_id: str) -> np.ndarray:
+    _reject_temporal_values(value, f"{sensor_id}.log_likelihoods")
     array = np.asarray(value, dtype=float)
     if array.ndim == 1:
         if num_targets != 1:
@@ -329,6 +353,7 @@ def _coerce_log_likelihoods(value: Any, num_targets: int, sensor_id: str) -> np.
 
 
 def _coerce_log_weight_vector(value: float | Sequence[float], length: int, name: str) -> np.ndarray:
+    _reject_temporal_values(value, name)
     array = np.asarray(value, dtype=float)
     if array.shape == ():
         scalar = float(array.item())
@@ -343,6 +368,7 @@ def _coerce_log_weight_vector(value: float | Sequence[float], length: int, name:
 
 
 def _coerce_nonnegative_vector(value: Sequence[float], expected_length: int | None, name: str) -> np.ndarray:
+    _reject_temporal_values(value, name)
     array = np.asarray(value, dtype=float)
     if array.ndim != 1:
         raise ValueError(f"{name} must be a one-dimensional vector")
@@ -354,6 +380,7 @@ def _coerce_nonnegative_vector(value: Sequence[float], expected_length: int | No
 
 
 def _coerce_probability_vector(value: float | Sequence[float], length: int, name: str) -> np.ndarray:
+    _reject_temporal_values(value, name)
     array = np.asarray(value, dtype=float)
     if array.shape == ():
         scalar = float(array.item())
@@ -368,6 +395,7 @@ def _coerce_probability_vector(value: float | Sequence[float], length: int, name
 
 
 def _as_nonnegative_float(value: float, name: str) -> float:
+    _reject_temporal_values(value, name)
     try:
         scalar = float(np.asarray(value).item())
     except (TypeError, ValueError, AttributeError) as exc:

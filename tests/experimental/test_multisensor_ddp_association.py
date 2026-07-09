@@ -10,6 +10,13 @@ from pyrecest.experimental.multisensor_ddp_association import (
 )
 
 
+_TEMPORAL_PAYLOADS = (
+    np.timedelta64(1, "ns"),
+    np.datetime64("1970-01-01T00:00:00.000000001", "ns"),
+    np.array(np.timedelta64(1, "ns"), dtype=object),
+)
+
+
 def test_multisensor_update_shares_target_atoms_across_sensors():
     radar = SensorAssociationBlock(
         "radar",
@@ -125,3 +132,40 @@ def test_input_validation_rejects_shape_and_probability_errors():
             [1.0],
             [SensorAssociationBlock("camera", [[0.0]]), SensorAssociationBlock("camera", [[0.0]])],
         )
+
+
+@pytest.mark.parametrize("bad_value", _TEMPORAL_PAYLOADS)
+def test_predict_ddp_base_weights_rejects_temporal_numeric_payloads(bad_value):
+    with pytest.raises(ValueError, match="datetime64|timedelta64"):
+        predict_ddp_base_weights([bad_value])
+
+    with pytest.raises(ValueError, match="datetime64|timedelta64"):
+        predict_ddp_base_weights([1.0], survival_probabilities=bad_value)
+
+    with pytest.raises(ValueError, match="datetime64|timedelta64"):
+        predict_ddp_base_weights([1.0], birth_weight=bad_value)
+
+
+@pytest.mark.parametrize("bad_value", _TEMPORAL_PAYLOADS)
+def test_multisensor_update_rejects_temporal_numeric_payloads(bad_value):
+    valid_block = SensorAssociationBlock("radar", [[0.0]])
+
+    with pytest.raises(ValueError, match="datetime64|timedelta64"):
+        multisensor_ddp_association_update([bad_value], [valid_block])
+
+    with pytest.raises(ValueError, match="datetime64|timedelta64"):
+        multisensor_ddp_association_update([1.0], [valid_block], birth_weight=bad_value)
+
+    with pytest.raises(ValueError, match="datetime64|timedelta64"):
+        multisensor_ddp_association_update([1.0], [valid_block], prior_strength=bad_value)
+
+    invalid_sensor_blocks = [
+        SensorAssociationBlock("radar", [[bad_value]]),
+        SensorAssociationBlock("radar", [[0.0]], detection_probabilities=bad_value),
+        SensorAssociationBlock("radar", [[0.0]], birth_log_weights=bad_value),
+        SensorAssociationBlock("radar", [[0.0]], clutter_log_weights=bad_value),
+        SensorAssociationBlock("radar", [[0.0]], concentration=bad_value),
+    ]
+    for block in invalid_sensor_blocks:
+        with pytest.raises(ValueError, match="datetime64|timedelta64"):
+            multisensor_ddp_association_update([1.0], [block])
