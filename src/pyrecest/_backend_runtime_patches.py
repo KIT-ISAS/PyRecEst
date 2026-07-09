@@ -288,3 +288,57 @@ def patch_pytorch_transpose_boolean_axes_contract() -> None:
     raw_pytorch.transpose = transpose
     if active_pytorch_backend:
         backend.transpose = transpose
+
+
+def patch_jax_take_arraylike_contract() -> None:
+    """Make raw/public JAX ``take`` accept NumPy-style array-like inputs."""
+
+    try:
+        import jax.numpy as jnp  # pylint: disable=import-outside-toplevel
+        import pyrecest.backend as backend  # pylint: disable=import-outside-toplevel
+        import pyrecest._backend.jax as raw_jax  # pylint: disable=import-outside-toplevel
+    except ModuleNotFoundError:  # pragma: no cover - JAX backend may be unavailable
+        return
+
+    original_take = getattr(raw_jax, "take", None)
+    if original_take is None:
+        return
+    if getattr(original_take, "_pyrecest_arraylike_contract", False):
+        if getattr(backend, "__backend_name__", None) == "jax":
+            backend.take = original_take
+        return
+
+    def take(
+        a,
+        indices,
+        axis=None,
+        out=None,
+        mode=None,
+        unique_indices=False,
+        indices_are_sorted=False,
+        fill_value=None,
+    ):
+        result = original_take(
+            jnp.asarray(a),
+            jnp.asarray(indices),
+            axis=axis,
+            out=None,
+            mode=mode,
+            unique_indices=unique_indices,
+            indices_are_sorted=indices_are_sorted,
+            fill_value=fill_value,
+        )
+        if out is not None:
+            return jnp.asarray(out).at[...].set(result)
+        return result
+
+    take.__name__ = getattr(original_take, "__name__", "take")
+    take.__doc__ = getattr(original_take, "__doc__", None)
+    take._pyrecest_arraylike_contract = True
+    take._pyrecest_out_contract = True
+    raw_jax.take = take
+    if getattr(backend, "__backend_name__", None) == "jax":
+        backend.take = take
+
+
+patch_jax_take_arraylike_contract()
