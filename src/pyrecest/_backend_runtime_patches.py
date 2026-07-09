@@ -617,7 +617,45 @@ def patch_pytorch_assignment_uint8_index_contract() -> None:
         backend.assignment = raw_pytorch.assignment
         backend.assignment_by_sum = raw_pytorch.assignment_by_sum
 
+def patch_pytorch_take_axis_contract() -> None:
+    """Make PyTorch ``take`` reject non-integer axes like NumPy."""
+
+    try:
+        import pyrecest.backend as backend  # pylint: disable=import-outside-toplevel
+        import pyrecest._backend.pytorch as raw_pytorch  # pylint: disable=import-outside-toplevel
+        import torch  # pylint: disable=import-outside-toplevel
+    except ModuleNotFoundError:  # pragma: no cover - PyTorch backend may be unavailable
+        return
+
+    active_pytorch_backend = getattr(backend, "__backend_name__", None) == "pytorch"
+    original_take = getattr(raw_pytorch, "take", None)
+    if original_take is None:
+        return
+    if getattr(original_take, "_pyrecest_axis_index_contract", False):
+        if active_pytorch_backend:
+            backend.take = original_take
+        return
+
+    def _take_axis(axis):
+        if isinstance(axis, bool) or (
+            torch.is_tensor(axis) and axis.ndim == 0 and axis.dtype == torch.bool
+        ):
+            raise TypeError("an integer is required for the axis")
+        return _operator_index(axis)
+
+    def take(a, indices, axis=None, out=None, mode=None):
+        axis = None if axis is None else _take_axis(axis)
+        return original_take(a, indices, axis=axis, out=out, mode=mode)
+
+    take.__name__ = getattr(original_take, "__name__", "take")
+    take.__doc__ = getattr(original_take, "__doc__", None)
+    take._pyrecest_axis_index_contract = True
+    raw_pytorch.take = take
+    if active_pytorch_backend:
+        backend.take = take
+
 
 patch_jax_take_arraylike_contract()
 patch_pytorch_array_from_sparse_assignment_contract()
 patch_pytorch_assignment_uint8_index_contract()
+patch_pytorch_take_axis_contract()
