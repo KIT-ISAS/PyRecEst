@@ -2,6 +2,7 @@ import inspect
 import unittest
 
 import matplotlib
+import numpy as np
 import numpy.testing as npt
 
 # pylint: disable=no-name-in-module,no-member
@@ -113,6 +114,18 @@ class TestAbstractHypertoroidalDistribution(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "boolean"):
                     as_shift_vector(value, dim)
 
+    def test_input_validation_rejects_object_boolean_shift_angles(self):
+        yes = bool(1)
+        no = bool(0)
+        for value, dim in (
+            (np.array(yes, dtype=object), 1),
+            (np.array([yes], dtype=object), 1),
+            (np.array([yes, no], dtype=object), 2),
+        ):
+            with self.subTest(value=value, dim=dim):
+                with self.assertRaisesRegex(ValueError, "boolean"):
+                    as_shift_vector(value, dim)
+
     def test_input_validation_rejects_boolean_evaluation_points(self):
         yes = bool(1)
         no = bool(0)
@@ -121,6 +134,19 @@ class TestAbstractHypertoroidalDistribution(unittest.TestCase):
             ([yes], 1),
             ([yes, no], 2),
             ([[yes, no]], 2),
+        ):
+            with self.subTest(value=value, dim=dim):
+                with self.assertRaisesRegex(ValueError, "boolean"):
+                    as_hypertoroidal_points(value, dim)
+
+    def test_input_validation_rejects_object_boolean_evaluation_points(self):
+        yes = bool(1)
+        no = bool(0)
+        for value, dim in (
+            (np.array(yes, dtype=object), 1),
+            (np.array([yes], dtype=object), 1),
+            (np.array([yes, no], dtype=object), 2),
+            (np.array([[yes, no]], dtype=object), 2),
         ):
             with self.subTest(value=value, dim=dim):
                 with self.assertRaisesRegex(ValueError, "boolean"):
