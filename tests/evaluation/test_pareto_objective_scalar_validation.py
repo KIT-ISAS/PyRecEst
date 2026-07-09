@@ -20,7 +20,7 @@ def test_record_dominates_treats_numeric_text_objectives_as_missing() -> None:
     )
 
 
-def test_pareto_front_treats_numeric_text_objectives_as_missing() -> None:
+def test_pareto_front_excludes_rows_with_only_numeric_text_objectives() -> None:
     table = pd.DataFrame(
         [
             {"name": "text_fast", "runtime": "0.0"},
@@ -31,5 +31,5 @@ def test_pareto_front_treats_numeric_text_objectives_as_missing() -> None:
     indices = pareto_front_indices(table, ["runtime"], directions={"runtime": "min"})
     mask = is_pareto_front(table, ["runtime"], directions={"runtime": "min"})
 
-    assert table.loc[indices, "name"].tolist() == ["text_fast", "numeric_slow"]
-    assert mask.to_numpy().all()
+    assert table.loc[indices, "name"].tolist() == ["numeric_slow"]
+    assert mask.tolist() == [False, True]
