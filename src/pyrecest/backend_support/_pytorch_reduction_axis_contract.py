@@ -62,10 +62,34 @@ def patch_pytorch_reduction_axis_contract() -> None:
     """Make raw/public PyTorch reduction helpers reject boolean axes."""
 
     try:
+        import pyrecest._backend as backend_loader  # pylint: disable=import-outside-toplevel
         import pyrecest._backend.pytorch as raw_pytorch  # pylint: disable=import-outside-toplevel
         import torch  # pylint: disable=import-outside-toplevel
     except ModuleNotFoundError:  # pragma: no cover - PyTorch backend may be unavailable
         return
+
+    backend_normalizer = getattr(backend_loader, "_normalize_reduction_axes", None)
+    if backend_normalizer is not None and not getattr(
+        backend_normalizer,
+        "_pyrecest_reduction_axis_bool_contract",
+        False,
+    ):
+
+        def _normalize_backend_reduction_axes(axis, ndim_value):
+            return normalize_reduction_axes(axis, ndim_value, torch)
+
+        _normalize_backend_reduction_axes.__name__ = getattr(
+            backend_normalizer,
+            "__name__",
+            "_normalize_reduction_axes",
+        )
+        _normalize_backend_reduction_axes.__doc__ = getattr(
+            backend_normalizer,
+            "__doc__",
+            None,
+        )
+        _normalize_backend_reduction_axes._pyrecest_reduction_axis_bool_contract = True
+        backend_loader._normalize_reduction_axes = _normalize_backend_reduction_axes
 
     original_normalizer = getattr(raw_pytorch, "_normalize_reduction_axes", None)
     if original_normalizer is None:
