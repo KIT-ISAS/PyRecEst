@@ -59,11 +59,23 @@ def _validate_positive_sample_count(n) -> int:
 
     if count_array.ndim != 0:
         raise ValueError(message)
+    if count_array.dtype.kind in "Mm":
+        raise ValueError(message)
 
     count = count_array.item()
     if isinstance(
         count,
-        (bool, np.bool_, str, bytes, bytearray, np.str_, np.bytes_),
+        (
+            bool,
+            np.bool_,
+            str,
+            bytes,
+            bytearray,
+            np.str_,
+            np.bytes_,
+            np.datetime64,
+            np.timedelta64,
+        ),
     ):
         raise ValueError(message)
 
