@@ -220,6 +220,9 @@ try:
         patch_pytorch_take_axis_contract as _patch_pytorch_take_axis_contract,
         patch_pytorch_transpose_boolean_axes_contract as _patch_pytorch_transpose_boolean_axes_contract,
     )
+    from pyrecest.backend_support._jax_array_from_sparse_contract import (  # pylint: disable=import-outside-toplevel
+        patch_jax_array_from_sparse_flat_index_contract as _patch_jax_array_from_sparse_flat_index_contract,
+    )
     from pyrecest.backend_support._pytorch_one_hot_scalar_contract import (  # pylint: disable=import-outside-toplevel
         patch_pytorch_one_hot_scalar_contract as _patch_pytorch_one_hot_scalar_contract,
     )
@@ -238,3 +241,4 @@ else:
     _patch_pytorch_transpose_boolean_axes_contract()
     _patch_pytorch_one_hot_scalar_contract()
     _patch_pytorch_reduction_axis_contract()
+    _patch_jax_array_from_sparse_flat_index_contract()
