@@ -101,7 +101,12 @@ def _has_temporal_repr_marker(value: Any) -> bool:
 
 def _as_finite_float(value: Any, name: str) -> float:
     arr = np.asarray(value)
-    if arr.ndim != 0 or arr.dtype == np.bool_ or _contains_temporal_values(arr):
+    if (
+        arr.ndim != 0
+        or arr.dtype == np.bool_
+        or arr.dtype.kind == "O"
+        or _contains_temporal_values(arr)
+    ):
         raise ValueError(f"{name} must be a finite scalar")
     scalar = arr.item()
     if isinstance(scalar, (bool, np.bool_, str, bytes, bytearray)):
@@ -117,7 +122,12 @@ def _as_finite_float(value: Any, name: str) -> float:
 
 def _as_nonnegative_time_delta(value: Any, name: str) -> float:
     arr = np.asarray(value)
-    if arr.ndim != 0 or arr.dtype == np.bool_ or _contains_temporal_values(arr):
+    if (
+        arr.ndim != 0
+        or arr.dtype == np.bool_
+        or arr.dtype.kind == "O"
+        or _contains_temporal_values(arr)
+    ):
         raise ValueError(f"{name} must be nonnegative")
     scalar = arr.item()
     if isinstance(scalar, (bool, np.bool_, str, bytes, bytearray)):
@@ -133,12 +143,8 @@ def _as_nonnegative_time_delta(value: Any, name: str) -> float:
 
 def _as_real_numeric_array(value: Any, name: str) -> np.ndarray:
     arr = np.asarray(value)
-    if arr.dtype == np.bool_ or arr.dtype.kind in "USbc" or _contains_temporal_values(arr):
+    if arr.dtype == np.bool_ or arr.dtype.kind in "OUSbc" or _contains_temporal_values(arr):
         raise ValueError(f"{name} must contain real numeric values")
-    if arr.dtype.kind == "O":
-        for item in arr.reshape(-1):
-            if item is None or isinstance(item, (bool, np.bool_, str, bytes, bytearray, complex, np.complexfloating)):
-                raise ValueError(f"{name} must contain real numeric values")
     try:
         return np.asarray(value, dtype=float)
     except (TypeError, ValueError, OverflowError) as exc:
@@ -147,7 +153,12 @@ def _as_real_numeric_array(value: Any, name: str) -> np.ndarray:
 
 def _as_summary_scalar(value: Any, name: str, *, allow_nan: bool = False) -> float:
     arr = np.asarray(value)
-    if arr.ndim != 0 or arr.dtype == np.bool_ or arr.dtype.kind in "USbc" or _contains_temporal_values(arr):
+    if (
+        arr.ndim != 0
+        or arr.dtype == np.bool_
+        or arr.dtype.kind in "OUSbc"
+        or _contains_temporal_values(arr)
+    ):
         raise ValueError(f"{name} must be a real scalar")
     scalar = arr.item()
     if isinstance(scalar, (bool, np.bool_, str, bytes, bytearray)):
