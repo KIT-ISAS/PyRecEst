@@ -22,6 +22,8 @@ from .track_evaluation import normalize_track_matrix
 CompletionDirection: TypeAlias = Literal["prefix", "suffix", "both"]
 _DirectionalCompletion: TypeAlias = Literal["prefix", "suffix"]
 PayloadT = TypeVar("PayloadT")
+_TEMPORAL_SCALAR_TYPES = (np.datetime64, np.timedelta64)
+_TEMPORAL_DTYPE_KINDS = {"M", "m"}
 
 
 @dataclass(frozen=True)
@@ -347,17 +349,45 @@ def _candidate_sessions(
     return tuple(dict.fromkeys(sessions))
 
 
+def _is_temporal_scalar_array(value_array: np.ndarray) -> bool:
+    if value_array.shape != ():
+        return False
+    if value_array.dtype.kind in _TEMPORAL_DTYPE_KINDS:
+        return True
+    if value_array.dtype != object:
+        return False
+    try:
+        scalar = value_array.item()
+    except (TypeError, ValueError):
+        return False
+    return isinstance(scalar, _TEMPORAL_SCALAR_TYPES)
+
+
 def _coerce_candidate_session(value: Any) -> int | None:
     try:
         value_array = np.asarray(value)
     except (TypeError, ValueError):
         return None
-    if value_array.shape != () or value_array.dtype == np.bool_:
+    if (
+        value_array.shape != ()
+        or value_array.dtype == np.bool_
+        or _is_temporal_scalar_array(value_array)
+    ):
         return None
 
     scalar = value_array.item()
     if isinstance(
-        scalar, (bool, np.bool_, str, bytes, bytearray, np.str_, np.bytes_)
+        scalar,
+        (
+            bool,
+            np.bool_,
+            str,
+            bytes,
+            bytearray,
+            np.str_,
+            np.bytes_,
+            *_TEMPORAL_SCALAR_TYPES,
+        ),
     ):
         return None
     if isinstance(scalar, (int, np.integer)):
@@ -421,11 +451,15 @@ def _coerce_candidate(
 
 def _normalize_candidate_observation(value: Any) -> int:
     value_array = np.asarray(value)
-    if value_array.shape != () or value_array.dtype == np.bool_:
+    if (
+        value_array.shape != ()
+        or value_array.dtype == np.bool_
+        or _is_temporal_scalar_array(value_array)
+    ):
         raise ValueError("candidate observations must be non-negative integers")
 
     scalar = value_array.item()
-    if isinstance(scalar, (bool, np.bool_)):
+    if isinstance(scalar, (bool, np.bool_, *_TEMPORAL_SCALAR_TYPES)):
         raise ValueError("candidate observations must be non-negative integers")
     if isinstance(scalar, (str, bytes, bytearray, np.str_, np.bytes_)):
         raise ValueError("candidate observations must be non-negative integers")
@@ -450,11 +484,15 @@ def _normalize_candidate_observation(value: Any) -> int:
 def _as_finite_score(value: Any, name: str) -> float:
     message = f"{name} must be a finite real scalar"
     value_array = np.asarray(value)
-    if value_array.shape != () or value_array.dtype == np.bool_:
+    if (
+        value_array.shape != ()
+        or value_array.dtype == np.bool_
+        or _is_temporal_scalar_array(value_array)
+    ):
         raise ValueError(message)
 
     scalar = value_array.item()
-    if isinstance(scalar, (bool, np.bool_)):
+    if isinstance(scalar, (bool, np.bool_, *_TEMPORAL_SCALAR_TYPES)):
         raise ValueError(message)
     if isinstance(scalar, (str, bytes, bytearray, np.str_, np.bytes_)):
         raise ValueError(message)
@@ -472,11 +510,15 @@ def _as_finite_score(value: Any, name: str) -> float:
 def _as_positive_int(value: Any, name: str) -> int:
     value_array = np.asarray(value)
     message = f"{name} must be a positive integer"
-    if value_array.shape != () or value_array.dtype == np.bool_:
+    if (
+        value_array.shape != ()
+        or value_array.dtype == np.bool_
+        or _is_temporal_scalar_array(value_array)
+    ):
         raise ValueError(message)
 
     scalar = value_array.item()
-    if isinstance(scalar, (bool, np.bool_)):
+    if isinstance(scalar, (bool, np.bool_, *_TEMPORAL_SCALAR_TYPES)):
         raise ValueError(message)
     if isinstance(scalar, (int, np.integer)):
         parsed = int(scalar)
