@@ -56,6 +56,24 @@ class SO3TangentGaussianDistributionTest(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, message):
                     SO3TangentGaussianDistribution(mean, covariance)
 
+    def test_is_valid_rejects_covariances_that_constructor_would_reject(self):
+        mean = array([0.0, 0.0, 0.0, 1.0])
+        invalid_covariances = [
+            array([[0.1, 0.0, 0.0], [0.0, float("nan"), 0.0], [0.0, 0.0, 0.3]]),
+            diag(array([0.1, 0.0, 0.3])),
+            diag(array([0.1, -0.2, 0.3])),
+        ]
+
+        for covariance in invalid_covariances:
+            with self.subTest(covariance=np.asarray(covariance)):
+                dist = SO3TangentGaussianDistribution(
+                    mean,
+                    covariance,
+                    check_validity=False,
+                )
+
+                self.assertFalse(dist.is_valid())
+
     def test_exp_log_roundtrip_with_base_rotation(self):
         base = z_quaternion(pi / 3.0)
         tangent_vectors = array([[0.1, -0.2, 0.05], [0.0, 0.0, 0.0]])

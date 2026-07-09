@@ -209,12 +209,19 @@ class SO3TangentGaussianDistribution(AbstractBoundedDomainDistribution):
 
     def is_valid(self, tolerance=1e-6):
         """Return whether the mean and covariance have valid SO(3) dimensions."""
-        covariance_is_symmetric = amax(abs(self.C - transpose(self.C))) <= tolerance
-        return bool(
-            abs(linalg.norm(self.mu) - 1.0) <= tolerance
-            and self.mu[-1] >= -tolerance
-            and covariance_is_symmetric
+        covariance_is_symmetric = _to_python_bool(
+            amax(abs(self.C - transpose(self.C))) <= tolerance
         )
+        if not (
+            _to_python_bool(all(isfinite(self.mu)))
+            and _to_python_bool(abs(linalg.norm(self.mu) - 1.0) <= tolerance)
+            and _to_python_bool(self.mu[-1] >= -tolerance)
+            and _to_python_bool(all(isfinite(self.C)))
+            and covariance_is_symmetric
+        ):
+            return False
+
+        return _to_python_bool(all(linalg.eigvalsh(self.C) > 0.0))
 
     @staticmethod
     def from_covariance_diagonal(mu, covariance_diagonal):

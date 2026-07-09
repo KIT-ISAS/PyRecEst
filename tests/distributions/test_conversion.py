@@ -197,7 +197,9 @@ class ConversionTest(unittest.TestCase):
         )
         particles = SO3DiracDistribution(rotations, array([0.25, 0.25, 0.25, 0.25]))
 
-        gaussian = particles.approximate_as("so3_tangent_gaussian")
+        gaussian = particles.approximate_as(
+            "so3_tangent_gaussian", covariance_regularization=1e-9
+        )
 
         self.assertIsInstance(gaussian, SO3TangentGaussianDistribution)
         self.assertEqual(gaussian.mean().shape, (4,))
