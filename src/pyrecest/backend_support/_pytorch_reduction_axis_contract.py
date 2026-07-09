@@ -20,6 +20,22 @@ def _is_boolean_axis_value(value, torch_module) -> bool:
     return torch_module.is_tensor(value) and value.dtype == torch_module.bool
 
 
+def _axis_contains_boolean_value(axis, torch_module) -> bool:
+    if axis is None:
+        return False
+    if _is_boolean_axis_value(axis, torch_module):
+        return True
+    try:
+        _operator_index(axis)
+    except TypeError:
+        try:
+            axes = tuple(axis)
+        except TypeError:
+            return False
+        return any(_axis_contains_boolean_value(one_axis, torch_module) for one_axis in axes)
+    return False
+
+
 def normalize_reduction_axes(axis, ndim_value, torch_module):
     """Normalize PyTorch reduction axes while rejecting boolean axes."""
 
@@ -58,11 +74,30 @@ def normalize_reduction_axes(axis, ndim_value, torch_module):
     return normalized_axes
 
 
+def _wrap_boolean_axis_reduction(helper, torch_module):
+    if getattr(helper, "_pyrecest_reduction_axis_bool_contract", False):
+        return helper
+
+    def reduction(*args, **kwargs):
+        axis = kwargs.get("axis")
+        if "axis" not in kwargs and len(args) >= 2:
+            axis = args[1]
+        if _axis_contains_boolean_value(axis, torch_module):
+            raise TypeError(_AXIS_TYPE_MESSAGE)
+        return helper(*args, **kwargs)
+
+    reduction.__name__ = getattr(helper, "__name__", "reduction")
+    reduction.__doc__ = getattr(helper, "__doc__", None)
+    reduction._pyrecest_reduction_axis_bool_contract = True
+    return reduction
+
+
 def patch_pytorch_reduction_axis_contract() -> None:
     """Make raw/public PyTorch reduction helpers reject boolean axes."""
 
     try:
         import pyrecest._backend as backend_loader  # pylint: disable=import-outside-toplevel
+        import pyrecest.backend as backend  # pylint: disable=import-outside-toplevel
         import pyrecest._backend.pytorch as raw_pytorch  # pylint: disable=import-outside-toplevel
         import torch  # pylint: disable=import-outside-toplevel
     except ModuleNotFoundError:  # pragma: no cover - PyTorch backend may be unavailable
@@ -108,3 +143,11 @@ def patch_pytorch_reduction_axis_contract() -> None:
     _normalize_reduction_axes.__doc__ = getattr(original_normalizer, "__doc__", None)
     _normalize_reduction_axes._pyrecest_reduction_axis_bool_contract = True
     raw_pytorch._normalize_reduction_axes = _normalize_reduction_axes
+
+    for helper_name in ("any", "all", "count_nonzero", "max"):
+        raw_helper = getattr(raw_pytorch, helper_name, None)
+        if raw_helper is not None:
+            wrapped_helper = _wrap_boolean_axis_reduction(raw_helper, torch)
+            setattr(raw_pytorch, helper_name, wrapped_helper)
+            if getattr(backend, "__backend_name__", None) == "pytorch":
+                setattr(backend, helper_name, wrapped_helper)
