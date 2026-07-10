@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - bugfix/weighted-choice-zero-probability-20260710
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
