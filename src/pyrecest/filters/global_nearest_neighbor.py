@@ -145,6 +145,21 @@ class GlobalNearestNeighbor(AbstractNearestNeighborTracker):
             raise ValueError(
                 "cov_mats_meas must be a matrix or contain one covariance per measurement."
             )
+
+        pairwise_cost_matrix = self._validate_pairwise_cost_matrix(
+            pairwise_cost_matrix, n_targets, n_meas
+        )
+        if n_targets == 0:
+            return np.empty(0, dtype=int)
+        if n_meas == 0:
+            association = np.full(n_targets, n_meas, dtype=int)
+            if warn_on_no_meas_for_track:
+                warnings.warn(
+                    "GNN: No measurement was within gating threshold for at least one target.",
+                    stacklevel=2,
+                )
+            return association
+
         all_gaussians = [filter.filter_state for filter in self.filter_bank]
         all_means_prior = stack([gaussian.mu for gaussian in all_gaussians], axis=1)
         all_cov_mats_prior = stack([gaussian.C for gaussian in all_gaussians], axis=2)
@@ -237,9 +252,6 @@ class GlobalNearestNeighbor(AbstractNearestNeighborTracker):
         if self.association_param.get("square_dist", False):
             dists = dists * dists
 
-        pairwise_cost_matrix = self._validate_pairwise_cost_matrix(
-            pairwise_cost_matrix, n_targets, n_meas
-        )
         dists = self._apply_pairwise_cost_matrix(dists, pairwise_cost_matrix)
 
         if self.association_param.get("maximize_cardinality", False):
