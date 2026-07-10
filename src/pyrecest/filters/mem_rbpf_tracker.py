@@ -557,6 +557,9 @@ class MEMRBPFTracker(AbstractExtendedObjectTracker):
             )
 
         cumulative_sum = cumsum(weights)
+        # Floating-point accumulation can leave the final CDF value just below
+        # one, while the last systematic position rounds to exactly one.
+        cumulative_sum[-1] = 1.0
         try:
             return searchsorted(cumulative_sum, positions)
         except NotImplementedError as exc:
