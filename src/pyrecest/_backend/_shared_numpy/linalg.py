@@ -4,6 +4,7 @@ from ._dispatch import scipy as _scipy
 
 _to_ndarray = _common.to_ndarray
 atol = _common.atol
+rtol = _common.rtol
 
 
 def _transpose(array):
@@ -57,8 +58,12 @@ def _is_hermitian(x, tol=atol):
     return (_np.abs(x - _adjoint(x)) < tol).all()
 
 
-_diag_vec = _np.vectorize(_np.diag, signature="(n)->(n,n)")
+def _sylvester_candidate_is_accurate(a, b, q, candidate):
+    residual_target = a @ candidate + candidate @ b
+    return _np.all(_np.isclose(residual_target, q, atol=atol, rtol=rtol))
 
+
+_diag_vec = _np.vectorize(_np.diag, signature="(n)->(n,n)")
 _logm_vec = _np.vectorize(_scipy.linalg.logm, signature="(n,m)->(n,m)")
 
 
@@ -92,7 +97,9 @@ def solve_sylvester(a, b, q, tol=atol):
                 adjoint_eigvecs = _adjoint(eigvecs)
                 tilde_q = adjoint_eigvecs @ q @ eigvecs
                 tilde_x = tilde_q / (eigvals[..., :, None] + eigvals[..., None, :])
-                return eigvecs @ tilde_x @ adjoint_eigvecs
+                candidate = eigvecs @ tilde_x @ adjoint_eigvecs
+                if _sylvester_candidate_is_accurate(a, b, q, candidate):
+                    return candidate
 
     return _np.vectorize(
         _scipy.linalg.solve_sylvester, signature="(m,m),(n,n),(m,n)->(m,n)"
