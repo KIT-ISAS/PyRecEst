@@ -20,6 +20,7 @@ from .multisession_assignment import (  # pylint: disable=protected-access
 )
 
 _TEXT_TYPES = (str, bytes, np.str_, np.bytes_)
+_TEMPORAL_TYPES = (np.datetime64, np.timedelta64)
 
 
 def _normalize_fill_value(fill_value: Any, track_count: int) -> int:
@@ -30,12 +31,15 @@ def _normalize_fill_value(fill_value: Any, track_count: int) -> int:
     if (
         fill_value_array.shape != ()
         or fill_value_array.dtype == np.bool_
-        or fill_value_array.dtype.kind in "SU"
+        or fill_value_array.dtype.kind in "MmSU"
     ):
         raise ValueError("fill_value must be an integer.")
 
     fill_value_value = fill_value_array.item()
-    if isinstance(fill_value_value, (bool, np.bool_) + _TEXT_TYPES):
+    if isinstance(
+        fill_value_value,
+        (bool, np.bool_) + _TEXT_TYPES + _TEMPORAL_TYPES,
+    ):
         raise ValueError("fill_value must be an integer.")
 
     if isinstance(fill_value_value, Integral):
