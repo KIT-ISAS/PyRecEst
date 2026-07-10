@@ -209,9 +209,39 @@ def solve_tracklet_viterbi(
 ) -> TrackletViterbiResult:
     """Select a minimum-cost single-target path through candidate frames."""
 
+    return _solve_tracklet_viterbi(
+        frames,
+        config=config,
+        transition_cost=transition_cost,
+        include_missed_detection=include_missed_detection,
+        include_initial_missed_detection=include_missed_detection,
+        return_tables=return_tables,
+    )
+
+
+def _solve_tracklet_viterbi(
+    frames: Sequence[Sequence[TrackletAssociationCandidate]],
+    *,
+    config: TrackletViterbiConfig | None,
+    transition_cost: TransitionCost | None,
+    include_missed_detection: bool,
+    include_initial_missed_detection: bool,
+    return_tables: bool,
+) -> TrackletViterbiResult:
+    """Solve Viterbi with independent control of the initial miss branch."""
+
     config = TrackletViterbiConfig() if config is None else config
     nodes_by_frame = [
-        _nodes_for_frame(frame, config, include_missed_detection) for frame in frames
+        _nodes_for_frame(
+            frame,
+            config,
+            (
+                include_initial_missed_detection
+                if frame_index == 0
+                else include_missed_detection
+            ),
+        )
+        for frame_index, frame in enumerate(frames)
     ]
     if not nodes_by_frame:
         return TrackletViterbiResult([], 0.0)
@@ -336,11 +366,15 @@ def solve_fixed_lag_tracklet_viterbi(
                 committed_miss_streak,
                 config,
             )
-        local = solve_tracklet_viterbi(
+        local = _solve_tracklet_viterbi(
             window_frames,
             config=config,
             transition_cost=local_transition_cost,
             include_missed_detection=include_missed_detection,
+            include_initial_missed_detection=(
+                include_missed_detection and not prefix_added
+            ),
+            return_tables=False,
         )
         selected = local.path[1 if prefix_added else 0]
         path.append(selected)
