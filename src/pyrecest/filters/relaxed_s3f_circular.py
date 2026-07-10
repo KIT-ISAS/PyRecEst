@@ -246,7 +246,13 @@ def circular_weighted_mean(angles: Any, weights: Any) -> float:
     """Return the circular mean angle for weighted grid values."""
 
     angles = asarray(angles, dtype=float).reshape(-1)
+    if not bool(all(isfinite(angles))):
+        raise ValueError("angles must be finite.")
+
     weights = grid_probability_masses(weights)
+    if angles.shape != weights.shape:
+        raise ValueError("angles and weights must contain the same number of entries.")
+
     moment = backend_sum(weights * exp(1j * angles))
     return float(mod(backend_angle(moment), 2.0 * pi))
 
