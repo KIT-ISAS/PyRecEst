@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - bugfix/top-k-duplicate-hypotheses-20260710
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
