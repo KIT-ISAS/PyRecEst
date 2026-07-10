@@ -41,14 +41,6 @@ def _store_estimate(all_estimates, time_index, estimate):
         all_estimates[time_index] = estimate
 
 
-def _last_stored_estimate(all_estimates):
-    """Return the final estimate from dense or object-array estimate containers."""
-    try:
-        return all_estimates[-1, :]
-    except IndexError:
-        return all_estimates[-1]
-
-
 def _shape_has_zero_dimension(shape) -> bool:
     """Return whether a shape-like object contains a zero dimension."""
     try:
@@ -180,9 +172,6 @@ def perform_predict_update_cycles(
 
     # Get the final filter state and estimate
     last_filter_state = filter_obj.filter_state
-    if all_estimates is not None:
-        last_estimate = _last_stored_estimate(all_estimates)
-    else:
-        last_estimate = filter_obj.get_point_estimate()
+    last_estimate = filter_obj.get_point_estimate()
 
     return last_filter_state, time_elapsed, last_estimate, all_estimates
