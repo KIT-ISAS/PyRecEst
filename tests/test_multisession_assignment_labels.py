@@ -72,6 +72,32 @@ class TestMultiSessionAssignmentLabels(unittest.TestCase):
         __backend_name__ == "jax",
         reason="Not supported on this backend",
     )
+    def test_temporal_fill_values_are_rejected(self):
+        tracks = [{0: 0}]
+        timestamp = np.datetime64("1969-12-31T23:59:59.999999999")
+        duration = np.timedelta64(-1, "ns")
+        invalid_fill_values = (
+            timestamp,
+            duration,
+            np.asarray(timestamp),
+            np.asarray(duration),
+            np.array(timestamp, dtype=object),
+            np.array(duration, dtype=object),
+        )
+
+        for fill_value in invalid_fill_values:
+            for name, converter in self._converters():
+                with self.subTest(converter=name, fill_value=repr(fill_value)):
+                    with self.assertRaisesRegex(
+                        ValueError,
+                        "fill_value must be an integer",
+                    ):
+                        converter(tracks, session_sizes=[2], fill_value=fill_value)
+
+    @unittest.skipIf(
+        __backend_name__ == "jax",
+        reason="Not supported on this backend",
+    )
     def test_text_and_bytes_fill_values_are_rejected(self):
         tracks = [{0: 0}]
         invalid_fill_values = (
