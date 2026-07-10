@@ -380,6 +380,16 @@ def qr(a, mode="reduced"):
     raise ValueError(f"Unrecognized mode {mode!r}")
 
 
+def _sylvester_candidate_is_accurate(a, b, q, candidate):
+    """Return whether a shortcut candidate solves the original equation."""
+    return _torch.allclose(
+        a @ candidate + candidate @ b,
+        q,
+        atol=1e-6,
+        rtol=1e-6,
+    )
+
+
 def solve_sylvester(a, b, q):
     device = _preferred_linalg_device(a, b, q)
     a = _as_linalg_tensor(a)
@@ -405,7 +415,9 @@ def solve_sylvester(a, b, q):
             adjoint_eigvecs = eigvecs.transpose(-2, -1).conj()
             tilde_q = adjoint_eigvecs @ q @ eigvecs
             tilde_x = tilde_q / (eigvals[..., :, None] + eigvals[..., None, :])
-            return eigvecs @ tilde_x @ adjoint_eigvecs
+            candidate = eigvecs @ tilde_x @ adjoint_eigvecs
+            if _sylvester_candidate_is_accurate(a, b, q, candidate):
+                return candidate
 
     is_real_shared_symmetric_factor = (
         is_shared_factor
@@ -434,7 +446,9 @@ def solve_sylvester(a, b, q):
                 _torch.zeros((), dtype=tilde_x.dtype, device=tilde_x.device),
                 tilde_x,
             )
-            return eigvecs @ tilde_x @ eigvecs.transpose(-2, -1)
+            candidate = eigvecs @ tilde_x @ eigvecs.transpose(-2, -1)
+            if _sylvester_candidate_is_accurate(a, b, q, candidate):
+                return candidate
 
     solution = _np.vectorize(
         _scipy.linalg.solve_sylvester, signature="(m,m),(n,n),(m,n)->(m,n)"
