@@ -1,3 +1,4 @@
+import math
 import unittest
 
 import numpy.testing as npt
@@ -42,6 +43,24 @@ class WrappedLaplaceDistributionTest(unittest.TestCase):
 
         for x in [0.0, 1.0, 2.0, 3.0, 4.0]:
             npt.assert_allclose(self.wl.pdf(array(x)), pdftemp(array(x)), rtol=1e-6)
+
+    def test_pdf_avoids_overflow_for_concentrated_negative_tail(self):
+        lambda_ = 500.0
+        kappa = 2.0
+        distance_from_wrap = 1.0e-3
+        negative_rate = lambda_ / kappa
+        distribution = WrappedLaplaceDistribution(array(lambda_), array(kappa))
+
+        expected = (
+            lambda_
+            * kappa
+            / (1.0 + kappa**2)
+            * math.exp(-negative_rate * distance_from_wrap)
+            / (1.0 - math.exp(-2.0 * math.pi * negative_rate))
+        )
+        actual = distribution.pdf(array(2.0 * math.pi - distance_from_wrap))
+
+        npt.assert_allclose(actual, expected, rtol=1e-6)
 
     def test_pdf_accepts_scalar_and_list_inputs(self):
         npt.assert_allclose(self.wl.pdf(1.0), self.wl.pdf(array(1.0)), rtol=1e-6)

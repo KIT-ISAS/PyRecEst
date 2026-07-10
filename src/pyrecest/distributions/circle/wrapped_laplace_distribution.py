@@ -44,15 +44,17 @@ class WrappedLaplaceDistribution(AbstractCircularDistribution):
         if ndim(xs) > 1:
             raise ValueError("xs must be a scalar or one-dimensional array.")
         xs = mod(xs, 2.0 * pi)
+        positive_rate = self.lambda_ * self.kappa
+        negative_rate = self.lambda_ / self.kappa
         p = (
             self.lambda_
             * self.kappa
             / (1 + self.kappa**2)
             * (
-                exp(-self.lambda_ * self.kappa * xs)
-                / (1 - exp(-2.0 * pi * self.lambda_ * self.kappa))
-                + exp(self.lambda_ / self.kappa * xs)
-                / (exp(2.0 * pi * self.lambda_ / self.kappa) - 1.0)
+                exp(-positive_rate * xs)
+                / (1 - exp(-2.0 * pi * positive_rate))
+                + exp(-negative_rate * (2.0 * pi - xs))
+                / (1 - exp(-2.0 * pi * negative_rate))
             )
         )
         return p
