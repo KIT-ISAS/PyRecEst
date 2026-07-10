@@ -58,6 +58,38 @@ def _validate_interval_index(m, n) -> tuple[int, int]:
     return m, n
 
 
+def _reject_complex_input(value, name: str) -> None:
+    """Reject complex-valued inputs before a backend float cast can truncate them."""
+
+    dtype = getattr(value, "dtype", None)
+    if dtype is not None:
+        try:
+            if np.dtype(dtype).kind == "c":
+                raise ValueError(f"{name} must contain real values")
+        except (TypeError, ValueError):
+            if "complex" in str(dtype).lower():
+                raise ValueError(f"{name} must contain real values")
+
+    try:
+        raw = np.asarray(value)
+    except (OverflowError, TypeError, ValueError, RuntimeError):
+        return
+    if raw.dtype.kind == "c":
+        raise ValueError(f"{name} must contain real values")
+
+
+def _validate_moment_order(n) -> int:
+    """Return an integer trigonometric-moment order without coercing other scalars."""
+
+    try:
+        order = np.asarray(n)
+    except (OverflowError, TypeError, ValueError) as exc:
+        raise ValueError("n must be a scalar integer") from exc
+    if order.ndim != 0 or order.dtype.kind not in "iu":
+        raise ValueError("n must be a scalar integer")
+    return int(order.item())
+
+
 class PiecewiseConstantDistribution(AbstractCircularDistribution):
     """Piecewise constant (i.e. discrete) circular distribution, similar to a histogram.
 
@@ -80,6 +112,7 @@ class PiecewiseConstantDistribution(AbstractCircularDistribution):
             Weight for each interval (will be normalized to form a valid pdf).
         """
         AbstractCircularDistribution.__init__(self)
+        _reject_complex_input(w, "Weights")
         w = array(w, dtype=float)
         if w.ndim == 0:
             w = w.reshape((1,))
@@ -111,6 +144,7 @@ class PiecewiseConstantDistribution(AbstractCircularDistribution):
         p : ndarray, shape (n,)
             Pdf values at each point.
         """
+        _reject_complex_input(xs, "xs")
         xs = array(xs, dtype=float)
         if xs.ndim == 0:
             xs = xs.reshape((1,))
@@ -143,6 +177,7 @@ class PiecewiseConstantDistribution(AbstractCircularDistribution):
             raise NotImplementedError(
                 "trigonometric_moment is not supported on the JAX backend."
             )
+        n = _validate_moment_order(n)
         if n == 0:
             return 1.0 + 0j
         num = len(self.w)
