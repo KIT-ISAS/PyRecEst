@@ -21,116 +21,111 @@ jobs:
           ref: bugfix/top-k-duplicate-hypotheses-20260710
           fetch-depth: 1
           show-progress: false
-      - name: Apply checked patch
+      - name: Rewrite exact TopKGate block
         run: |
-          cat > /tmp/top-k-duplicate-fix.patch <<'PATCH'
-          diff --git a/src/pyrecest/filters/association_hypotheses.py b/src/pyrecest/filters/association_hypotheses.py
-          --- a/src/pyrecest/filters/association_hypotheses.py
-          +++ b/src/pyrecest/filters/association_hypotheses.py
-          @@ -2,41 +2,36 @@
-                   self, hypotheses: Sequence[AssociationHypothesis]
-               ) -> list[AssociationHypothesis]:
-                   """Return hypotheses accepted by the top-k rule."""
-          -        accepted_keys = set()
-          -        grouped: dict[int, list[AssociationHypothesis]] = defaultdict(list)
-          -        missed = []
-          -        for hypothesis in hypotheses:
-          +        accepted_indices = set()
-          +        grouped: dict[int, list[tuple[int, AssociationHypothesis]]] = defaultdict(list)
-          +        for hypothesis_index, hypothesis in enumerate(hypotheses):
-                       if hypothesis.is_missed_detection:
-          -                missed.append(hypothesis)
-                           continue
-                       key = (
-                           _track_index(hypothesis)
-                           if self.mode == "track"
-                           else _measurement_index(hypothesis)
-                       )
-          -            grouped[key].append(hypothesis)
-          +            grouped[key].append((hypothesis_index, hypothesis))
-           
-                   for group in grouped.values():
-                       sorted_group = sorted(
-                           group,
-          -                key=lambda hypothesis: hypothesis_cost(
-          -                    hypothesis, missing_cost=self.missing_cost
-          +                key=lambda item: hypothesis_cost(
-          +                    item[1], missing_cost=self.missing_cost
-                           ),
-                       )
-          -            for hypothesis in sorted_group[: self.k]:
-          -                accepted_keys.add(
-          -                    (_track_index(hypothesis), _measurement_index(hypothesis))
-          -                )
-          +            accepted_indices.update(
-          +                hypothesis_index
-          +                for hypothesis_index, _ in sorted_group[: self.k]
-          +            )
-           
-                   result = []
-          -        for hypothesis in hypotheses:
-          +        for hypothesis_index, hypothesis in enumerate(hypotheses):
-                       if hypothesis.is_missed_detection:
-                           result.append(hypothesis)
-                           continue
-          -            accepted = (
-          -                _track_index(hypothesis),
-          -                _measurement_index(hypothesis),
-          -            ) in accepted_keys
-          +            accepted = hypothesis_index in accepted_indices
-                       result.append(
-                           hypothesis.with_acceptance(
-                               accepted,
-          diff --git a/tests/filters/test_association_hypotheses.py b/tests/filters/test_association_hypotheses.py
-          --- a/tests/filters/test_association_hypotheses.py
-          +++ b/tests/filters/test_association_hypotheses.py
-          @@ -7,4 +7,37 @@
-                   with self.assertRaisesRegex(ValueError, "threshold"):
-                       ProbabilityThresholdGate(np.nan, use_likelihood=True)
-           
-          +    def test_top_k_gate_keeps_only_best_duplicate_pair_hypothesis(self):
-          +        hypotheses = [
-          +            AssociationHypothesis(0, 0, cost=1.0),
-          +            AssociationHypothesis(0, 0, cost=100.0),
-          +            AssociationHypothesis(0, 1, cost=2.0),
-          +        ]
-          +
-          +        gated_with_rejections = filter_hypotheses(
-          +            hypotheses,
-          +            TopKGate(1, mode="track"),
-          +            accepted_only=False,
-          +        )
-          +        self.assertEqual(
-          +            [hypothesis.accepted for hypothesis in gated_with_rejections],
-          +            [True, False, False],
-          +        )
-          +
-          +        gated = [
-          +            hypothesis
-          +            for hypothesis in gated_with_rejections
-          +            if hypothesis.accepted
-          +        ]
-          +        cost_matrix = hypotheses_to_cost_matrix(
-          +            gated,
-          +            num_tracks=1,
-          +            num_measurements=2,
-          +            missing_cost=99.0,
-          +        )
-          +        self.assertEqual(len(gated), 1)
-          +        self.assertEqual(gated[0].cost, 1.0)
-          +        self.assertAlmostEqual(cost_matrix[0, 0], 1.0)
-          +        self.assertEqual(cost_matrix[0, 1], 99.0)
-          +
-               def test_top_k_gate_rejects_invalid_k(self):
-          PATCH
-          git apply --verbose --check /tmp/top-k-duplicate-fix.patch
-          git apply --verbose /tmp/top-k-duplicate-fix.patch
+          cat > /tmp/apply_fix.py <<'PY'
+          from pathlib import Path
+
+          source_path = Path("src/pyrecest/filters/association_hypotheses.py")
+          source_lines = source_path.read_text(encoding="utf-8").splitlines()
+          source_start = source_lines.index("        accepted_keys = set()")
+          source_end = source_lines.index("        return result", source_start) + 1
+          source_replacement = [
+              "        accepted_indices = set()",
+              "        grouped: dict[int, list[tuple[int, AssociationHypothesis]]] = defaultdict(list)",
+              "        for hypothesis_index, hypothesis in enumerate(hypotheses):",
+              "            if hypothesis.is_missed_detection:",
+              "                continue",
+              "            key = (",
+              "                _track_index(hypothesis)",
+              "                if self.mode == \"track\"",
+              "                else _measurement_index(hypothesis)",
+              "            )",
+              "            grouped[key].append((hypothesis_index, hypothesis))",
+              "",
+              "        for group in grouped.values():",
+              "            sorted_group = sorted(",
+              "                group,",
+              "                key=lambda item: hypothesis_cost(",
+              "                    item[1], missing_cost=self.missing_cost",
+              "                ),",
+              "            )",
+              "            accepted_indices.update(",
+              "                hypothesis_index",
+              "                for hypothesis_index, _ in sorted_group[: self.k]",
+              "            )",
+              "",
+              "        result = []",
+              "        for hypothesis_index, hypothesis in enumerate(hypotheses):",
+              "            if hypothesis.is_missed_detection:",
+              "                result.append(hypothesis)",
+              "                continue",
+              "            accepted = hypothesis_index in accepted_indices",
+              "            result.append(",
+              "                hypothesis.with_acceptance(",
+              "                    accepted,",
+              "                    None if accepted else f\"top_{self.k}_{self.mode}_gate\",",
+              "                )",
+              "            )",
+              "        return result",
+          ]
+          source_lines[source_start:source_end] = source_replacement
+          source_path.write_text("\n".join(source_lines) + "\n", encoding="utf-8")
+
+          test_path = Path("tests/filters/test_association_hypotheses.py")
+          test_lines = test_path.read_text(encoding="utf-8").splitlines()
+          test_name = "    def test_top_k_gate_keeps_only_best_duplicate_pair_hypothesis(self):"
+          if test_name in test_lines:
+              raise RuntimeError("regression test already exists")
+          test_anchor = test_lines.index("    def test_top_k_gate_rejects_invalid_k(self):")
+          test_replacement = [
+              "    def test_top_k_gate_keeps_only_best_duplicate_pair_hypothesis(self):",
+              "        hypotheses = [",
+              "            AssociationHypothesis(0, 0, cost=1.0),",
+              "            AssociationHypothesis(0, 0, cost=100.0),",
+              "            AssociationHypothesis(0, 1, cost=2.0),",
+              "        ]",
+              "",
+              "        gated_with_rejections = filter_hypotheses(",
+              "            hypotheses,",
+              "            TopKGate(1, mode=\"track\"),",
+              "            accepted_only=False,",
+              "        )",
+              "        self.assertEqual(",
+              "            [hypothesis.accepted for hypothesis in gated_with_rejections],",
+              "            [True, False, False],",
+              "        )",
+              "",
+              "        gated = [",
+              "            hypothesis",
+              "            for hypothesis in gated_with_rejections",
+              "            if hypothesis.accepted",
+              "        ]",
+              "        cost_matrix = hypotheses_to_cost_matrix(",
+              "            gated,",
+              "            num_tracks=1,",
+              "            num_measurements=2,",
+              "            missing_cost=99.0,",
+              "        )",
+              "        self.assertEqual(len(gated), 1)",
+              "        self.assertEqual(gated[0].cost, 1.0)",
+              "        self.assertAlmostEqual(cost_matrix[0, 0], 1.0)",
+              "        self.assertEqual(cost_matrix[0, 1], 99.0)",
+              "",
+          ]
+          test_lines[test_anchor:test_anchor] = test_replacement
+          test_path.write_text("\n".join(test_lines) + "\n", encoding="utf-8")
+          PY
+          python /tmp/apply_fix.py
           rm .github/workflows/apply-top-k-duplicate-fix.yml
-      - name: Validate syntax
+      - name: Validate targeted test
         run: |
           python -m compileall -q \
             src/pyrecest/filters/association_hypotheses.py \
             tests/filters/test_association_hypotheses.py
+          python -m pytest -q \
+            tests/filters/test_association_hypotheses.py \
+            -k "top_k_gate"
       - name: Commit fix
         run: |
           git config user.name "github-actions[bot]"
