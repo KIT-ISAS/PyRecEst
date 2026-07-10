@@ -47,3 +47,19 @@ def test_padded_history_empty_initial_value_does_not_add_nan_column():
     history = recorder.record("state", [1.0, 2.0], pad_with_nan=True)
 
     npt.assert_allclose(_to_numpy(history), np.array([[1.0], [2.0]]))
+
+
+def test_clear_preserves_live_list_history_reference():
+    recorder = HistoryRecorder()
+    history = recorder.register("events")
+    recorder.record("events", {"value": 1})
+
+    cleared = recorder.clear("events")
+
+    assert cleared is history
+    assert recorder["events"] is history
+    assert history == []
+
+    recorder.record("events", {"value": 2})
+
+    assert history == [{"value": 2}]
