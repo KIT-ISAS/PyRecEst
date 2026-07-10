@@ -1,0 +1,167 @@
+name: Apply TopK duplicate-hypothesis fix
+
+on:
+  push:
+    branches:
+      - bugfix/top-k-duplicate-hypotheses-20260710
+
+permissions:
+  contents: write
+
+jobs:
+  apply-fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: bugfix/top-k-duplicate-hypotheses-20260710
+          fetch-depth: 0
+      - name: Patch TopKGate and add regression coverage
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          source_path = Path("src/pyrecest/filters/association_hypotheses.py")
+          source = source_path.read_text(encoding="utf-8")
+          old_source = '''        accepted_keys = set()
+          grouped: dict[int, list[AssociationHypothesis]] = defaultdict(list)
+          missed = []
+          for hypothesis in hypotheses:
+              if hypothesis.is_missed_detection:
+                  missed.append(hypothesis)
+                  continue
+              key = (
+                  _track_index(hypothesis)
+                  if self.mode == "track"
+                  else _measurement_index(hypothesis)
+              )
+              grouped[key].append(hypothesis)
+
+          for group in grouped.values():
+              sorted_group = sorted(
+                  group,
+                  key=lambda hypothesis: hypothesis_cost(
+                      hypothesis, missing_cost=self.missing_cost
+                  ),
+              )
+              for hypothesis in sorted_group[: self.k]:
+                  accepted_keys.add(
+                      (_track_index(hypothesis), _measurement_index(hypothesis))
+                  )
+
+          result = []
+          for hypothesis in hypotheses:
+              if hypothesis.is_missed_detection:
+                  result.append(hypothesis)
+                  continue
+              accepted = (
+                  _track_index(hypothesis),
+                  _measurement_index(hypothesis),
+              ) in accepted_keys
+              result.append(
+                  hypothesis.with_acceptance(
+                      accepted,
+                      None if accepted else f"top_{self.k}_{self.mode}_gate",
+                  )
+              )
+          return result
+          '''
+          new_source = '''        accepted_indices = set()
+          grouped: dict[int, list[tuple[int, AssociationHypothesis]]] = defaultdict(list)
+          for hypothesis_index, hypothesis in enumerate(hypotheses):
+              if hypothesis.is_missed_detection:
+                  continue
+              key = (
+                  _track_index(hypothesis)
+                  if self.mode == "track"
+                  else _measurement_index(hypothesis)
+              )
+              grouped[key].append((hypothesis_index, hypothesis))
+
+          for group in grouped.values():
+              sorted_group = sorted(
+                  group,
+                  key=lambda item: hypothesis_cost(
+                      item[1], missing_cost=self.missing_cost
+                  ),
+              )
+              accepted_indices.update(
+                  hypothesis_index
+                  for hypothesis_index, _ in sorted_group[: self.k]
+              )
+
+          result = []
+          for hypothesis_index, hypothesis in enumerate(hypotheses):
+              if hypothesis.is_missed_detection:
+                  result.append(hypothesis)
+                  continue
+              accepted = hypothesis_index in accepted_indices
+              result.append(
+                  hypothesis.with_acceptance(
+                      accepted,
+                      None if accepted else f"top_{self.k}_{self.mode}_gate",
+                  )
+              )
+          return result
+          '''
+          if source.count(old_source) != 1:
+              raise RuntimeError("TopKGate source block did not match exactly once")
+          source_path.write_text(source.replace(old_source, new_source), encoding="utf-8")
+
+          test_path = Path("tests/filters/test_association_hypotheses.py")
+          tests = test_path.read_text(encoding="utf-8")
+          anchor = '''    def test_top_k_gate_rejects_invalid_k(self):
+          '''
+          new_test = '''    def test_top_k_gate_keeps_only_best_duplicate_pair_hypothesis(self):
+              hypotheses = [
+                  AssociationHypothesis(0, 0, cost=1.0),
+                  AssociationHypothesis(0, 0, cost=100.0),
+                  AssociationHypothesis(0, 1, cost=2.0),
+              ]
+
+              gated_with_rejections = filter_hypotheses(
+                  hypotheses,
+                  TopKGate(1, mode="track"),
+                  accepted_only=False,
+              )
+              self.assertEqual(
+                  [hypothesis.accepted for hypothesis in gated_with_rejections],
+                  [True, False, False],
+              )
+
+              gated = [
+                  hypothesis
+                  for hypothesis in gated_with_rejections
+                  if hypothesis.accepted
+              ]
+              cost_matrix = hypotheses_to_cost_matrix(
+                  gated,
+                  num_tracks=1,
+                  num_measurements=2,
+                  missing_cost=99.0,
+              )
+              self.assertEqual(len(gated), 1)
+              self.assertEqual(gated[0].cost, 1.0)
+              self.assertAlmostEqual(cost_matrix[0, 0], 1.0)
+              self.assertEqual(cost_matrix[0, 1], 99.0)
+
+          '''
+          if tests.count(anchor) != 1:
+              raise RuntimeError("test insertion anchor did not match exactly once")
+          test_path.write_text(tests.replace(anchor, new_test + anchor), encoding="utf-8")
+
+          workflow_path = Path(".github/workflows/apply-top-k-duplicate-fix.yml")
+          workflow_path.unlink()
+          PY
+      - name: Validate syntax
+        run: |
+          python -m compileall -q \
+            src/pyrecest/filters/association_hypotheses.py \
+            tests/filters/test_association_hypotheses.py
+      - name: Commit fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Fix TopKGate duplicate hypothesis selection"
+          git push origin HEAD:bugfix/top-k-duplicate-hypotheses-20260710
