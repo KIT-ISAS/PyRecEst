@@ -54,7 +54,14 @@ def _contains_invalid_rate_scalar(value) -> bool:
             dtype_name = str(dtype).lower()
             if any(
                 token in dtype_name
-                for token in ("bool", "complex", "str", "bytes", "datetime", "timedelta")
+                for token in (
+                    "bool",
+                    "complex",
+                    "str",
+                    "bytes",
+                    "datetime",
+                    "timedelta",
+                )
             ):
                 return True
 
