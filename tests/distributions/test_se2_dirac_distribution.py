@@ -66,6 +66,26 @@ class TestSE2DiracDistribution(unittest.TestCase):
         eigvals = np.linalg.eigvalsh(C)
         self.assertTrue(np.all(eigvals >= -1e-12))
 
+    def test_covariance_4d_matches_weighted_centered_moment(self):
+        samples = np.column_stack(
+            (
+                np.cos(np.asarray(self.d[:, 0])),
+                np.sin(np.asarray(self.d[:, 0])),
+                np.asarray(self.d[:, 1:]),
+            )
+        )
+        weights = np.asarray(self.w)
+        mean = np.sum(weights[:, None] * samples, axis=0)
+        centered = samples - mean
+        expected = centered.T @ (weights[:, None] * centered)
+
+        npt.assert_allclose(self.dist.covariance_4d(), expected, rtol=1e-10)
+
+    def test_covariance_4d_is_zero_for_single_component(self):
+        dist = SE2DiracDistribution(array([[0.5, 2.0, -3.0]]), array([1.0]))
+
+        npt.assert_allclose(dist.covariance_4d(), np.zeros((4, 4)), atol=1e-12)
+
     def test_mean_delegates_to_hybrid_mean(self):
         npt.assert_array_equal(self.dist.mean(), self.dist.hybrid_mean())
 
