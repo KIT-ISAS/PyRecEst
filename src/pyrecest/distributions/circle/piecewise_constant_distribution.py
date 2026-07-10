@@ -21,14 +21,33 @@ from pyrecest.backend import (
 from .abstract_circular_distribution import AbstractCircularDistribution
 
 
+_INVALID_SAMPLE_COUNT_TYPES = (
+    bool,
+    np.bool_,
+    str,
+    bytes,
+    bytearray,
+    np.str_,
+    np.bytes_,
+    np.datetime64,
+    np.timedelta64,
+)
+_TEMPORAL_DTYPE_KINDS = {"M", "m"}
+
+
 def _validate_positive_sample_count(n) -> int:
-    count_array = np.asarray(n)
+    try:
+        count_array = np.asarray(n)
+    except (OverflowError, TypeError, ValueError) as exc:
+        raise ValueError("n must be a scalar integer") from exc
     if count_array.ndim != 0:
         raise ValueError("n must be a scalar integer")
+    if count_array.dtype.kind in _TEMPORAL_DTYPE_KINDS:
+        raise ValueError("n must be an integer")
 
     count = count_array.item()
-    if isinstance(count, (bool, np.bool_)):
-        raise ValueError("n must be an integer, not a boolean")
+    if isinstance(count, _INVALID_SAMPLE_COUNT_TYPES):
+        raise ValueError("n must be an integer")
 
     try:
         count_int = int(count)
