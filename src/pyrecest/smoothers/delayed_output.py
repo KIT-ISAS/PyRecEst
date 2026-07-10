@@ -61,10 +61,9 @@ class DelayedStateOutputMixin:
     ) -> None:
         """Reset the delayed-output queue and emitted-step cursor."""
 
+        normalized_step = _as_step_index(last_emitted_step, "last_emitted_step")
         self._ready_queue: list[DelayedStateOutput] = []
-        self._last_emitted_step = _as_step_index(
-            last_emitted_step, "last_emitted_step"
-        )
+        self._last_emitted_step = normalized_step
 
     def _ensure_delayed_state_outputs_initialized(self) -> None:
         if not hasattr(self, "_ready_queue"):
