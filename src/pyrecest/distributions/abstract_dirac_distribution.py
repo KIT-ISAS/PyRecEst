@@ -24,6 +24,7 @@ from pyrecest.backend import (
     reshape,
     stack,
     sum,
+    where,
 )
 
 from .abstract_distribution_type import AbstractDistributionType
@@ -144,7 +145,8 @@ class AbstractDiracDistribution(AbstractDistributionType):
 
     def entropy(self) -> float:
         warnings.warn("Entropy is not defined in a continuous sense")
-        return -sum(self.w * log(self.w))
+        safe_weights = where(self.w > 0, self.w, 1.0)
+        return -sum(self.w * log(safe_weights))
 
     def integrate(self, left=None, right=None):
         if left is not None or right is not None:
