@@ -170,11 +170,11 @@ class HypertoroidalGridDistribution(
         if self.grid is None or self.grid.size == 0:
             raise ValueError("Grid is empty; cannot find closest point.")
 
-        # Toroidal squared distance: min(Δ^2, (2π - |Δ|)^2) summed over dimensions
+        # Reduce angular differences modulo 2π before taking the shortest arc.
         delta = self.grid[None, :, :] - xs[:, None, :]  # (1, n_grid, dim)
-        abs_delta = abs(delta)
-        wrapped_delta_sq = minimum(abs_delta**2, (2 * pi - abs_delta) ** 2)
-        dists = sum(wrapped_delta_sq, axis=-1)
+        abs_delta = mod(abs(delta), 2.0 * pi)
+        wrapped_delta = minimum(abs_delta, 2.0 * pi - abs_delta)
+        dists = sum(wrapped_delta**2, axis=-1)
         min_index = int(argmin(dists[0]))
         return self.grid[min_index]
 
@@ -317,9 +317,9 @@ class HypertoroidalGridDistribution(
 
         # Broadcast differences: (n_eval, n_grid, dim)
         delta = self.grid[None, :, :] - xa[:, None, :]
-        abs_delta = abs(delta)
-        wrapped_delta_sq = minimum(abs_delta**2, (2 * pi - abs_delta) ** 2)
-        dists = sum(wrapped_delta_sq, axis=-1)
+        abs_delta = mod(abs(delta), 2.0 * pi)
+        wrapped_delta = minimum(abs_delta, 2.0 * pi - abs_delta)
+        dists = sum(wrapped_delta**2, axis=-1)
         min_inds = argmin(dists, axis=1)
         grid_values_flat = reshape(self.grid_values, (-1,))
         return grid_values_flat[min_inds]
