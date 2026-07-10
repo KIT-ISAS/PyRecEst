@@ -172,7 +172,12 @@ class HistoryRecorder:
             return None
 
         entry = self._entries[name]
-        entry.values = array([[]]) if entry.pad_with_nan else []
+        if entry.pad_with_nan:
+            entry.values = array([[]])
+        elif isinstance(entry.values, list):
+            entry.values.clear()
+        else:
+            entry.values = []
         return entry.values
 
     def get(self, name: str, default=None):
