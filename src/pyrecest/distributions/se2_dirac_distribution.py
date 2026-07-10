@@ -47,10 +47,7 @@ class SE2DiracDistribution(HypercylindricalDiracDistribution, AbstractSE2Distrib
         return self.hybrid_moment()
 
     def covariance_4d(self):
-        """Compute the 4D second moment matrix for [cos(angle), sin(angle), x, y].
-
-        This is the weighted sum of outer products sum_i w_i * s_i * s_i^T
-        where s_i = [cos(angle_i), sin(angle_i), x_i, y_i].
+        """Compute the covariance of [cos(angle), sin(angle), x, y].
 
         Returns
         -------
@@ -62,10 +59,11 @@ class SE2DiracDistribution(HypercylindricalDiracDistribution, AbstractSE2Distrib
             sin,
         )
 
-        S = column_stack(
+        samples = column_stack(
             (cos(self.d[:, 0:1]), sin(self.d[:, 0:1]), self.d[:, 1:])
-        )  # (n, 4)
-        return (S.T * self.w) @ S  # (4, n) * (n,) -> (4, n) @ (n, 4) = (4, 4)
+        )
+        centered = samples - self.mean_4d()
+        return centered.T @ (self.w[:, None] * centered)
 
     def mean(self):
         """Return the hybrid mean for a consistent interface.
