@@ -57,3 +57,29 @@ def test_sparse_second_order_grid_rejects_text_transition_row_weights():
 
     with pytest.raises(ValueError, match="transition row weights"):
         sparse_second_order_grid_evidence(np.zeros((3, 2)), init, row)
+
+
+def test_sparse_second_order_grid_rejects_complex_initial_pair_weights():
+    def init(scaled):
+        del scaled
+        return np.array([0]), np.array([0]), np.array([1.0 + 2.0j]), [1]
+
+    def row(prev, curr, transition_index):
+        del prev, curr, transition_index
+        return np.array([0]), np.array([1.0])
+
+    with pytest.raises(ValueError, match="initial pair weights"):
+        sparse_second_order_grid_evidence(np.zeros((3, 2)), init, row)
+
+
+def test_sparse_second_order_grid_rejects_complex_transition_row_weights():
+    def init(scaled):
+        del scaled
+        return np.array([0]), np.array([0]), np.array([1.0]), [1]
+
+    def row(prev, curr, transition_index):
+        del prev, curr, transition_index
+        return np.array([0]), np.array([1.0 + 2.0j])
+
+    with pytest.raises(ValueError, match="transition row weights"):
+        sparse_second_order_grid_evidence(np.zeros((3, 2)), init, row)

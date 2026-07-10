@@ -29,6 +29,7 @@ SparsePairTransitionRowBuilder = Callable[
 SparsePairTransitionCacheKeyBuilder = Callable[[int, int, int], Hashable | None]
 _TEXT_TYPES = (str, bytes, bytearray, np.str_, np.bytes_)
 _BOOLEAN_TYPES = (bool, np.bool_)
+_COMPLEX_TYPES = (complex, np.complexfloating)
 
 
 @dataclass(frozen=True)
@@ -383,8 +384,10 @@ def _contains_values_of_type(value: Any, types: tuple[type, ...]) -> bool:
 
 def _coerce_real_weight_array(values: Any, message_prefix: str) -> np.ndarray:
     message = f"{message_prefix} must be finite and nonnegative"
-    if _contains_values_of_type(values, _TEXT_TYPES) or _contains_values_of_type(
-        values, _BOOLEAN_TYPES
+    if (
+        _contains_values_of_type(values, _TEXT_TYPES)
+        or _contains_values_of_type(values, _BOOLEAN_TYPES)
+        or _contains_values_of_type(values, _COMPLEX_TYPES)
     ):
         raise ValueError(message)
     try:
