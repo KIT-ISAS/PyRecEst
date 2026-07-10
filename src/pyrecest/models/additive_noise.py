@@ -99,9 +99,15 @@ def _dt_call_mode(function: Callable[..., Any]) -> str | None:
         return "positional"
 
     parameters = tuple(signature.parameters.values())
-    if any(param.kind == inspect.Parameter.VAR_KEYWORD for param in parameters):
+    dt_parameter = signature.parameters.get("dt")
+    if dt_parameter is not None:
+        if dt_parameter.kind in (
+            inspect.Parameter.POSITIONAL_ONLY,
+            inspect.Parameter.VAR_POSITIONAL,
+        ):
+            return "positional"
         return "keyword"
-    if "dt" in signature.parameters:
+    if any(param.kind == inspect.Parameter.VAR_KEYWORD for param in parameters):
         return "keyword"
     if any(param.kind == inspect.Parameter.VAR_POSITIONAL for param in parameters):
         return "positional"
