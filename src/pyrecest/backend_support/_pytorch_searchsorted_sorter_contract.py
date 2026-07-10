@@ -35,7 +35,7 @@ def _validate_sorter(sorter, numpy_module, torch_module) -> None:
 
     if sorter_array.ndim != 1:
         raise TypeError(_SORTER_SHAPE_MESSAGE)
-    if not numpy_module.can_cast(
+    if numpy_module.issubdtype(sorter_array.dtype, numpy_module.bool_) or not numpy_module.can_cast(
         sorter_array.dtype,
         numpy_module.dtype(numpy_module.intp),
         casting="safe",
