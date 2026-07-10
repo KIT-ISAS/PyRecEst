@@ -29,6 +29,7 @@ from pyrecest.backend import (
     mean,
     transpose,
     vstack,
+    where,
     zeros,
 )
 from pyrecest.distributions import GaussianDistribution
@@ -44,6 +45,25 @@ def _to_python_bool(value):
     if hasattr(value, "item"):
         return bool(value.item())
     return bool(value)
+
+
+def _normalize_rotation_columns(rotation_samples, fallback_rotation):
+    """Normalize 2-D rotation columns, replacing undefined zero directions."""
+    rotation_samples = asarray(rotation_samples)
+    fallback_rotation = asarray(fallback_rotation)
+    norms = linalg.norm(rotation_samples, axis=0)
+    zero_norms = isclose(norms, 0.0)
+    safe_norms = where(zero_norms, 1.0, norms)
+    normalized = rotation_samples / safe_norms[None, :]
+    return where(zero_norms[None, :], fallback_rotation[:, None], normalized)
+
+
+def _normalize_rotation_vector(rotation, fallback_rotation):
+    """Normalize one rotation vector with a unit fallback for zero norm."""
+    normalized = _normalize_rotation_columns(
+        asarray(rotation)[:, None], fallback_rotation
+    )
+    return normalized[:, 0]
 
 
 def _validate_se2_gaussian(distribution, role):
@@ -211,10 +231,15 @@ class SE2UKF(AbstractFilter, SE2FilterMixin):
             cols.append(mu - 2.0 * L[:, k])
         state_samples = column_stack(cols)  # 4×9
 
-        # Normalise rotation part of state sigma points.
-        norms = linalg.norm(state_samples[0:2, :], axis=0)
+        # Normalise rotation part of state sigma points.  A sigma point can land
+        # exactly at the embedding origin, where its rotational direction is
+        # undefined; retain the nominal unit rotation in that case.
         state_samples = concatenate(
-            [state_samples[0:2, :] / norms[None, :], state_samples[2:, :]], axis=0
+            [
+                _normalize_rotation_columns(state_samples[0:2, :], mu[0:2]),
+                state_samples[2:, :],
+            ],
+            axis=0,
         )
 
         # --- Noise sigma points: [mu_sys, mu_sys ± L_n[:,k]] for k=0..3 (9 pts) ---
@@ -226,10 +251,13 @@ class SE2UKF(AbstractFilter, SE2FilterMixin):
             n_cols.append(mu_sys - L_n[:, k])
         noise_samples = column_stack(n_cols)  # 4×9
 
-        # Normalise rotation part of noise sigma points.
-        norms = linalg.norm(noise_samples[0:2, :], axis=0)
+        # Normalise rotation part of noise sigma points with the same fallback.
         noise_samples = concatenate(
-            [noise_samples[0:2, :] / norms[None, :], noise_samples[2:, :]], axis=0
+            [
+                _normalize_rotation_columns(noise_samples[0:2, :], mu_sys[0:2]),
+                noise_samples[2:, :],
+            ],
+            axis=0,
         )
 
         # --- Predicted samples: all 81 = 9×9 state [⊕] noise combinations ---
@@ -246,7 +274,16 @@ class SE2UKF(AbstractFilter, SE2FilterMixin):
         # E[x x^T].  GaussianDistribution.C is used elsewhere as a covariance,
         # so it must be centered around the stored mean.
         new_mu = mean(pred_samples, axis=1)
-        new_mu = concatenate([new_mu[0:2] / linalg.norm(new_mu[0:2]), new_mu[2:]])
+        nominal_prediction = _dual_quaternion_multiply(mu, mu_sys)
+        new_mu = concatenate(
+            [
+                _normalize_rotation_vector(
+                    new_mu[0:2],
+                    nominal_prediction[0:2],
+                ),
+                new_mu[2:],
+            ]
+        )
 
         deviations = pred_samples - new_mu[:, None]
         CP = deviations @ deviations.T / pred_samples.shape[1]
@@ -299,7 +336,7 @@ class SE2UKF(AbstractFilter, SE2FilterMixin):
             axis=0,
         )  # 8×8
 
-        # --- Augmented sigma points: [x_aug, x_aug ± L_aug[:,k]] for k=0..7 (17 pts) ---
+        # --- Augmented sigma points: x_aug and x_aug ± L_aug[:, k] (17 pts) ---
         L_aug = linalg.cholesky(8.0 * C_aug)  # 8×8
         aug_cols = [x_aug]
         for k in range(8):
@@ -309,16 +346,18 @@ class SE2UKF(AbstractFilter, SE2FilterMixin):
         aug_samples = column_stack(aug_cols)  # 8×17
 
         # Normalise rotation part of state sigma points (rows 0–1).
-        norms = linalg.norm(aug_samples[0:2, :], axis=0)
         aug_samples = concatenate(
-            [aug_samples[0:2, :] / norms[None, :], aug_samples[2:, :]], axis=0
+            [
+                _normalize_rotation_columns(aug_samples[0:2, :], mu[0:2]),
+                aug_samples[2:, :],
+            ],
+            axis=0,
         )
 
         # Extract and normalise the noise-rotation part (rows 4–5).
-        noise_rot = aug_samples[4:6, :]
-        norms_n = linalg.norm(noise_rot, axis=0)
+        noise_rot = _normalize_rotation_columns(aug_samples[4:6, :], mu_meas[0:2])
         # Build the full normalised noise vectors (4-D each column).
-        norm_noise = vstack([noise_rot / norms_n[None, :], aug_samples[6:8, :]])  # 4×17
+        norm_noise = vstack([noise_rot, aug_samples[6:8, :]])  # 4×17
 
         # --- Apply measurement function: z_i = state_i [⊕] noise_i ---
         meas_cols = []
@@ -348,7 +387,12 @@ class SE2UKF(AbstractFilter, SE2FilterMixin):
         new_C = (new_C + new_C.T) / 2.0  # symmetrise
 
         # Renormalise rotation part of the mean.
-        new_mu = concatenate([new_mu[0:2] / linalg.norm(new_mu[0:2]), new_mu[2:]])
+        new_mu = concatenate(
+            [
+                _normalize_rotation_vector(new_mu[0:2], mu[0:2]),
+                new_mu[2:],
+            ]
+        )
 
         self._filter_state = GaussianDistribution(array(new_mu), array(new_C))
 
