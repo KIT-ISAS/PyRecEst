@@ -324,6 +324,14 @@ def _session_times(
 ) -> np.ndarray:
     if session_times is None:
         return np.arange(n_sessions, dtype=float)
+    try:
+        native_times = np.asarray(session_times)
+    except (TypeError, ValueError, RuntimeError) as exc:
+        raise ValueError(
+            "session_times must contain only finite numeric values"
+        ) from exc
+    if native_times.dtype.kind in "Mm":
+        raise ValueError("session_times must contain only finite numeric values")
     raw_times = np.asarray(session_times, dtype=object)
     if raw_times.shape != (n_sessions,):
         raise ValueError(
@@ -345,16 +353,36 @@ def _session_times(
 
 
 def _validate_missed_value(value: Any) -> float:
+    message = "missed_value must be a scalar numeric value"
+    try:
+        native_value = np.asarray(value)
+    except (TypeError, ValueError, RuntimeError) as exc:
+        raise ValueError(message) from exc
+    if native_value.dtype.kind in "Mm":
+        raise ValueError(message)
     value_array = np.asarray(value, dtype=object)
     if value_array.shape != ():
-        raise ValueError("missed_value must be a scalar numeric value")
+        raise ValueError(message)
     scalar = value_array.item()
-    if isinstance(scalar, (bool, np.bool_, str, bytes, bytearray, np.str_, np.bytes_)):
-        raise ValueError("missed_value must be a scalar numeric value")
+    if isinstance(
+        scalar,
+        (
+            bool,
+            np.bool_,
+            str,
+            bytes,
+            bytearray,
+            np.str_,
+            np.bytes_,
+            np.datetime64,
+            np.timedelta64,
+        ),
+    ):
+        raise ValueError(message)
     try:
         parsed = float(scalar)
     except (TypeError, ValueError, OverflowError) as exc:
-        raise ValueError("missed_value must be a scalar numeric value") from exc
+        raise ValueError(message) from exc
     if np.isinf(parsed):
         raise ValueError("missed_value must be finite or NaN")
     return parsed
@@ -377,9 +405,11 @@ def _contains_bool_or_text(values: np.ndarray) -> bool:
 
 def _as_positive_int(value: Any, name: str) -> int:
     array = np.asarray(value)
-    if array.ndim != 0 or array.dtype == np.bool_:
+    if array.ndim != 0 or array.dtype == np.bool_ or array.dtype.kind in "Mm":
         raise ValueError(f"{name} must be a positive integer")
     scalar = array.item()
+    if isinstance(scalar, (np.datetime64, np.timedelta64)):
+        raise ValueError(f"{name} must be a positive integer")
     if isinstance(scalar, (int, np.integer)) and not isinstance(scalar, bool):
         result = int(scalar)
     elif (
