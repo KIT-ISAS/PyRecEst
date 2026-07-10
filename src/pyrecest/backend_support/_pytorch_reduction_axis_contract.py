@@ -43,6 +43,17 @@ def _axis_contains_boolean_value(axis, torch_module) -> bool:
     return False
 
 
+def _normalize_scalar_axis_value(axis, torch_module):
+    """Convert integer-like scalar axes to Python integers before dispatch."""
+
+    if axis is None or _is_boolean_axis_value(axis, torch_module):
+        return axis
+    try:
+        return _operator_index(axis)
+    except TypeError:
+        return axis
+
+
 def normalize_reduction_axes(axis, ndim_value, torch_module):
     """Normalize PyTorch reduction axes while rejecting boolean axes."""
 
@@ -91,6 +102,13 @@ def _wrap_boolean_axis_reduction(helper, torch_module):
             axis = args[1]
         if _axis_contains_boolean_value(axis, torch_module):
             raise TypeError(_AXIS_TYPE_MESSAGE)
+
+        args = list(args)
+        kwargs = dict(kwargs)
+        if "axis" in kwargs:
+            kwargs["axis"] = _normalize_scalar_axis_value(kwargs["axis"], torch_module)
+        elif len(args) >= 2:
+            args[1] = _normalize_scalar_axis_value(args[1], torch_module)
         return helper(*args, **kwargs)
 
     reduction.__name__ = getattr(helper, "__name__", "reduction")
@@ -112,6 +130,15 @@ def _wrap_boolean_axis_dim_reduction(helper, torch_module):
             dim, torch_module
         ):
             raise TypeError(_AXIS_TYPE_MESSAGE)
+
+        args = list(args)
+        kwargs = dict(kwargs)
+        if "axis" in kwargs:
+            kwargs["axis"] = _normalize_scalar_axis_value(kwargs["axis"], torch_module)
+        elif len(args) >= 2:
+            args[1] = _normalize_scalar_axis_value(args[1], torch_module)
+        if "dim" in kwargs:
+            kwargs["dim"] = _normalize_scalar_axis_value(kwargs["dim"], torch_module)
         return helper(*args, **kwargs)
 
     reduction.__name__ = getattr(helper, "__name__", "reduction")
@@ -174,7 +201,7 @@ def patch_pytorch_reduction_axis_contract() -> None:
         _normalize_reduction_axes._pyrecest_reduction_axis_bool_contract = True
         raw_pytorch._normalize_reduction_axes = _normalize_reduction_axes
 
-    for helper_name in ("any", "all", "count_nonzero", "max"):
+    for helper_name in ("any", "all", "count_nonzero", "max", "prod"):
         raw_helper = getattr(raw_pytorch, helper_name, None)
         if raw_helper is not None:
             wrapped_helper = _wrap_boolean_axis_reduction(raw_helper, torch)
