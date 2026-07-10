@@ -9,10 +9,34 @@ algorithm or state representation.
 
 from __future__ import annotations
 
+import operator
 from collections.abc import Callable
 from typing import Any, TypeAlias
 
 DelayedStateOutput: TypeAlias = tuple[int, Any]
+
+
+def _is_boolean_scalar(value: Any) -> bool:
+    """Return whether ``value`` is a native or backend boolean scalar."""
+
+    if isinstance(value, bool):
+        return True
+    dtype = getattr(value, "dtype", None)
+    if getattr(dtype, "kind", None) == "b":
+        return True
+    return str(dtype).lower() in {"bool", "bool_", "torch.bool"}
+
+
+def _as_step_index(value: Any, name: str) -> int:
+    """Normalize a genuine integer scalar without lossy coercion."""
+
+    message = f"{name} must be an integer"
+    if _is_boolean_scalar(value):
+        raise ValueError(message)
+    try:
+        return int(operator.index(value))
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(message) from exc
 
 
 class DelayedStateOutputMixin:
@@ -38,7 +62,9 @@ class DelayedStateOutputMixin:
         """Reset the delayed-output queue and emitted-step cursor."""
 
         self._ready_queue: list[DelayedStateOutput] = []
-        self._last_emitted_step = int(last_emitted_step)
+        self._last_emitted_step = _as_step_index(
+            last_emitted_step, "last_emitted_step"
+        )
 
     def _ensure_delayed_state_outputs_initialized(self) -> None:
         if not hasattr(self, "_ready_queue"):
@@ -61,7 +87,7 @@ class DelayedStateOutputMixin:
         """
 
         self._ensure_delayed_state_outputs_initialized()
-        step = int(step)
+        step = _as_step_index(step, "step")
         if step < 0 or step <= int(self._last_emitted_step):
             return False
         self._ready_queue.append((step, state))
@@ -89,7 +115,7 @@ class DelayedStateOutputMixin:
         """
 
         self._ensure_delayed_state_outputs_initialized()
-        current_step = int(current_step)
+        current_step = _as_step_index(current_step, "current_step")
         if current_step < 0:
             return self.pop_ready_states()
 
