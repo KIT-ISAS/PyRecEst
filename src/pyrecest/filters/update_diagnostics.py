@@ -13,6 +13,14 @@ _ACTIVE_INDICES_MESSAGE = (
 )
 
 
+def _is_boolean_scalar(value: Any) -> bool:
+    """Return whether ``value`` is a scalar boolean from a supported backend."""
+    if isinstance(value, bool):
+        return True
+    dtype_name = str(getattr(value, "dtype", "")).lower()
+    return dtype_name in {"bool", "bool_", "torch.bool"}
+
+
 @dataclass(frozen=True)
 class MeasurementUpdateDiagnostics:
     """Diagnostics captured from one measurement update.
@@ -121,7 +129,7 @@ def _normalize_metadata(metadata: Mapping[str, Any] | None) -> dict[str, Any]:
 
 def _as_nonnegative_integer(value: Any, name: str) -> int:
     message = f"{name} must be a non-negative integer"
-    if isinstance(value, bool):
+    if _is_boolean_scalar(value):
         raise ValueError(message)
     try:
         parsed = operator_index(value)
