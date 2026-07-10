@@ -99,6 +99,24 @@ class RauchTungStriebelSmootherTest(unittest.TestCase):
             float(filtered_states[0].C[0, 0]),
         )
 
+    def test_per_step_none_control_input_defaults_to_zero(self):
+        smoother = RauchTungStriebelSmoother()
+        filtered_states, predicted_states = smoother.filter(
+            initial_state=GaussianDistribution(zeros(2), eye(2)),
+            measurements=[zeros(2), zeros(2), zeros(2)],
+            measurement_matrices=zeros((2, 2)),
+            meas_noise_covariances=eye(2),
+            system_matrices=eye(2),
+            sys_noise_covariances=zeros((2, 2)),
+            sys_inputs=[None, array([1.0, -1.0])],
+        )
+
+        self.assertEqual(len(filtered_states), 3)
+        self.assertEqual(len(predicted_states), 2)
+        npt.assert_allclose(predicted_states[0].mu, zeros(2))
+        npt.assert_allclose(predicted_states[1].mu, array([1.0, -1.0]))
+        npt.assert_allclose(filtered_states[-1].mu, array([1.0, -1.0]))
+
     def test_single_measurement_sequence_returns_single_smoothed_state(self):
         smoother = RauchTungStriebelSmoother()
         filtered_states, predicted_states, smoothed_states, smoother_gains = (
