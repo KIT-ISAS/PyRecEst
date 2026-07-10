@@ -38,7 +38,7 @@ axis_values = [
 
 def assert_bool_axes_rejected(module):
     values = module.array([[0, 1], [2, 3]])
-    for helper_name in ("any", "all", "count_nonzero", "max", "mean", "std"):
+    for helper_name in ("any", "all", "count_nonzero", "max", "mean", "std", "sum"):
         helper = getattr(module, helper_name)
         for axis in axis_values:
             try:
@@ -47,7 +47,7 @@ def assert_bool_axes_rejected(module):
                 continue
             raise AssertionError(f"{helper_name} accepted boolean axis {axis!r}")
 
-    for helper_name in ("mean", "std"):
+    for helper_name in ("mean", "std", "sum"):
         helper = getattr(module, helper_name)
         for dim in axis_values:
             try:
@@ -59,6 +59,7 @@ def assert_bool_axes_rejected(module):
     assert module.to_numpy(module.any(values, axis=1)).tolist() == [True, True]
     assert module.to_numpy(module.max(values, axis=0)).tolist() == [2, 3]
     assert module.to_numpy(module.mean(values, axis=0)).tolist() == [1.0, 2.0]
+    assert module.to_numpy(module.sum(values, axis=1)).tolist() == [1, 5]
 '''
 
 
