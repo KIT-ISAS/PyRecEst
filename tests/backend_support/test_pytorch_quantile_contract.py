@@ -30,3 +30,33 @@ assert backend.to_numpy(list_quantile).tolist() == [[1.5, 5.0], [2.5, 7.0]]
     )
 
     assert result.returncode == 0, result.stderr
+
+
+@pytest.mark.backend_portable
+def test_pytorch_quantile_preserves_empty_batch_dimensions():
+    if importlib.util.find_spec("torch") is None:
+        pytest.skip("PyTorch is not installed")
+
+    result = run_backend_code(
+        "pytorch",
+        """
+import pyrecest.backend as backend
+import pyrecest._backend.pytorch as raw_backend
+
+values = backend.zeros((0, 3, 2))
+scalar_quantile = backend.quantile(values, 0.5, axis=-2)
+vector_quantile = backend.quantile(
+    values,
+    [0.25, 0.75],
+    axis=1,
+    keepdims=True,
+)
+raw_quantile = raw_backend.quantile(values, 0.5, dim=1, keepdim=True)
+
+assert tuple(scalar_quantile.shape) == (0, 2)
+assert tuple(vector_quantile.shape) == (2, 0, 1, 2)
+assert tuple(raw_quantile.shape) == (0, 1, 2)
+""",
+    )
+
+    assert result.returncode == 0, result.stderr
