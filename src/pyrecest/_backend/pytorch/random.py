@@ -424,6 +424,8 @@ def _choice_indices(
                 "Cannot take a larger sample than population when 'replace=False'."
             )
         p = _validate_choice_probabilities(p, population_size, device)
+        if not replace and num_samples > int(_torch.count_nonzero(p).item()):
+            raise ValueError("Fewer non-zero entries in p than size")
         if num_samples == 0:
             return _empty_choice_indices(size, p.device)
         indices = _torch.multinomial(p, num_samples=num_samples, replacement=replace)
