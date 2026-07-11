@@ -21,16 +21,27 @@ def normalize_coefficient_shape(shape_like: CoefficientShape, *, dim: int | None
     ``dim`` it is broadcast to all dimensions.
     """
 
-    if isinstance(shape_like, bool):
-        raise ValueError(f"{name} must contain positive odd integers.")
+    shape_error = f"{name} must contain positive odd integers."
+    if isinstance(shape_like, (bool, np.bool_)) or isinstance(
+        shape_like, (str, bytes, bytearray)
+    ):
+        raise ValueError(shape_error)
 
     if isinstance(shape_like, Integral):
         values = (int(shape_like),) if dim is None else (int(shape_like),) * dim
     else:
         try:
-            values = tuple(int(value) for value in shape_like)
+            raw_values = tuple(shape_like)
         except TypeError as exc:
-            raise TypeError(f"{name} must be an integer or an iterable of integers.") from exc
+            raise TypeError(
+                f"{name} must be an integer or an iterable of integers."
+            ) from exc
+        if any(
+            isinstance(value, (bool, np.bool_)) or not isinstance(value, Integral)
+            for value in raw_values
+        ):
+            raise ValueError(shape_error)
+        values = tuple(int(value) for value in raw_values)
 
     if len(values) == 0:
         raise ValueError(f"{name} must contain at least one entry.")
