@@ -18,12 +18,17 @@ from pyrecest.backend import (
 from .abstract_circular_distribution import AbstractCircularDistribution
 
 
-def _validate_positive_scalar(value, name):
+def _validate_finite_scalar(value, name):
     value = array(value)
     if value.shape not in ((), (1,)):
-        raise ValueError(f"{name} must be a positive scalar.")
+        raise ValueError(f"{name} must be a scalar.")
     if not bool(all(isfinite(value))):
         raise ValueError(f"{name} must be finite.")
+    return value
+
+
+def _validate_positive_scalar(value, name):
+    value = _validate_finite_scalar(value, name)
     if not bool(all(value > 0.0)):
         raise ValueError(f"{name} must be positive.")
     return value
@@ -47,7 +52,7 @@ class WrappedCauchyDistribution(AbstractCircularDistribution):
 
     def __init__(self, mu, gamma):
         AbstractCircularDistribution.__init__(self)
-        self.mu = mod(mu, 2 * pi)
+        self.mu = mod(_validate_finite_scalar(mu, "mu"), 2 * pi)
         self.gamma = _validate_positive_scalar(gamma, "gamma")
 
     def pdf(self, xs):
