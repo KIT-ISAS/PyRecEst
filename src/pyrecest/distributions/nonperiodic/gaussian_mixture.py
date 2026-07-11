@@ -20,7 +20,7 @@ class GaussianMixture(LinearMixture, AbstractLinearDistribution):
 
     def mean(self):
         gauss_array = self.dists
-        means = array([g.mu for g in gauss_array])  # shape (n, dim)
+        means = stack([g.mu for g in gauss_array], axis=0)  # shape (n, dim)
         return sum(means * reshape(self.w, (-1, 1)), axis=0)
 
     def set_mean(self, new_mean):
@@ -45,7 +45,7 @@ class GaussianMixture(LinearMixture, AbstractLinearDistribution):
     def to_gaussian(self, check_validity=True):
         gauss_array = self.dists
         mu, C = self.mixture_parameters_to_gaussian_parameters(
-            array([g.mu for g in gauss_array]),
+            stack([g.mu for g in gauss_array], axis=0),
             stack([g.C for g in gauss_array], axis=2),
             self.w,
         )
@@ -54,7 +54,7 @@ class GaussianMixture(LinearMixture, AbstractLinearDistribution):
     def covariance(self):
         gauss_array = self.dists
         _, C = self.mixture_parameters_to_gaussian_parameters(
-            array([g.mu for g in gauss_array]),
+            stack([g.mu for g in gauss_array], axis=0),
             stack([g.C for g in gauss_array], axis=2),
             self.w,
         )
