@@ -25,11 +25,10 @@ from pyrecest.backend import (
     ones,
     pi,
     sin,
-    sinh,
     stack,
     zeros,
 )
-from scipy.special import iv, ive
+from scipy.special import ive
 
 from .abstract_hyperspherical_distribution import AbstractHypersphericalDistribution
 
@@ -64,6 +63,21 @@ def _as_unit_direction(mu, *, name: str = "mu", tolerance: float = 1e-6):
     if not _as_python_bool(abs(linalg.norm(mu) - 1.0) < tolerance):
         raise ValueError(f"{name} must be normalized")
     return mu
+
+
+def _scaled_log_normalization(input_dim: int, kappa: float) -> float:
+    """Return ``log(C_d(kappa)) + kappa`` without Bessel overflow."""
+    order = input_dim / 2.0 - 1.0
+    scaled_bessel = float(ive(order, kappa))
+    if not math.isfinite(scaled_bessel) or scaled_bessel <= 0.0:
+        raise ValueError(
+            "Could not compute a finite positive scaled Bessel value for kappa."
+        )
+    return (
+        order * math.log(kappa)
+        - input_dim / 2.0 * math.log(2.0 * math.pi)
+        - math.log(scaled_bessel)
+    )
 
 
 class VonMisesFisherDistribution(AbstractHypersphericalDistribution):
@@ -107,11 +121,13 @@ class VonMisesFisherDistribution(AbstractHypersphericalDistribution):
 
         if kappa_scalar <= self._KAPPA_EPS:
             self.C = 1.0 / self.compute_unit_hypersphere_surface(self.dim)
-        elif self.dim == 2:
-            self.C = kappa / (4 * pi * sinh(kappa))
+            self._log_scaled_normalization = math.log(float(self.C)) + kappa_scalar
         else:
-            self.C = kappa ** ((self.dim + 1) / 2.0 - 1) / (
-                (2.0 * pi) ** ((self.dim + 1) / 2.0) * iv((self.dim + 1) / 2 - 1, kappa)
+            self._log_scaled_normalization = _scaled_log_normalization(
+                self.input_dim, kappa_scalar
+            )
+            self.C = array(
+                math.exp(self._log_scaled_normalization - kappa_scalar)
             )
 
     def pdf(self, xs):
@@ -129,7 +145,10 @@ class VonMisesFisherDistribution(AbstractHypersphericalDistribution):
                 f"xs must have trailing dimension {self.input_dim}, got {xs.shape}."
             )
 
-        return self.C * exp(self.kappa * xs @ self.mu)
+        return exp(
+            self._log_scaled_normalization
+            + self.kappa * (xs @ self.mu - 1.0)
+        )
 
     def mean_direction(self):
         """Return the unit mean direction with shape ``(d,)``."""
