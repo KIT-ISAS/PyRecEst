@@ -5,6 +5,7 @@ import copy
 import warnings
 from collections.abc import Sequence
 
+import numpy as np
 import pyrecest.backend
 from pyrecest.backend import (
     allclose,
@@ -32,6 +33,19 @@ from scipy.special import logsumexp
 
 from .abstract_filter import AbstractFilter
 from .manifold_mixins import EuclideanFilterMixin
+
+_COMPLEX_TYPES = (complex, np.complexfloating)
+
+
+def _reject_complex_values(values, name):
+    """Reject probability-like inputs that would lose data in a float cast."""
+    message = f"{name} must contain real values."
+    try:
+        value_array = np.asarray(pyrecest.backend.to_numpy(values), dtype=object)
+    except Exception as exc:  # pragma: no cover - backend-specific conversion failure
+        raise ValueError(message) from exc
+    if any(isinstance(value, _COMPLEX_TYPES) for value in value_array.reshape(-1)):
+        raise ValueError(message)
 
 
 class InteractingMultipleModelFilter(AbstractFilter, EuclideanFilterMixin):
@@ -383,6 +397,7 @@ class InteractingMultipleModelFilter(AbstractFilter, EuclideanFilterMixin):
             )
 
         if likelihoods is not None:
+            _reject_complex_values(likelihoods, "likelihoods")
             likelihoods = asarray(likelihoods, dtype=float).reshape(-1)
             if likelihoods.shape != (self.n_models,):
                 raise ValueError(
@@ -397,6 +412,7 @@ class InteractingMultipleModelFilter(AbstractFilter, EuclideanFilterMixin):
             log_likelihoods[positive] = log(likelihoods[positive])
             self.latest_model_likelihoods = likelihoods
         else:
+            _reject_complex_values(log_likelihoods, "log_likelihoods")
             log_likelihoods = asarray(log_likelihoods, dtype=float).reshape(-1)
             if log_likelihoods.shape != (self.n_models,):
                 raise ValueError(
@@ -446,6 +462,7 @@ class InteractingMultipleModelFilter(AbstractFilter, EuclideanFilterMixin):
 
     @staticmethod
     def _prepare_transition_matrix(transition_matrix, n_models):
+        _reject_complex_values(transition_matrix, "transition_matrix")
         transition_matrix = asarray(transition_matrix, dtype=float)
         if transition_matrix.shape != (n_models, n_models):
             raise ValueError("transition_matrix must have shape (n_models, n_models).")
@@ -472,6 +489,7 @@ class InteractingMultipleModelFilter(AbstractFilter, EuclideanFilterMixin):
         if mode_probabilities is None:
             mode_probabilities = ones(n_models) / n_models
         else:
+            _reject_complex_values(mode_probabilities, "mode_probabilities")
             mode_probabilities = asarray(mode_probabilities, dtype=float).reshape(-1)
             if mode_probabilities.shape != (n_models,):
                 raise ValueError(
@@ -548,6 +566,7 @@ class InteractingMultipleModelFilter(AbstractFilter, EuclideanFilterMixin):
 
     @staticmethod
     def _moment_match_gaussians(gaussians, weights) -> GaussianDistribution:
+        _reject_complex_values(weights, "weights")
         weights = asarray(weights, dtype=float).reshape(-1)
         if weights.shape != (len(gaussians),):
             raise ValueError("weights must have one entry per Gaussian component.")
