@@ -80,6 +80,45 @@ class TestMardiaSuttonDistribution(unittest.TestCase):
         p = self.dist.pdf(array([[self.mu0, self.mu]]))
         npt.assert_allclose(float(p[0]), expected, rtol=1e-6)
 
+    def test_large_kappa_pdf_and_covariance_remain_finite(self):
+        import math
+
+        from scipy.special import ive  # pylint: disable=no-name-in-module
+        from scipy.stats import norm
+
+        kappa = 1000.0
+        dist = MardiaSuttonDistribution(
+            self.mu, self.mu0, kappa, self.rho1, self.rho2, self.sigma
+        )
+
+        rho_squared = self.rho1**2 + self.rho2**2
+        sigmac = self.sigma * math.sqrt(1.0 - rho_squared)
+        expected_pdf = norm.pdf(self.mu, loc=self.mu, scale=sigmac) / (
+            2.0 * math.pi * ive(0, kappa)
+        )
+        actual_pdf = float(dist.pdf(array([[self.mu0, self.mu]]))[0])
+        self.assertTrue(math.isfinite(actual_pdf))
+        npt.assert_allclose(actual_pdf, expected_pdf, rtol=1e-12)
+
+        bessel_ratio_1 = ive(1, kappa) / ive(0, kappa)
+        bessel_ratio_2 = ive(2, kappa) / ive(0, kappa)
+        aligned_rho_cos = self.rho1 * math.cos(self.mu0) + self.rho2 * math.sin(
+            self.mu0
+        )
+        aligned_rho_sin = -self.rho1 * math.sin(self.mu0) + self.rho2 * math.cos(
+            self.mu0
+        )
+        cos_variance = 0.5 * (1.0 + bessel_ratio_2) - bessel_ratio_1**2
+        sin_variance = 0.5 * (1.0 - bessel_ratio_2)
+        expected_covariance = self.sigma**2 * (1.0 - rho_squared) + (
+            self.sigma**2
+            * kappa
+            * (aligned_rho_cos**2 * cos_variance + aligned_rho_sin**2 * sin_variance)
+        )
+        actual_covariance = float(dist.linear_covariance()[0, 0])
+        self.assertTrue(math.isfinite(actual_covariance))
+        npt.assert_allclose(actual_covariance, expected_covariance, rtol=1e-12)
+
     @unittest.skipIf(
         pyrecest.backend.__backend_name__ in ("pytorch", "jax"),
         reason="Not supported on this backend",
