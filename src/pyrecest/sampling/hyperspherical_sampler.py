@@ -36,15 +36,22 @@ from .abstract_sampler import AbstractSampler
 from .hypertoroidal_sampler import CircularUniformSampler
 from .leopardi_sampler import get_partition_points_cartesian
 
+_TEXT_TYPES = (str, bytes, bytearray, np.str_, np.bytes_)
 
-def _validate_positive_integral_scalar(value, name: str) -> int:
-    scalar = np.asarray(value)
+
+def _validate_integral_scalar(value, name: str, *, minimum: int) -> int:
+    try:
+        scalar = np.asarray(value)
+    except (TypeError, ValueError, RuntimeError) as exc:
+        raise ValueError(f"{name} must be an integer") from exc
     if scalar.ndim != 0:
         raise ValueError(f"{name} must be a scalar integer")
 
     scalar_value = scalar.item()
     if isinstance(scalar_value, (bool, np.bool_)):
         raise ValueError(f"{name} must be an integer, not a boolean")
+    if isinstance(scalar_value, _TEXT_TYPES):
+        raise ValueError(f"{name} must be an integer")
 
     try:
         integer_value = int(scalar_value)
@@ -54,35 +61,63 @@ def _validate_positive_integral_scalar(value, name: str) -> int:
 
     if not np.isfinite(float_value) or not float_value.is_integer():
         raise ValueError(f"{name} must be a finite integer")
-    if integer_value <= 0:
+    if integer_value < minimum:
+        if minimum == 0:
+            raise ValueError(f"{name} must be nonnegative")
         raise ValueError(f"{name} must be positive")
     return integer_value
 
 
-def _normalize_fibonacci_hopf_grid_density_parameter(grid_density_parameter):
-    if np.asarray(grid_density_parameter).ndim == 0:
-        return [
-            _validate_positive_integral_scalar(
-                grid_density_parameter, "grid_density_parameter"
-            )
-        ]
+def _validate_positive_integral_scalar(value, name: str) -> int:
+    return _validate_integral_scalar(value, name, minimum=1)
 
+
+def _normalize_hopf_grid_density_parameter(
+    grid_density_parameter, *, first_minimum: int
+):
+    message = "grid_density_parameter must be a scalar or contain one or two entries"
     try:
-        grid_density_values = list(grid_density_parameter)
-    except TypeError as exc:
-        raise ValueError(
-            "grid_density_parameter must be a scalar or contain one or two entries"
-        ) from exc
+        density_array = np.asarray(grid_density_parameter)
+    except (TypeError, ValueError, RuntimeError) as exc:
+        raise ValueError(message) from exc
+
+    if density_array.ndim == 0:
+        grid_density_values = [grid_density_parameter]
+    else:
+        try:
+            grid_density_values = list(grid_density_parameter)
+        except TypeError as exc:
+            raise ValueError(message) from exc
 
     if len(grid_density_values) not in (1, 2):
-        raise ValueError(
-            "grid_density_parameter must be a scalar or contain one or two entries"
-        )
+        raise ValueError(message)
 
-    return [
-        _validate_positive_integral_scalar(value, f"grid_density_parameter[{index}]")
-        for index, value in enumerate(grid_density_values)
+    normalized = [
+        _validate_integral_scalar(
+            grid_density_values[0],
+            "grid_density_parameter[0]",
+            minimum=first_minimum,
+        )
     ]
+    if len(grid_density_values) == 2:
+        normalized.append(
+            _validate_positive_integral_scalar(
+                grid_density_values[1], "grid_density_parameter[1]"
+            )
+        )
+    return normalized
+
+
+def _normalize_fibonacci_hopf_grid_density_parameter(grid_density_parameter):
+    return _normalize_hopf_grid_density_parameter(
+        grid_density_parameter, first_minimum=1
+    )
+
+
+def _normalize_healpix_hopf_grid_density_parameter(grid_density_parameter):
+    return _normalize_hopf_grid_density_parameter(
+        grid_density_parameter, first_minimum=0
+    )
 
 
 def _validate_grid_dim(name: str, dim: int, expected_dim: int) -> None:
@@ -404,14 +439,14 @@ class AbstractHopfBasedS3Sampler(AbstractHypersphericalUniformSampler):
 class HealpixHopfSampler(AbstractHopfBasedS3Sampler):
     def get_grid(self, grid_density_parameter, dim: int = 3):
         """
-        Hopf coordinates are (θ, ϕ, ψ) where θ and ϕ are the angles for the sphere and ψ is the angle on the circle
-        First parameter is the number of points on the sphere, second parameter is the number of points on the circle.
+        Hopf coordinates are (θ, ϕ, ψ) where θ and ϕ are the angles for the sphere and ψ is the angle on the circle.
+        The first parameter is the maximum HEALPix refinement level; the optional second parameter is the number of circle points per level.
         """
         _validate_grid_dim("HealpixHopfSampler", dim, 3)
+        grid_density_parameter = _normalize_healpix_hopf_grid_density_parameter(
+            grid_density_parameter
+        )
         import healpy as hp
-
-        if isinstance(grid_density_parameter, int):
-            grid_density_parameter = [grid_density_parameter]
 
         s3_points_list = []
 
