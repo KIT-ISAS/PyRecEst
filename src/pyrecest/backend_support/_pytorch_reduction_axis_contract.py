@@ -147,6 +147,30 @@ def _wrap_boolean_axis_dim_reduction(helper, torch_module):
     return reduction
 
 
+def _patch_reduction_normalizer(module, torch_module) -> None:
+    """Install the strict normalizer on one backend module."""
+
+    original_normalizer = getattr(module, "_normalize_reduction_axes", None)
+    if original_normalizer is None or getattr(
+        original_normalizer,
+        "_pyrecest_reduction_axis_bool_contract",
+        False,
+    ):
+        return
+
+    def _normalize_reduction_axes(axis, ndim_value):
+        return normalize_reduction_axes(axis, ndim_value, torch_module)
+
+    _normalize_reduction_axes.__name__ = getattr(
+        original_normalizer,
+        "__name__",
+        "_normalize_reduction_axes",
+    )
+    _normalize_reduction_axes.__doc__ = getattr(original_normalizer, "__doc__", None)
+    _normalize_reduction_axes._pyrecest_reduction_axis_bool_contract = True
+    module._normalize_reduction_axes = _normalize_reduction_axes
+
+
 def patch_pytorch_reduction_axis_contract() -> None:
     """Make raw/public PyTorch reduction helpers reject boolean axes."""
 
@@ -155,51 +179,16 @@ def patch_pytorch_reduction_axis_contract() -> None:
 
     try:
         import pyrecest._backend as backend_loader  # pylint: disable=import-outside-toplevel
+        import pyrecest._backend._common as common_backend  # pylint: disable=import-outside-toplevel
         import pyrecest.backend as backend  # pylint: disable=import-outside-toplevel
         import pyrecest._backend.pytorch as raw_pytorch  # pylint: disable=import-outside-toplevel
         import torch  # pylint: disable=import-outside-toplevel
     except ModuleNotFoundError:  # pragma: no cover - PyTorch backend may be unavailable
         return
 
-    backend_normalizer = getattr(backend_loader, "_normalize_reduction_axes", None)
-    if backend_normalizer is not None and not getattr(
-        backend_normalizer,
-        "_pyrecest_reduction_axis_bool_contract",
-        False,
-    ):
-
-        def _normalize_backend_reduction_axes(axis, ndim_value):
-            return normalize_reduction_axes(axis, ndim_value, torch)
-
-        _normalize_backend_reduction_axes.__name__ = getattr(
-            backend_normalizer,
-            "__name__",
-            "_normalize_reduction_axes",
-        )
-        _normalize_backend_reduction_axes.__doc__ = getattr(
-            backend_normalizer,
-            "__doc__",
-            None,
-        )
-        _normalize_backend_reduction_axes._pyrecest_reduction_axis_bool_contract = True
-        backend_loader._normalize_reduction_axes = _normalize_backend_reduction_axes
-
-    original_normalizer = getattr(raw_pytorch, "_normalize_reduction_axes", None)
-    if original_normalizer is None:
-        return
-    if not getattr(original_normalizer, "_pyrecest_reduction_axis_bool_contract", False):
-
-        def _normalize_reduction_axes(axis, ndim_value):
-            return normalize_reduction_axes(axis, ndim_value, torch)
-
-        _normalize_reduction_axes.__name__ = getattr(
-            original_normalizer,
-            "__name__",
-            "_normalize_reduction_axes",
-        )
-        _normalize_reduction_axes.__doc__ = getattr(original_normalizer, "__doc__", None)
-        _normalize_reduction_axes._pyrecest_reduction_axis_bool_contract = True
-        raw_pytorch._normalize_reduction_axes = _normalize_reduction_axes
+    _patch_reduction_normalizer(backend_loader, torch)
+    _patch_reduction_normalizer(common_backend, torch)
+    _patch_reduction_normalizer(raw_pytorch, torch)
 
     for helper_name in ("any", "all", "count_nonzero", "max", "prod"):
         raw_helper = getattr(raw_pytorch, helper_name, None)
