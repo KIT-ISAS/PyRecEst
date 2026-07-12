@@ -1,7 +1,8 @@
 import copy
 
 # pylint: disable=no-name-in-module,no-member
-from pyrecest.backend import array, ndim, reshape, zeros
+from pyrecest.backend import all as backend_all
+from pyrecest.backend import array, isfinite, ndim, reshape, zeros
 
 from ..abstract_custom_nonperiodic_distribution import (
     AbstractCustomNonPeriodicDistribution,
@@ -14,10 +15,12 @@ def _as_shift_vector(shift_by, dim: int, *, name: str = "shift_by"):
     if shift_by.ndim == 0:
         if dim != 1:
             raise ValueError(f"{name} must have shape ({dim},), got scalar.")
-        return reshape(shift_by, (1,))
-    if shift_by.ndim == 1 and shift_by.shape[0] == dim:
-        return shift_by
-    raise ValueError(f"{name} must have shape ({dim},), got {shift_by.shape}.")
+        shift_by = reshape(shift_by, (1,))
+    elif shift_by.ndim != 1 or shift_by.shape[0] != dim:
+        raise ValueError(f"{name} must have shape ({dim},), got {shift_by.shape}.")
+    if not bool(backend_all(isfinite(shift_by))):
+        raise ValueError(f"{name} must contain only finite values.")
+    return shift_by
 
 
 class CustomLinearDistribution(
