@@ -59,7 +59,7 @@ def normalize_flip_axes(axis):
 
     try:
         return (_operator_index(axis),)
-    except TypeError as index_error:
+    except TypeError:
         try:
             axes = tuple(axis)
         except TypeError as iterable_error:
