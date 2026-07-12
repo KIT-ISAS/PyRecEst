@@ -33,3 +33,19 @@ def test_sigma_points_reject_nonfinite_covariance(points, invalid_value):
 
     with pytest.raises(ValueError, match="P must contain only finite values"):
         points.sigma_points(np.zeros(2), covariance)
+
+
+@pytest.mark.parametrize(
+    "points",
+    [
+        JulierSigmaPoints(n=2, kappa=1.0),
+        MerweScaledSigmaPoints(n=2, alpha=0.5, beta=2.0, kappa=0.0),
+    ],
+    ids=["julier", "merwe"],
+)
+@pytest.mark.parametrize("invalid_value", [np.nan, np.inf], ids=["nan", "infinity"])
+def test_sigma_points_reject_nonfinite_mean(points, invalid_value):
+    mean = np.array([0.0, invalid_value])
+
+    with pytest.raises(ValueError, match="x must contain only finite values"):
+        points.sigma_points(mean, np.eye(2))
