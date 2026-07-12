@@ -64,6 +64,19 @@ def test_shift_validates_shape():
         dist.shift(array([0.1]))
 
 
+def test_shift_returns_independent_copy():
+    dist = HypertoroidalUniformDistribution(2)
+
+    shifted = dist.shift(array([0.1, 0.2]))
+
+    assert shifted is not dist
+    assert type(shifted) is type(dist)
+    assert shifted.dim == dist.dim
+    assert float(shifted.pdf(array([0.3, 0.4]))) == pytest.approx(
+        float(dist.pdf(array([0.3, 0.4])))
+    )
+
+
 def test_integrate_validates_boundary_shapes():
     dist = HypertoroidalUniformDistribution(2)
 
