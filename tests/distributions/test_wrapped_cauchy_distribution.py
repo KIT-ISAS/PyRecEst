@@ -78,6 +78,21 @@ class WrappedCauchyDistributionTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "one-dimensional"):
             dist.cdf(array([[0.1, 0.2]]))
 
+    def test_trigonometric_moment_rejects_non_integer_orders(self):
+        dist = WrappedCauchyDistribution(self.mu, self.gamma)
+
+        for order in (0.5, True, "1"):
+            with self.subTest(order=order):
+                with self.assertRaisesRegex(ValueError, "n must be an integer"):
+                    dist.trigonometric_moment(order)
+
+    def test_trigonometric_moment_accepts_negative_integer_orders(self):
+        dist = WrappedCauchyDistribution(array(0.7), self.gamma)
+        positive_moment = dist.trigonometric_moment(2)
+        negative_moment = dist.trigonometric_moment(-2)
+
+        npt.assert_allclose(negative_moment, positive_moment.conjugate(), rtol=1e-12)
+
     @unittest.skipIf(
         pyrecest.backend.__backend_name__ in ("pytorch", "jax"),
         reason="Not supported on this backend",
