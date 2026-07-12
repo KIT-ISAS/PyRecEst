@@ -1,4 +1,6 @@
 # pylint: disable=no-name-in-module,no-member
+from numbers import Integral
+
 from pyrecest.backend import (
     all,
     arctan2,
@@ -92,5 +94,7 @@ class WrappedCauchyDistribution(AbstractCircularDistribution):
         return mod(primitive(xs) - primitive(starting_point), 1.0)
 
     def trigonometric_moment(self, n):
-        m = exp(1j * n * self.mu - abs(n) * self.gamma)
-        return m
+        if isinstance(n, bool) or not isinstance(n, Integral):
+            raise ValueError("n must be an integer.")
+        n = int(n)
+        return exp(1j * n * self.mu - abs(n) * self.gamma)
