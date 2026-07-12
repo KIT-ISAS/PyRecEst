@@ -42,21 +42,28 @@ def _validate_positive_sample_count(n) -> int:
     return count_int
 
 
-def _validate_positive_finite_scalar(value, name: str) -> float:
+def _validate_finite_scalar(value, name: str) -> float:
     scalar_array = np.asarray(value)
     if scalar_array.shape != ():
-        raise ValueError(f"{name} must be a scalar")
+        raise ValueError(f"{name} must be a finite scalar")
 
     scalar = scalar_array.item()
     if isinstance(scalar, (bool, np.bool_)):
-        raise ValueError(f"{name} must be a positive finite scalar")
+        raise ValueError(f"{name} must be a finite scalar")
 
     try:
         scalar_float = float(scalar)
     except (OverflowError, TypeError, ValueError) as exc:
-        raise ValueError(f"{name} must be a positive finite scalar") from exc
+        raise ValueError(f"{name} must be a finite scalar") from exc
 
-    if not math.isfinite(scalar_float) or scalar_float <= 0.0:
+    if not math.isfinite(scalar_float):
+        raise ValueError(f"{name} must be a finite scalar")
+    return scalar_float
+
+
+def _validate_positive_finite_scalar(value, name: str) -> float:
+    scalar_float = _validate_finite_scalar(value, name)
+    if scalar_float <= 0.0:
         raise ValueError(f"{name} must be a positive finite scalar")
     return scalar_float
 
@@ -82,17 +89,21 @@ class MardiaSuttonDistribution(AbstractHypercylindricalDistribution):
             sigma (positive scalar): linear standard deviation
         """
         AbstractHypercylindricalDistribution.__init__(self, bound_dim=1, lin_dim=1)
+        mu_float = _validate_finite_scalar(mu, "mu")
+        mu0_float = _validate_finite_scalar(mu0, "mu0")
         kappa_float = _validate_positive_finite_scalar(kappa, "kappa")
+        rho1_float = _validate_finite_scalar(rho1, "rho1")
+        rho2_float = _validate_finite_scalar(rho2, "rho2")
         sigma_float = _validate_positive_finite_scalar(sigma, "sigma")
-        rho_norm = float(sqrt(rho1**2 + rho2**2))
-        if not math.isfinite(rho_norm) or rho_norm >= 1.0:
+        rho_norm = math.hypot(rho1_float, rho2_float)
+        if rho_norm >= 1.0:
             raise ValueError("sqrt(rho1^2 + rho2^2) must be strictly less than 1")
 
-        self.mu = mu
-        self.mu0 = mod(mu0, 2.0 * pi)
+        self.mu = mu_float
+        self.mu0 = mod(mu0_float, 2.0 * pi)
         self.kappa = kappa_float
-        self.rho1 = rho1
-        self.rho2 = rho2
+        self.rho1 = rho1_float
+        self.rho2 = rho2_float
         self.sigma = sigma_float
 
     def get_mu_sigma(self, xa_circular):
