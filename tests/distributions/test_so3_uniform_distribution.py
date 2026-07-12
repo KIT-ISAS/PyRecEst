@@ -45,6 +45,32 @@ class SO3UniformDistributionTest(unittest.TestCase):
         npt.assert_allclose(dist.ln_pdf(rotations), log(expected_pdf), atol=ATOL)
         self.assertAlmostEqual(dist.get_manifold_size(), math.pi**2, places=12)
 
+    def test_pdf_preserves_nested_batch_shape(self):
+        dist = SO3UniformDistribution()
+        rotations = array(
+            [
+                [
+                    [0.0, 0.0, 0.0, 1.0],
+                    [0.0, 0.0, 0.0, -2.0],
+                    [0.0, 0.0, sin(pi / 4.0), cos(pi / 4.0)],
+                ],
+                [
+                    [0.0, 0.0, sin(pi / 6.0), cos(pi / 6.0)],
+                    [0.0, sin(pi / 8.0), 0.0, cos(pi / 8.0)],
+                    [sin(pi / 10.0), 0.0, 0.0, cos(pi / 10.0)],
+                ],
+            ]
+        )
+        expected_pdf = ones((2, 3)) / (pi**2)
+
+        actual_pdf = dist.pdf(rotations)
+        actual_ln_pdf = dist.ln_pdf(rotations)
+
+        self.assertEqual(actual_pdf.shape, (2, 3))
+        self.assertEqual(actual_ln_pdf.shape, (2, 3))
+        npt.assert_allclose(actual_pdf, expected_pdf, atol=ATOL)
+        npt.assert_allclose(actual_ln_pdf, log(expected_pdf), atol=ATOL)
+
     def test_pdf_rejects_nonfinite_quaternions(self):
         dist = SO3UniformDistribution()
         invalid_rotations = [

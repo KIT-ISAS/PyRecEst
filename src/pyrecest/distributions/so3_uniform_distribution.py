@@ -37,12 +37,12 @@ class SO3UniformDistribution(HyperhemisphericalUniformDistribution):
     def pdf(self, xs):
         """Evaluate the constant SO(3) density."""
         xs = self._normalize_quaternions(xs)
-        return ones(xs.shape[0]) / self.get_manifold_size()
+        return ones(xs.shape[:-1]) / self.get_manifold_size()
 
     def ln_pdf(self, xs):
         """Evaluate the natural logarithm of the constant SO(3) density."""
         xs = self._normalize_quaternions(xs)
-        return -log(self.get_manifold_size()) * ones(xs.shape[0])
+        return -log(self.get_manifold_size()) * ones(xs.shape[:-1])
 
     def sample(self, n):
         """Draw ``n`` canonical scalar-last unit quaternions."""
