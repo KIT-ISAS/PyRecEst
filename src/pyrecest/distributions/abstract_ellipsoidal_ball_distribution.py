@@ -3,6 +3,7 @@ from pyrecest.backend import all as backend_all
 from pyrecest.backend import (
     allclose,
     array,
+    is_complex,
     isfinite,
     linalg,
     pi,
@@ -48,6 +49,10 @@ class AbstractEllipsoidalBallDistribution(AbstractBoundedNonPeriodicDistribution
                 expected=f"({self.dim}, {self.dim})",
                 reason="shape_matrix must match the center dimension",
             )
+        if is_complex(center):
+            raise ValidationError("center must be real-valued")
+        if is_complex(shape_matrix):
+            raise ValidationError("shape_matrix must be real-valued")
         if not bool(backend_all(isfinite(center))):
             raise ValidationError("center must contain only finite values")
         if not bool(backend_all(isfinite(shape_matrix))):
