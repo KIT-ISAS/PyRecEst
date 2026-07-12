@@ -27,6 +27,14 @@ class CircularUniformDistributionTest(unittest.TestCase):
         x = array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
         npt.assert_allclose(cu2.pdf(x), 1.0 / (2.0 * pi) * ones(x.shape))
 
+    def test_shift_rejects_invalid_inputs(self):
+        cu = CircularUniformDistribution()
+
+        for shift_by in (True, [1.0, 2.0], [[1.0]], np.array([True])):
+            with self.subTest(shift_by=shift_by):
+                with self.assertRaises(ValueError):
+                    cu.shift(shift_by)
+
     @unittest.skipIf(
         pyrecest.backend.__backend_name__ in ("pytorch", "jax"),
         reason="Not supported on this backend",

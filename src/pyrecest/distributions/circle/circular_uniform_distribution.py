@@ -1,5 +1,6 @@
 from pyrecest.backend import array, mod, pi
 
+from ..hypertorus._input_validation import as_shift_vector
 from ..hypertorus.hypertoroidal_uniform_distribution import (
     HypertoroidalUniformDistribution,
 )
@@ -20,7 +21,8 @@ class CircularUniformDistribution(
     def get_manifold_size(self):
         return AbstractCircularDistribution.get_manifold_size(self)
 
-    def shift(self, _):
+    def shift(self, shift_by):
+        as_shift_vector(shift_by, self.dim)
         return CircularUniformDistribution()
 
     def cdf(self, xa, starting_point=0):
