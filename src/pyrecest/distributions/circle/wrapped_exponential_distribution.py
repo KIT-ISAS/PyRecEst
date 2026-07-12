@@ -124,6 +124,9 @@ class WrappedExponentialDistribution(AbstractCircularDistribution):
         return self.lambda_ * exp(-self.lambda_ * xs) * self._normalization_const
 
     def trigonometric_moment(self, n):
+        if isinstance(n, (bool, np.bool_)) or not isinstance(n, Integral):
+            raise ValueError("n must be an integer.")
+        n = int(n)
         return 1.0 / (1.0 - 1j * n / self.lambda_)
 
     def sample(self, n: Union[int, int32, int64]):
