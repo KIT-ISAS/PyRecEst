@@ -49,7 +49,8 @@ class AbstractOrthogonalBasisDistribution(AbstractDistributionType):
         :return: Normalized distribution.
         """
         result = copy.deepcopy(self)
-        return result.normalize_in_place()
+        result.normalize_in_place()
+        return result
 
     @staticmethod
     def _discard_negligible_imaginary_part(val):
