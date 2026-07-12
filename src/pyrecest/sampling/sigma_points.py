@@ -96,6 +96,8 @@ def _validate_sigma_inputs(x, P, n: int):
     x = reshape(asarray(x, dtype=float64), (-1,))
     if x.shape != (n,):
         raise ValueError(f"x must have shape ({n},)")
+    if not _to_python_bool(all(isfinite(x))):
+        raise ValueError("x must contain only finite values")
     if _has_complex_dtype(P):
         raise ValueError("P must contain real values")
     P = asarray(P, dtype=float64)
