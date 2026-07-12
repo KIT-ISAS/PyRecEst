@@ -81,6 +81,13 @@ def test_integrate_rejects_reversed_boundaries():
         dist.integrate((array([0.0, 1.0]), array([1.0, 0.5])))
 
 
+def test_integrate_rejects_reversed_scalar_boundaries():
+    dist = HypertoroidalUniformDistribution(1)
+
+    with pytest.raises(ValueError, match="increasing"):
+        dist.integrate((array(1.0), array(0.0)))
+
+
 def test_integrate_accepts_scalar_boundaries_for_one_dimension():
     dist = HypertoroidalUniformDistribution(1)
 
