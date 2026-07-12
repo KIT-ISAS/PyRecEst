@@ -86,7 +86,7 @@ def _validate_nonnegative_wrap_count(m) -> int:
 
 
 def _as_2d_query_points(xs, dim: int):
-    """Normalize scalar/vector/matrix query inputs to shape ``(n_eval, dim)``."""
+    """Normalize query points and retain their density output shape."""
     xs = array(xs)
     if xs.ndim == 0:
         if dim != 1:
@@ -94,13 +94,13 @@ def _as_2d_query_points(xs, dim: int):
                 "Scalar query points are only valid for one-dimensional "
                 f"distributions, got dim={dim}."
             )
-        return reshape(xs, (1, 1))
+        return reshape(xs, (1, 1)), (1,)
 
     if xs.ndim == 1:
         if dim == 1:
-            return reshape(xs, (-1, 1))
+            return reshape(xs, (-1, 1)), xs.shape
         if xs.shape[0] == dim:
-            return reshape(xs, (1, dim))
+            return reshape(xs, (1, dim)), (1,)
         raise ValueError(
             "Last dimension of xs must match the distribution dimension "
             f"{dim}, got shape {xs.shape}."
@@ -111,7 +111,7 @@ def _as_2d_query_points(xs, dim: int):
             "Last dimension of xs must match the distribution dimension "
             f"{dim}, got shape {xs.shape}."
         )
-    return reshape(xs, (-1, dim))
+    return reshape(xs, (-1, dim)), xs.shape[:-1]
 
 
 def _validate_bound_dim(bound_dim, total_dim: int) -> int:
@@ -163,7 +163,7 @@ class PartiallyWrappedNormalDistribution(AbstractHypercylindricalDistribution):
 
     def pdf(self, xs, m: Union[int, int32, int64] = 3):
         m = _validate_nonnegative_wrap_count(m)
-        xs = _as_2d_query_points(xs, self.input_dim)
+        xs, output_shape = _as_2d_query_points(xs, self.input_dim)
         condition = (
             arange(xs.shape[1]) < self.bound_dim
         )  # Create a condition based on column indices
@@ -208,7 +208,7 @@ class PartiallyWrappedNormalDistribution(AbstractHypercylindricalDistribution):
         # sum evaluations for the wrapped dimensions
         summed_evals = sum(evals.reshape(-1, (2 * m + 1) ** self.bound_dim), axis=1)
 
-        return summed_evals
+        return reshape(summed_evals, output_shape)
 
     def mode(self):
         """
