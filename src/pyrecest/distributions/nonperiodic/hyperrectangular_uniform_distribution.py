@@ -1,5 +1,13 @@
 from pyrecest.backend import all as backend_all
-from pyrecest.backend import array, logical_and, ones, reshape, where, zeros
+from pyrecest.backend import (
+    array,
+    is_complex,
+    logical_and,
+    ones,
+    reshape,
+    where,
+    zeros,
+)
 
 from ..abstract_uniform_distribution import AbstractUniformDistribution
 from .abstract_hyperrectangular_distribution import AbstractHyperrectangularDistribution
@@ -30,6 +38,8 @@ class HyperrectangularUniformDistribution(
 
     def _coerce_points(self, xs):
         xs = array(xs)
+        if is_complex(xs):
+            raise ValueError("xs must be real-valued")
         if xs.ndim == 0:
             if self.dim != 1:
                 raise ValueError("Scalar points are only valid for dim == 1")
