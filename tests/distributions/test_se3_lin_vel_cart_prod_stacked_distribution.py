@@ -111,6 +111,17 @@ class TestSE3LinVelCartProdStackedDistribution(unittest.TestCase):
 
         self.assertTrue(allclose(cpd.pdf(points), cpd.pdf(array(points))))
 
+    def test_marginalization_returns_remaining_component(self):
+        orientation = HyperhemisphericalUniformDistribution(3)
+        velocity = GaussianDistribution(
+            array([1.0, 2.0, 0.0, -2.0, -1.0, 3.0]),
+            diag(array([3.0, 2.0, 3.0, 3.0, 4.0, 5.0])),
+        )
+        cpd = SE3LinVelCartProdStackedDistribution([orientation, velocity])
+
+        self.assertIs(cpd.marginalize_linear(), orientation)
+        self.assertIs(cpd.marginalize_periodic(), velocity)
+
     def test_mode(self):
         mu = array([2.0, 1.0, 3.0, 1.0])
         watson = HyperhemisphericalWatsonDistribution(mu / linalg.norm(mu), 2)

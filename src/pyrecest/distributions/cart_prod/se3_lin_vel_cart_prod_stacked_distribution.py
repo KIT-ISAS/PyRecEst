@@ -38,10 +38,12 @@ class SE3LinVelCartProdStackedDistribution(CartProdStackedDistribution):
         return sum(dist.input_dim for dist in self.dists)
 
     def marginalize_linear(self):
-        return self.dists[1]
+        """Marginalize out linear velocity, retaining the orientation component."""
+        return self.dists[0]
 
     def marginalize_periodic(self):
-        return self.dists[0]
+        """Marginalize out orientation, retaining the linear velocity component."""
+        return self.dists[1]
 
     def pdf(self, xs):
         xs = asarray(xs)
