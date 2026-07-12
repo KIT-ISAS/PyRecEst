@@ -41,6 +41,12 @@ def _to_python_bool(value):
     return bool(value)
 
 
+def _validate_finite_values(value, name):
+    """Reject arrays containing NaN or infinite values."""
+    if not _to_python_bool(backend_all(isfinite(value))):
+        raise ValueError(f"{name} must contain only finite values.")
+
+
 def _validate_same_dimension(first, second, operation):
     if first.dim != second.dim:
         raise ValueError(
@@ -133,8 +139,7 @@ class GaussianDistribution(AbstractLinearDistribution):
         self.mu = mu
 
         if check_validity:
-            if not _to_python_bool(backend_all(isfinite(mu))):
-                raise ValueError("mu must contain only finite values.")
+            _validate_finite_values(mu, "mu")
             if not _to_python_bool(backend_all(isfinite(C))):
                 raise ValueError("C must contain only finite values.")
             if not _to_python_bool(allclose(C, transpose(C))):
@@ -157,6 +162,7 @@ class GaussianDistribution(AbstractLinearDistribution):
             raise ValueError(
                 f"new_mean must have shape ({self.dim},), got {new_mean.shape}."
             )
+        _validate_finite_values(new_mean, "new_mean")
         new_dist = copy.deepcopy(self)
         new_dist.mu = new_mean
         return new_dist
@@ -250,6 +256,7 @@ class GaussianDistribution(AbstractLinearDistribution):
             raise ValueError(
                 f"shift_by must be scalar for dim=1 or have shape ({self.dim},)."
             )
+        _validate_finite_values(shift_by, "shift_by")
 
         new_gaussian = copy.deepcopy(self)
         new_gaussian.mu = self.mu + shift_by
