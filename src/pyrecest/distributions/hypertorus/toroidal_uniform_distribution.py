@@ -10,5 +10,6 @@ class ToroidalUniformDistribution(
     def get_manifold_size(self):
         return AbstractToroidalDistribution.get_manifold_size(self)
 
-    def shift(self, _):
+    def shift(self, shift_by):
+        HypertoroidalUniformDistribution.shift(self, shift_by)
         return copy.deepcopy(self)
