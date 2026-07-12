@@ -43,6 +43,7 @@ class VonMisesDistribution(AbstractCircularDistribution):
         kappa,
         norm_const: float | None = None,
     ):
+        self._as_float_scalar(mu, "mu")
         kappa_scalar = self._as_float_scalar(kappa, "kappa")
         if kappa_scalar < 0.0:
             raise ValueError("kappa must be nonnegative.")
@@ -89,6 +90,7 @@ class VonMisesDistribution(AbstractCircularDistribution):
         mu : scalar
             New mean direction.
         """
+        self._as_float_scalar(mu, "mu")
         new_dist = copy.deepcopy(self)
         new_dist.mu = mu
         return new_dist
@@ -249,7 +251,7 @@ class VonMisesDistribution(AbstractCircularDistribution):
             m (scalar): First trigonometric moment (complex number).
 
         Returns:
-            vm (VMDistribution): VM distribution obtained by moment matching.
+            vm (VMDistribution): Distribution obtained by moment matching.
         """
         kappa_ = VonMisesDistribution.besselratio_inverse(0, abs(m))
         if VonMisesDistribution._as_float_scalar(kappa_, "kappa") == 0.0:
