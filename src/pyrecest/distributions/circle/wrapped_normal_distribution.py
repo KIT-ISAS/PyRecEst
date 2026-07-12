@@ -91,7 +91,7 @@ class WrappedNormalDistribution(
             xs = array([xs])
         # check if sigma is large and return uniform distribution in this case
         if sigma > self.MAX_SIGMA_BEFORE_UNIFORM:
-            return 1.0 / (2.0 * pi) * ones(xs.shape[0])
+            return (1.0 / (2.0 * pi) * ones(xs.shape[0])).squeeze()
         x = mod(xs, 2.0 * pi)
         x = where(x < 0, x + 2.0 * pi, x)
         x -= mu
