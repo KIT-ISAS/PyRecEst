@@ -58,6 +58,11 @@ class CartProdStackedDistribution(AbstractCartProdDistribution):
 
     def pdf(self, xs):
         xs = asarray(xs)
+        if xs.ndim not in (1, 2) or xs.shape[-1] != self.input_dim:
+            raise ValueError(
+                "xs must be a one-dimensional point or a two-dimensional batch "
+                f"with trailing dimension {self.input_dim}, got shape {xs.shape}."
+            )
         ps = []
         next_dim = 0
         for dist in self.dists:
