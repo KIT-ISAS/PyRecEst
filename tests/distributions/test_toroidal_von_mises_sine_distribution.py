@@ -13,6 +13,7 @@ from pyrecest.backend import arange, array, column_stack, cos, exp, pi, sin
 from pyrecest.distributions.hypertorus.toroidal_von_mises_sine_distribution import (
     ToroidalVonMisesSineDistribution,
 )
+from scipy.special import ive
 
 matplotlib.pyplot.close("all")
 matplotlib.use("Agg")
@@ -134,6 +135,22 @@ class ToroidalVMSineDistributionTest(ToroidalBivarVMTestMixin, unittest.TestCase
         )
         self.assertTrue(np.isfinite(tvm.norm_const))
         self.assertAlmostEqual(tvm.integrate(), 1.0, delta=1e-5)
+
+    @unittest.skipIf(
+        pyrecest.backend.__backend_name__ != "numpy",
+        reason="Regression test uses NumPy/scipy scalar semantics",
+    )
+    def test_large_kappa_independent_mode_density_is_finite(self):
+        kappa = 1000.0
+        mu = array([0.4, 1.2])
+        tvm = ToroidalVonMisesSineDistribution(mu, array([kappa, kappa]), 0.0)
+
+        mode_density = tvm.pdf(mu)
+        expected = 1.0 / (4.0 * np.pi**2 * ive(0, kappa) ** 2)
+
+        self.assertTrue(np.isfinite(mode_density))
+        self.assertGreater(float(mode_density), 0.0)
+        npt.assert_allclose(mode_density, expected, rtol=1e-12)
 
     def _unnormalized_pdf(self, xs):
         return exp(
