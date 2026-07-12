@@ -2,7 +2,7 @@ from abc import abstractmethod
 from numbers import Integral
 
 # pylint: disable=no-name-in-module,no-member
-from pyrecest.backend import array, exp, isfinite, mod, ndim, pi, sin
+from pyrecest.backend import array, cos, exp, isfinite, mod, ndim, pi, sin, tanh
 from scipy.special import ive  # pylint: disable=no-name-in-module
 
 from .abstract_circular_distribution import AbstractCircularDistribution
@@ -257,16 +257,17 @@ class GeneralizedKSineSkewedWrappedCauchyDistribution(AbstractCircularDistributi
         if self.k != 1:
             raise NotImplementedError("Currently, only k=1 is supported")
 
-        # Parameterizing the wrapped Cauchy density through rho avoids the
-        # sinh/cosh overflow and inf/inf cancellation that occur for large gamma.
-        rho = exp(-self.gamma)
-        one_minus_rho = 1.0 - rho
-        numerator = one_minus_rho * (1.0 + rho)
-        denominator = (
-            one_minus_rho**2
-            + 4.0 * rho * sin((xs - self.mu) / 2.0) ** 2
-        )
-        wc_pdf_vals = numerator / (2.0 * pi * denominator)
+        # Express the wrapped-Cauchy density through tanh(gamma / 2). The
+        # algebraically equivalent rho = exp(-gamma) form subtracts rho from
+        # one; for tiny positive gamma that rounds to zero and produces 0 / 0
+        # at the mode. This half-angle form remains stable for both tiny and
+        # large gamma.
+        half_angle = (xs - self.mu) / 2.0
+        half_gamma_tanh = tanh(self.gamma / 2.0)
+        denominator = sin(half_angle) ** 2 + half_gamma_tanh**2 * cos(
+            half_angle
+        ) ** 2
+        wc_pdf_vals = half_gamma_tanh / (2.0 * pi * denominator)
 
         skew_factor = (1 + self.lambda_ * sin(self.k * (xs - self.mu))) ** self.m
         # For the wrapped Cauchy: E[cos(n*(x-mu))] = exp(-n*k*gamma)
