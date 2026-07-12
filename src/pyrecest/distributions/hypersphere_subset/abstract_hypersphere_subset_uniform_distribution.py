@@ -33,7 +33,7 @@ class AbstractHypersphereSubsetUniformDistribution(
         if not isinstance(manifold_size, (int, float)):
             raise TypeError("Manifold size must be a numeric value.")
         p = (
-            (1 / manifold_size) * ones(xs.shape[0])
+            (1 / manifold_size) * ones(xs.shape[:-1])
             if xs.ndim > 1
             else 1 / manifold_size
         )
