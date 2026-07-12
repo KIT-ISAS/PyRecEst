@@ -140,6 +140,15 @@ class TestMotionModelCatalog(unittest.TestCase):
             covariance, np.array([[2.0 / 3.0, 1.0], [1.0, 2.0]]), atol=1e-12
         )
 
+    def test_continuous_to_discrete_lti_rejects_negative_process_noise_interval(self):
+        with self.assertRaisesRegex(ValueError, "dt"):
+            continuous_to_discrete_lti(
+                np.zeros((1, 1)),
+                np.ones((1, 1)),
+                np.ones((1, 1)),
+                dt=-1.0,
+            )
+
     def test_continuous_to_discrete_lti_rejects_nonfinite_inputs(self):
         with self.assertRaisesRegex(ValueError, "dt"):
             continuous_to_discrete_lti(np.eye(2), dt=np.nan)
