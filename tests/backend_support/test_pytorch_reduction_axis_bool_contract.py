@@ -105,3 +105,26 @@ assert_bool_axes_rejected(raw_pytorch)
         check=True,
         env=_backend_subprocess_env("numpy"),
     )
+
+
+@pytest.mark.backend_portable
+def test_common_pytorch_min_accepts_numpy_scalar_axis_tuples():
+    if importlib.util.find_spec("torch") is None:
+        pytest.skip("torch is not installed")
+
+    code = r'''
+import numpy as np
+import torch
+
+import pyrecest  # noqa: F401
+from pyrecest._backend import _common
+
+values = torch.tensor([[3.0, 1.0], [2.0, 4.0]])
+result = _common.min(values, axis=(np.asarray(0),))
+assert result.tolist() == [2.0, 1.0]
+'''
+    subprocess.run(
+        [sys.executable, "-c", code],
+        check=True,
+        env=_backend_subprocess_env("numpy"),
+    )
