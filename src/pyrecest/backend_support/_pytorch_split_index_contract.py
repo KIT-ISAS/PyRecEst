@@ -6,6 +6,9 @@ from operator import index as _operator_index
 
 import numpy as np
 
+from pyrecest.backend_support._pytorch_common_reduction_axis_contract import (
+    patch_pytorch_common_reduction_axis_contract as _patch_pytorch_common_reduction_axis_contract,
+)
 from pyrecest.backend_support._pytorch_take_index_contract import (
     patch_pytorch_take_index_contract as _patch_pytorch_take_index_contract,
 )
@@ -53,6 +56,10 @@ def _normalize_split_cut_indices(indices_or_sections, torch_module):
 def patch_pytorch_split_index_contract() -> None:
     """Make public and raw PyTorch ``split`` reject non-integer cut points."""
 
+    # This function is the first step in the reduction-axis bootstrap chain.
+    # Patch the shared common backend here so its reduction helpers receive the
+    # same normalized integer-like tuple axes as the public and raw backends.
+    _patch_pytorch_common_reduction_axis_contract()
     _patch_pytorch_take_index_contract()
 
     try:
