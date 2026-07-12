@@ -31,6 +31,18 @@ class TestHyperrectangularUniformDistribution(unittest.TestCase):
 
         npt.assert_allclose(float(dist.pdf(array([0.5, 11.0]))), 0.5)
 
+    def test_pdf_rejects_complex_points(self):
+        dist = HyperrectangularUniformDistribution(array([[0.0, 1.0], [10.0, 12.0]]))
+        invalid_points = (
+            array([0.5 + 0.25j, 11.0]),
+            array([[0.5 + 0.25j, 11.0]]),
+        )
+
+        for points in invalid_points:
+            with self.subTest(points=points):
+                with self.assertRaisesRegex(ValueError, "real-valued"):
+                    dist.pdf(points)
+
     def test_pdf_rejects_wrong_point_dimension(self):
         dist = HyperrectangularUniformDistribution(array([[0.0, 1.0], [10.0, 12.0]]))
 
