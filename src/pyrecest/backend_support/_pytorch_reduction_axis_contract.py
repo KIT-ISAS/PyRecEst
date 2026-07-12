@@ -1,4 +1,4 @@
-"""Runtime patch for PyTorch reduction-axis normalization."""
+"""Runtime patch for PyTorch axis normalization."""
 
 from __future__ import annotations
 
@@ -52,6 +52,37 @@ def _normalize_scalar_axis_value(axis, torch_module):
         return _operator_index(axis)
     except TypeError:
         return axis
+
+
+def normalize_flip_axes(axis):
+    """Convert NumPy-style flip axes to a tuple accepted by ``torch.flip``."""
+
+    try:
+        return (_operator_index(axis),)
+    except TypeError:
+        try:
+            axes = tuple(axis)
+        except TypeError as iterable_error:
+            raise TypeError(_AXIS_TYPE_MESSAGE) from iterable_error
+        try:
+            return tuple(_operator_index(one_axis) for one_axis in axes)
+        except TypeError as item_error:
+            raise TypeError(_AXIS_TYPE_MESSAGE) from item_error
+
+
+def _wrap_flip_axis_contract(helper, raw_pytorch, torch_module):
+    if getattr(helper, "_pyrecest_flip_axis_contract", False):
+        return helper
+
+    def flip(x, axis):
+        values = raw_pytorch.array(x)
+        axes = tuple(range(values.ndim)) if axis is None else normalize_flip_axes(axis)
+        return torch_module.flip(values, dims=axes)
+
+    flip.__name__ = getattr(helper, "__name__", "flip")
+    flip.__doc__ = getattr(helper, "__doc__", None)
+    flip._pyrecest_flip_axis_contract = True
+    return flip
 
 
 def normalize_reduction_axes(axis, ndim_value, torch_module):
@@ -148,7 +179,7 @@ def _wrap_boolean_axis_dim_reduction(helper, torch_module):
 
 
 def patch_pytorch_reduction_axis_contract() -> None:
-    """Make raw/public PyTorch reduction helpers reject boolean axes."""
+    """Normalize raw/public PyTorch axes to match the NumPy-style facade."""
 
     _patch_pytorch_searchsorted_sorter_contract()
     _patch_pytorch_split_index_contract()
@@ -160,6 +191,13 @@ def patch_pytorch_reduction_axis_contract() -> None:
         import torch  # pylint: disable=import-outside-toplevel
     except ModuleNotFoundError:  # pragma: no cover - PyTorch backend may be unavailable
         return
+
+    raw_flip = getattr(raw_pytorch, "flip", None)
+    if raw_flip is not None:
+        wrapped_flip = _wrap_flip_axis_contract(raw_flip, raw_pytorch, torch)
+        raw_pytorch.flip = wrapped_flip
+        if getattr(backend, "__backend_name__", None) == "pytorch":
+            backend.flip = wrapped_flip
 
     backend_normalizer = getattr(backend_loader, "_normalize_reduction_axes", None)
     if backend_normalizer is not None and not getattr(
