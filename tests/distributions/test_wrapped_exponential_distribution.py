@@ -91,6 +91,19 @@ class WrappedExponentialDistributionTest(unittest.TestCase):
                 rtol=5e-7,
             )
 
+    def test_trigonometric_moment_validates_order(self):
+        for order in (0.5, True, np.bool_(True), "1"):
+            with self.subTest(order=order), self.assertRaisesRegex(
+                ValueError, "integer"
+            ):
+                self.we.trigonometric_moment(order)
+
+        moment_two = self.we.trigonometric_moment(np.int64(2))
+        npt.assert_allclose(moment_two, self.we.trigonometric_moment(2), rtol=5e-7)
+        npt.assert_allclose(
+            self.we.trigonometric_moment(-2), np.conj(moment_two), rtol=5e-7
+        )
+
     def test_circular_mean(self):
         npt.assert_allclose(
             self.we.mean_direction(), float(arctan(1.0 / self.lambda_)), rtol=5e-7
