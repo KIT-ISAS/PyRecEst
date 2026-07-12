@@ -1,3 +1,4 @@
+import copy
 from typing import Union
 
 # pylint: disable=no-name-in-module,no-member
@@ -188,7 +189,7 @@ class HypertoroidalUniformDistribution(
         :returns: Shifted distribution
         """
         _validate_vector("shift_by", shift_by, self.dim)
-        return self
+        return copy.deepcopy(self)
 
     def integrate(self, integration_boundaries=None) -> float:
         """
