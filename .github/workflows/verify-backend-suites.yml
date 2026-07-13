@@ -1,0 +1,96 @@
+name: Verify backend suites
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    branches:
+      - "**"
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        backend: [numpy, pytorch]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Install system build dependencies
+        run: |
+          retry() {
+            for attempt in 1 2 3; do
+              "$@" && return 0
+              echo "Command failed on attempt ${attempt}; retrying..."
+              sleep $((attempt * 20))
+            done
+            "$@"
+          }
+
+          sudo rm -f \
+            /etc/apt/sources.list.d/azure-cli.list \
+            /etc/apt/sources.list.d/azure-cli.sources \
+            /etc/apt/sources.list.d/microsoft-prod.list \
+            /etc/apt/sources.list.d/microsoft-prod.sources
+          retry sudo apt-get update
+          retry sudo apt-get install -y \
+            gfortran pkg-config ninja-build \
+            libopenblas-dev liblapack-dev \
+            libfftw3-dev libhealpix-cxx-dev
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          retry() {
+            for attempt in 1 2 3; do
+              "$@" && return 0
+              echo "Command failed on attempt ${attempt}; retrying..."
+              sleep $((attempt * 20))
+            done
+            "$@"
+          }
+
+          python -m pip install --upgrade pip
+          retry python -m pip install poetry
+          poetry env use python
+          retry poetry install --with dev --extras "healpy_support"
+          if [ "${{ matrix.backend }}" = "pytorch" ]; then
+            retry poetry run python -m pip install \
+              --index-url https://download.pytorch.org/whl/cpu \
+              --extra-index-url https://pypi.org/simple \
+              "torch>=2.4,<3.0"
+          fi
+
+      - name: Run complete suite
+        run: |
+          set +e
+          set -o pipefail
+          export PYRECEST_BACKEND=${{ matrix.backend }}
+          poetry run python -m pytest \
+            --rootdir . \
+            -vv \
+            --strict-config \
+            --tb=long \
+            --junitxml=${{ matrix.backend }}_suite.xml \
+            ./tests \
+            2>&1 | tee ${{ matrix.backend }}_suite.log
+          status=${PIPESTATUS[0]}
+          echo "${status}" > ${{ matrix.backend }}_suite.exit-status
+          exit 0
+
+      - name: Upload diagnostics
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.backend }}-suite-diagnostics
+          path: |
+            ${{ matrix.backend }}_suite.xml
+            ${{ matrix.backend }}_suite.log
+            ${{ matrix.backend }}_suite.exit-status
