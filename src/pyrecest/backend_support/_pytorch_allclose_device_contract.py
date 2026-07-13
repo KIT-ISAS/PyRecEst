@@ -96,7 +96,10 @@ def _patch_pytorch_flip_numpy_axis_contract() -> None:
             return list(range(ndim))
         if isinstance(axis, (int, np.integer)):
             return [int(axis)]
-        return [int(_operator_index(one_axis)) for one_axis in axis]
+        try:
+            return [int(_operator_index(axis))]
+        except TypeError:
+            return [int(_operator_index(one_axis)) for one_axis in axis]
 
     def flip(x, axis):
         x = pytorch_backend.array(x)
