@@ -82,6 +82,7 @@ def test_integrate_validates_boundary_shapes():
 
     with pytest.raises(ShapeError, match="left"):
         dist.integrate((zeros((1,)), ones((2,))))
+
     with pytest.raises(ShapeError, match="right"):
         dist.integrate((zeros((2,)), ones((1,))))
 
