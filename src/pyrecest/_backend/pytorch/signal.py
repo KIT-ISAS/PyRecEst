@@ -5,7 +5,7 @@ _AXIS_TYPE_ERROR = "axes must be None, an integer, or a sequence of integers"
 
 
 def _is_boolean_scalar(axis):
-    return isinstance(axis, (bool, _np.bool_)) or (
+    return isinstance(axis, _np.bool_) or (
         isinstance(axis, _np.ndarray) and axis.shape == () and axis.dtype == _np.bool_
     )
 
