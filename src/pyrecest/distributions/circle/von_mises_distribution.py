@@ -99,9 +99,9 @@ class VonMisesDistribution(AbstractCircularDistribution):
         """Return a copy with a replaced mode direction.
 
         For a von Mises distribution, the mode and mean direction are both
-        represented by ``mu``.  Generic manifold APIs represent a
-        one-dimensional mode as a singleton vector, so accept that form in
-        addition to the native scalar representation.
+        represented by ``mu``. Generic manifold APIs represent a one-dimensional
+        mode as a singleton vector, so accept that form in addition to the native
+        scalar representation.
         """
         mode = array(mode)
         if mode.shape == (1,):
@@ -242,5 +242,28 @@ class VonMisesDistribution(AbstractCircularDistribution):
                 * exp(1j * n * self.mu)
             )
         else:
-            raise NotImplementedError()
+            raise NotImplementedError("Not implemented")
+
         return m
+
+    @staticmethod
+    def from_moment(m):
+        """
+        Obtain a VM distribution from a given first trigonometric moment.
+
+        Parameters:
+            m (scalar): First trigonometric moment (complex number).
+
+        Returns:
+            vm (VMDistribution): Distribution obtained by moment matching.
+        """
+        kappa_ = VonMisesDistribution.besselratio_inverse(0, abs(m))
+        if VonMisesDistribution._as_float_scalar(kappa_, "kappa") == 0.0:
+            mu_ = array(0.0)
+        else:
+            mu_ = mod(arctan2(imag(m), real(m)), 2.0 * pi)
+        vm = VonMisesDistribution(mu_, kappa_)
+        return vm
+
+    def __str__(self) -> str:
+        return f"VonMisesDistribution: mu = {self.mu}, kappa = {self.kappa}"
