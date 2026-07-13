@@ -7,7 +7,7 @@ import numpy.testing as npt
 import pyrecest.backend
 
 # pylint: disable=no-name-in-module,no-member
-from pyrecest.backend import arange, array, exp, linspace, pi
+from pyrecest.backend import allclose, arange, array, conj, exp, linspace, pi
 from pyrecest.distributions.circle.wrapped_laplace_distribution import (
     WrappedLaplaceDistribution,
 )
@@ -96,7 +96,9 @@ class WrappedLaplaceDistributionTest(unittest.TestCase):
         positive_moment = self.wl.trigonometric_moment(2)
         negative_moment = self.wl.trigonometric_moment(-2)
 
-        npt.assert_allclose(negative_moment, positive_moment.conjugate(), rtol=1e-12)
+        self.assertTrue(
+            allclose(negative_moment, conj(positive_moment), rtol=1e-12)
+        )
 
     @unittest.skipIf(
         pyrecest.backend.__backend_name__ in ("pytorch", "jax"),
