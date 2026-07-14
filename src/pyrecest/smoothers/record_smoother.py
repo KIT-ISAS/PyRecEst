@@ -238,7 +238,7 @@ def _record_arrays(
     times = np.asarray([float(record[time_key]) for record in records], dtype=float)
     if not np.isfinite(times).all():
         raise ValueError("record times must be finite")
-    if np.any(np.diff(times) < -1.0e-9):
+    if np.any(np.diff(times) < 0.0):
         raise ValueError("records must be sorted by nondecreasing time")
 
     states = [
