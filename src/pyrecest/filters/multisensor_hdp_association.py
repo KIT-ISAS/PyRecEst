@@ -257,12 +257,17 @@ def multisensor_hdp_association(
         global_birth_weight,
         "global_birth_weight",
     )
-    global_mass = float(target_weights.sum() + global_birth_weight)
-    if global_mass <= 0.0:
+    global_weights = np.concatenate(
+        [target_weights, np.asarray([global_birth_weight], dtype=float)]
+    )
+    global_scale = float(global_weights.max())
+    if global_scale <= 0.0:
         raise ValueError("global target and birth weights must contain positive total mass")
 
-    base_target_weights = target_weights / global_mass
-    base_birth_weight = global_birth_weight / global_mass
+    scaled_global_weights = global_weights / global_scale
+    base_weights = scaled_global_weights / scaled_global_weights.sum()
+    base_target_weights = base_weights[:-1]
+    base_birth_weight = float(base_weights[-1])
     labels = tuple(HDPAssociationLabel("target", index) for index in range(num_targets))
     labels += (HDPAssociationLabel("birth"), HDPAssociationLabel("clutter"))
 
