@@ -1,4 +1,5 @@
 import unittest
+import warnings
 
 import numpy as np
 import numpy.testing as npt
@@ -53,7 +54,8 @@ class TestCircularDiracDistribution(unittest.TestCase):
         largest = np.finfo(float).max
         grid_distribution = CircularGridDistribution(array([largest, largest]))
 
-        with np.errstate(over="raise", invalid="raise"):
+        with warnings.catch_warnings(), np.errstate(over="raise", invalid="raise"):
+            warnings.simplefilter("error", RuntimeWarning)
             wd = CircularDiracDistribution.from_distribution(grid_distribution)
 
         self.assertIsInstance(wd, CircularDiracDistribution)
