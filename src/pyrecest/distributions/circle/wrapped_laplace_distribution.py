@@ -1,5 +1,5 @@
 # pylint: disable=no-name-in-module,no-member
-from numbers import Integral
+from numbers import Integral, Real
 
 from pyrecest.backend import all, asarray, exp, isfinite, mod, ndim, pi
 
@@ -13,9 +13,20 @@ def _validate_positive_scalar(value, name):
     value = asarray(value)
     if value.shape not in ((), (1,)):
         raise ValueError(f"{name} must be a positive scalar.")
-    if not bool(all(isfinite(value))):
+    try:
+        scalar = value.item()
+    except (AttributeError, RuntimeError, TypeError, ValueError) as exc:
+        raise ValueError(f"{name} must be a positive scalar.") from exc
+    if isinstance(scalar, bool) or not isinstance(scalar, Real):
+        raise ValueError(f"{name} must be a positive real scalar.")
+    try:
+        finite = bool(all(isfinite(value)))
+        positive = bool(all(value > 0.0))
+    except (RuntimeError, TypeError, ValueError) as exc:
+        raise ValueError(f"{name} must be a positive real scalar.") from exc
+    if not finite:
         raise ValueError(f"{name} must be finite.")
-    if not bool(all(value > 0.0)):
+    if not positive:
         raise ValueError(f"{name} must be positive.")
     return value
 
