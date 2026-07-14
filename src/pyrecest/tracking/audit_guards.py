@@ -119,6 +119,31 @@ def poison_forbidden_keys_in_mappings(
     )
 
 
+def _comparison_is_true(comparison: Any) -> bool:
+    """Reduce scalar or array-like equality results to one boolean."""
+
+    reduce_all = getattr(comparison, "all", None)
+    if callable(reduce_all):
+        try:
+            comparison = reduce_all()
+        except (TypeError, ValueError, RuntimeError):
+            return False
+    try:
+        return bool(comparison)
+    except (TypeError, ValueError, RuntimeError):
+        return False
+
+
+def _results_equal(left: Any, right: Any) -> bool:
+    """Compare normalized selector outputs, including array-valued outputs."""
+
+    try:
+        comparison = left == right
+    except (TypeError, ValueError, RuntimeError):
+        return False
+    return _comparison_is_true(comparison)
+
+
 def assert_selector_invariant_under_forbidden_key_changes(
     selector: Callable[[Sequence[Mapping[str, Any]]], T],
     rows: Sequence[Mapping[str, Any]],
@@ -133,7 +158,7 @@ def assert_selector_invariant_under_forbidden_key_changes(
     stripped, rows with forbidden columns poisoned, and guarded rows that raise
     if forbidden columns are accessed.  ``normalize`` may be provided when the
     selector returns a rich object and only a stable identifier should be
-    compared.
+    compared. Scalar and array-valued normalized outputs are supported.
     """
 
     forbidden = frozenset(map(str, forbidden_keys))
@@ -150,7 +175,10 @@ def assert_selector_invariant_under_forbidden_key_changes(
         )
     )
     guarded = normalize_result(selector(guarded_mappings(rows, forbidden)))
-    if not (baseline == stripped == poisoned == guarded):
+    if not all(
+        _results_equal(baseline, candidate)
+        for candidate in (stripped, poisoned, guarded)
+    ):
         raise AssertionError(
             "selector output changed when forbidden audit-only keys were removed, "
             "poisoned, or guarded"

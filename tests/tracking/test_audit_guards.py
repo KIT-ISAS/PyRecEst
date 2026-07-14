@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import numpy as np
 import pytest
 
 from pyrecest.tracking import (
@@ -61,6 +62,19 @@ def test_selector_invariance_helper_passes_for_allowed_feature_selector() -> Non
 
     def selector(candidate_rows):
         return max(candidate_rows, key=lambda row: row["score"])["candidate_id"]
+
+    assert_selector_invariant_under_forbidden_key_changes(selector, rows, FORBIDDEN)
+
+
+def test_selector_invariance_helper_accepts_array_outputs() -> None:
+    rows = [
+        {"candidate_id": "a", "score": 2.0, "audit_delta": -100.0},
+        {"candidate_id": "b", "score": 1.0, "audit_label": "x"},
+    ]
+
+    def selector(candidate_rows):
+        scores = [row["score"] for row in candidate_rows]
+        return np.asarray([max(scores), min(scores)])
 
     assert_selector_invariant_under_forbidden_key_changes(selector, rows, FORBIDDEN)
 
