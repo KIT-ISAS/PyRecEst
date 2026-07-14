@@ -1,4 +1,11 @@
-from pyrecest.backend import isfinite, max as backend_max, ones, reshape
+from pyrecest.backend import all as backend_all
+from pyrecest.backend import (
+    isfinite,
+    max as backend_max,
+    ones,
+    reshape,
+    sum as backend_sum,
+)
 
 from ..hypertorus.hypertoroidal_dirac_distribution import HypertoroidalDiracDistribution
 from .abstract_circular_distribution import AbstractCircularDistribution
@@ -36,10 +43,15 @@ class CircularDiracDistribution(
         get_grid = getattr(distribution, "get_grid", None)
         if hasattr(distribution, "grid_values") and callable(get_grid):
             weights = reshape(distribution.grid_values, (-1,))
-            if weights.shape[0] > 0:
+            if (
+                weights.shape[0] > 0
+                and bool(backend_all(isfinite(weights)))
+                and bool(backend_all(weights >= 0.0))
+            ):
                 weight_scale = backend_max(weights)
-                if bool(isfinite(weight_scale)) and bool(weight_scale > 0.0):
+                if bool(weight_scale > 0.0):
                     weights = weights / weight_scale
+                    weights = weights / backend_sum(weights)
             return CircularDiracDistribution(get_grid(), weights)
 
         if n_particles is None:
