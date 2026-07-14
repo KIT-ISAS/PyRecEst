@@ -131,4 +131,11 @@ def _as_log_weight(value: Any) -> float:
 
 def _symmetrized(matrix: np.ndarray) -> np.ndarray:
     array = _as_float_array(matrix, "matrix")
-    return 0.5 * (array + array.T)
+    with np.errstate(over="ignore"):
+        symmetrized = 0.5 * (array + array.T)
+    overflowed = ~np.isfinite(symmetrized) & np.isfinite(array) & np.isfinite(array.T)
+    if np.any(overflowed):
+        symmetrized[overflowed] = (
+            0.5 * array[overflowed] + 0.5 * array.T[overflowed]
+        )
+    return symmetrized
