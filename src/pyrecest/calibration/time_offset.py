@@ -193,7 +193,7 @@ def make_offset_grid(min_s: float, max_s: float, step_s: float) -> np.ndarray:
     offsets = min_s + np.arange(count, dtype=float) * step_s
     if offsets.size == 0 or offsets[-1] < max_s - 1.0e-12:
         offsets = np.append(offsets, max_s)
-    return np.round(offsets, decimals=9)
+    return offsets
 
 
 def _validate_time_offset(offset_s: float | None) -> float:
