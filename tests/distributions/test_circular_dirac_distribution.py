@@ -4,10 +4,9 @@ import numpy as np
 import numpy.testing as npt
 import pyrecest.backend
 from pyrecest.backend import array, ones, pi
-from pyrecest.distributions import (
-    CircularDiracDistribution,
+from pyrecest.distributions import CircularDiracDistribution, VonMisesDistribution
+from pyrecest.distributions.circle.circular_grid_distribution import (
     CircularGridDistribution,
-    VonMisesDistribution,
 )
 
 
