@@ -154,11 +154,11 @@ class HypertoroidalGridDistribution(
 
     # ------------------------------------------------------------------ utils
     def get_closest_point(self, xs):
-        """Return the closest grid point (toroidal distance) to x.
+        """Return the closest grid point for each query using toroidal distance.
 
         Parameters
         ----------
-        x : array_like, shape (dim,) or (1, dim)
+        xs : array_like, shape (dim,) or (n_eval, dim)
         """
         xs = array(xs)
         if ndim(xs) == 1:
@@ -171,12 +171,15 @@ class HypertoroidalGridDistribution(
             raise ValueError("Grid is empty; cannot find closest point.")
 
         # Reduce angular differences modulo 2π before taking the shortest arc.
-        delta = self.grid[None, :, :] - xs[:, None, :]  # (1, n_grid, dim)
+        delta = self.grid[None, :, :] - xs[:, None, :]  # (n_eval, n_grid, dim)
         abs_delta = mod(abs(delta), 2.0 * pi)
         wrapped_delta = minimum(abs_delta, 2.0 * pi - abs_delta)
         dists = sum(wrapped_delta**2, axis=-1)
-        min_index = int(argmin(dists[0]))
-        return self.grid[min_index]
+        min_inds = argmin(dists, axis=1)
+        closest_points = self.grid[min_inds]
+        if closest_points.shape[0] == 1:
+            return closest_points[0]
+        return closest_points
 
     def get_manifold_size(self):
         return AbstractHypertoroidalDistribution.get_manifold_size(self)
