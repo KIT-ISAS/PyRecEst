@@ -14,6 +14,7 @@ from pyrecest.backend import (
     isfinite,
     max as backend_max,
     ndim,
+    sqrt,
     stack,
     sum,
 )
@@ -152,7 +153,12 @@ class SlidingWindowManifoldMeanSmoother(AbstractSmoother):
         weight_scale = backend_max(weights)
         if weight_scale <= 0:
             raise ValueError("At least one active window weight must be positive.")
-        scaled_weights = weights / weight_scale
+
+        # JAX/XLA can lower division by a maximum finite float through a reciprocal
+        # that underflows to zero. Two square-root-sized divisions keep both
+        # divisors representable while retaining the original weight ratios.
+        weight_scale_root = sqrt(weight_scale)
+        scaled_weights = (weights / weight_scale_root) / weight_scale_root
         return scaled_weights / sum(scaled_weights)
 
     @staticmethod
