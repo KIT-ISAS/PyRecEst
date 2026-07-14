@@ -19,6 +19,7 @@ from pyrecest.backend import (
     isclose,
     isfinite,
     logical_and,
+    max as backend_max,
     maximum,
     minimum,
     ones,
@@ -26,6 +27,7 @@ from pyrecest.backend import (
     prod,
     random,
     reshape,
+    sqrt,
     sum,
     where,
     zeros_like,
@@ -115,10 +117,10 @@ class LinearBoxParticleDistribution(AbstractLinearDistribution):
 
     def normalize_in_place(self):
         """Normalize weights in-place."""
-        total_weight = self._validate_weights(self.w, "Weights")
-        if not bool(isclose(total_weight, 1.0, atol=1e-10)):
+        normalized_weights = self._normalized_weights(self.w, "Weights")
+        if not bool(all(isclose(self.w, normalized_weights, atol=1e-10))):
             warnings.warn("Weights are not normalized.", RuntimeWarning)
-            self.w = self.w / total_weight
+        self.w = normalized_weights
 
     def normalize(self):
         dist = copy.deepcopy(self)
@@ -231,12 +233,10 @@ class LinearBoxParticleDistribution(AbstractLinearDistribution):
         weights_update = array(f(dist.centers()))
         if weights_update.shape != dist.w.shape:
             raise ValueError("Function returned wrong output dimensions")
-        self._validate_weights(weights_update, "Weight updates")
-        new_weights = dist.w * weights_update
-        total_weight = self._validate_weights(
-            new_weights, "Updated box particle weights"
+        normalized_update = self._normalized_weights(weights_update, "Weight updates")
+        dist.w = self._normalized_weights(
+            dist.w * normalized_update, "Updated box particle weights"
         )
-        dist.w = new_weights / total_weight
         return dist
 
     def integrate(self, left=None, right=None):
@@ -331,14 +331,21 @@ class LinearBoxParticleDistribution(AbstractLinearDistribution):
 
     @staticmethod
     def _validate_weights(weights, name):
+        if int(weights.shape[0]) == 0:
+            raise ValueError(f"{name} must have positive finite total mass")
         if not bool(all(isfinite(weights))):
             raise ValueError(f"{name} must be finite")
         if bool(any(weights < 0)):
             raise ValueError(f"{name} must be nonnegative")
-        total_weight = sum(weights)
-        if not bool(isfinite(total_weight)) or not bool(total_weight > 0):
+        if not bool(backend_max(weights) > 0):
             raise ValueError(f"{name} must have positive finite total mass")
-        return total_weight
+
+    @staticmethod
+    def _normalized_weights(weights, name):
+        LinearBoxParticleDistribution._validate_weights(weights, name)
+        weight_scale_root = sqrt(backend_max(weights))
+        scaled_weights = (weights / weight_scale_root) / weight_scale_root
+        return scaled_weights / sum(scaled_weights)
 
     @staticmethod
     def _coerce_half_width(box_half_width, dim):
