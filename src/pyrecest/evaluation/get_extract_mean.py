@@ -103,23 +103,21 @@ def get_extract_mean(manifold_name, mtt_scenario=False):
     if registered_factory is not None:
         return registered_factory(manifold_name, is_mtt_scenario)
 
-    if "circle" in normalized_name or "hypertorus" in normalized_name:
-
-        def extract_mean(filter_state):
-            return filter_state.mean_direction()
-
-    elif _is_hypersphere_symmetric_name(normalized_name):
+    if _is_hypersphere_symmetric_name(normalized_name):
         _unsupported(
             "Symmetric hypersphere mean extraction needs an explicit convention via a custom extractor."
         )
+    elif "symm" in normalized_name:
+        _unsupported("Symmetric mean extraction needs an explicit convention")
+    elif "circle" in normalized_name or "hypertorus" in normalized_name:
+
+        def extract_mean(filter_state):
+            return filter_state.mean_direction()
 
     elif "hypersphere" in normalized_name:
 
         def extract_mean(filter_state):
             return filter_state.mean_direction()
-
-    elif "symm" in normalized_name:
-        _unsupported("Symmetric mean extraction needs an explicit convention")
 
     elif "se2bounded" in normalized_name:
         _unsupported("Not implemented yet")
