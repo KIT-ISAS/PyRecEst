@@ -186,6 +186,42 @@ def positive_kernel_weights(shape: CoefficientShape, *, kernel: str = "fejer", d
     raise AssertionError(f"Unhandled normalized kernel {kernel!r}.")
 
 
+def _validate_kernel_exponent(exponent) -> float:
+    """Return a finite nonnegative real scalar kernel exponent."""
+
+    message = "exponent must be a finite nonnegative real scalar."
+    try:
+        exponent_array = np.asarray(exponent)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(message) from exc
+    if exponent_array.ndim != 0 or exponent_array.dtype.kind in "bSUcMm":
+        raise ValueError(message)
+
+    scalar = exponent_array.item()
+    if isinstance(
+        scalar,
+        (
+            bool,
+            np.bool_,
+            str,
+            bytes,
+            bytearray,
+            complex,
+            np.complexfloating,
+            np.datetime64,
+            np.timedelta64,
+        ),
+    ):
+        raise ValueError(message)
+    try:
+        exponent_value = float(scalar)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(message) from exc
+    if not np.isfinite(exponent_value) or exponent_value < 0.0:
+        raise ValueError(message)
+    return exponent_value
+
+
 def apply_kernel_weights(coefficients, *, kernel: str = "fejer", exponent: float = 1.0):
     """Apply separable positive-kernel weights to a centered coefficient tensor.
 
@@ -195,8 +231,7 @@ def apply_kernel_weights(coefficients, *, kernel: str = "fejer", exponent: float
     be interpreted as an analytic nonnegativity certificate.
     """
 
-    if exponent < 0.0:
-        raise ValueError("exponent must be nonnegative.")
+    exponent = _validate_kernel_exponent(exponent)
     coeff_arr = np.asarray(coefficients)
     normalize_coefficient_shape(coeff_arr.shape, dim=coeff_arr.ndim, name="coefficients.shape")
     kernel = normalize_kernel_name(kernel)
