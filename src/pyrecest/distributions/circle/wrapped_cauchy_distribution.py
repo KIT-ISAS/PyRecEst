@@ -1,5 +1,5 @@
 # pylint: disable=no-name-in-module,no-member
-from numbers import Integral
+from numbers import Integral, Real
 
 from pyrecest.backend import (
     all,
@@ -22,7 +22,17 @@ def _validate_finite_scalar(value, name):
     value = array(value)
     if value.shape not in ((), (1,)):
         raise ValueError(f"{name} must be a scalar.")
-    if not bool(all(isfinite(value))):
+    try:
+        scalar = value.item()
+    except (AttributeError, RuntimeError, TypeError, ValueError) as exc:
+        raise ValueError(f"{name} must be a real scalar.") from exc
+    if isinstance(scalar, bool) or not isinstance(scalar, Real):
+        raise ValueError(f"{name} must be a real scalar.")
+    try:
+        finite = bool(all(isfinite(value)))
+    except (RuntimeError, TypeError, ValueError) as exc:
+        raise ValueError(f"{name} must be a real scalar.") from exc
+    if not finite:
         raise ValueError(f"{name} must be finite.")
     return value
 
