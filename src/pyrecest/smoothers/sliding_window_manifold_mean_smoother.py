@@ -6,8 +6,17 @@ from collections.abc import Callable, Sequence
 from functools import partial
 from operator import index as operator_index
 
+from pyrecest.backend import all as backend_all
 from pyrecest.backend import any as backend_any
-from pyrecest.backend import asarray, concatenate, ndim, stack, sum
+from pyrecest.backend import (
+    asarray,
+    concatenate,
+    isfinite,
+    max as backend_max,
+    ndim,
+    stack,
+    sum,
+)
 from pyrecest.distributions import (
     AbstractHypercylindricalDistribution,
     AbstractHyperhemisphericalDistribution,
@@ -92,9 +101,11 @@ class SlidingWindowManifoldMeanSmoother(AbstractSmoother):
             self.window_weights = asarray(window_weights).reshape(-1)
             if self.window_weights.shape[0] != self.window_size:
                 raise ValueError("window_weights must have length window_size.")
+            if not backend_all(isfinite(self.window_weights)):
+                raise ValueError("window_weights must be finite.")
             if backend_any(self.window_weights < 0):
                 raise ValueError("window_weights must be non-negative.")
-            if sum(self.window_weights) <= 0:
+            if backend_max(self.window_weights) <= 0:
                 raise ValueError("window_weights must contain a positive weight.")
 
     @staticmethod
@@ -138,10 +149,11 @@ class SlidingWindowManifoldMeanSmoother(AbstractSmoother):
             return None
 
         weights = self.window_weights[weight_start:weight_end]
-        weights_sum = sum(weights)
-        if weights_sum <= 0:
+        weight_scale = backend_max(weights)
+        if weight_scale <= 0:
             raise ValueError("At least one active window weight must be positive.")
-        return weights / weights_sum
+        scaled_weights = weights / weight_scale
+        return scaled_weights / sum(scaled_weights)
 
     @staticmethod
     def _circular_dirac_factory(points, weights):
@@ -198,5 +210,4 @@ class SlidingWindowManifoldMeanSmoother(AbstractSmoother):
             window_weights = self._weights_for_window(weight_start, weight_end)
             window_distribution = distribution_factory(window_values, window_weights)
             smoothed_values.append(self._as_vector(window_distribution.mean()))
-
         return smoothed_values
