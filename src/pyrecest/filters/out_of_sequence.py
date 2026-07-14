@@ -35,6 +35,18 @@ def _coerce_time(time):
     return time
 
 
+def _coerce_optional_max_lag(max_lag):
+    if max_lag is None:
+        return None
+    try:
+        max_lag = float(max_lag)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("max_lag must be finite and nonnegative or None") from exc
+    if not isfinite(max_lag) or max_lag < 0.0:
+        raise ValueError("max_lag must be finite and nonnegative or None")
+    return max_lag
+
+
 def _coerce_bool_flag(value, name):
     if isinstance(value, bool):
         return value
@@ -115,9 +127,7 @@ class FixedLagBuffer:
     """
 
     def __init__(self, max_lag=None, maxlen=None, *, copy_values=True):
-        self.max_lag = None if max_lag is None else float(max_lag)
-        if self.max_lag is not None and self.max_lag < 0.0:
-            raise ValueError("max_lag must be nonnegative or None")
+        self.max_lag = _coerce_optional_max_lag(max_lag)
         self.maxlen = None if maxlen is None else int(maxlen)
         if self.maxlen is not None and self.maxlen <= 0:
             raise ValueError("maxlen must be positive or None")
@@ -311,9 +321,7 @@ class _EventReplayMixin:
         self._filter_object = filter_object
         self._initial_time = _coerce_time(initial_time)
         self._latest_time = self._initial_time
-        self.max_lag = None if max_lag is None else float(max_lag)
-        if self.max_lag is not None and self.max_lag < 0.0:
-            raise ValueError("max_lag must be nonnegative or None")
+        self.max_lag = _coerce_optional_max_lag(max_lag)
         self._initial_state = _safe_deepcopy(self._filter_object.filter_state)
         self._events = []
         self._next_sequence = 0
