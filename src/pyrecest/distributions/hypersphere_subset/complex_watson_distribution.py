@@ -34,6 +34,7 @@ from pyrecest.backend import (
     zeros,
     zeros_like,
 )
+from pyrecest.backend import max as backend_max
 from scipy.optimize import brentq
 
 
@@ -265,11 +266,21 @@ class ComplexWatsonDistribution:
                 raise ValueError("weights must contain only finite values")
             if not _to_python_bool(all(weights >= 0.0)):
                 raise ValueError("weights must be nonnegative")
-            if not _to_python_bool(sum(weights) > 0.0):
+            if weights.shape[0] == 0:
                 raise ValueError("weights must have positive total mass")
+            weight_scale = backend_max(weights)
+            if not _to_python_bool(weight_scale > 0.0):
+                raise ValueError("weights must have positive total mass")
+            scaled_weights = weights / weight_scale
+            scaled_weight_sum = sum(scaled_weights)
             # Weighted scatter: Σ_i w_i·z_i·z_i^H, normalised so uniform
-            # weights (w_i=1) reproduce the unweighted result Z^H Z.
-            S = (Z * weights[:, None]).conj().T @ Z * (N / sum(weights))
+            # weights (w_i=1) reproduce the unweighted result Z^H Z. Scaling
+            # by max(weights) preserves the estimate while avoiding overflow.
+            S = (
+                (Z * scaled_weights[:, None]).conj().T
+                @ Z
+                * (N / scaled_weight_sum)
+            )
 
         # Force Hermitian
         S = 0.5 * (S + conj(S).T)
