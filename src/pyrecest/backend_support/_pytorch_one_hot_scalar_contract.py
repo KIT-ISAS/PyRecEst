@@ -84,16 +84,15 @@ def _patch_pytorch_one_hot_scalar_contract(
 
     def one_hot(labels, num_classes):
         num_classes = _normalize_num_classes(num_classes, torch_module)
-        if torch_module.is_tensor(labels):
-            if (
-                labels.dtype == torch_module.bool
-                or labels.dtype.is_floating_point
-                or labels.dtype.is_complex
-            ):
-                return original_one_hot(labels, num_classes)
-            labels = labels.to(dtype=torch_module.long)
-        else:
-            labels = torch_module.as_tensor(labels, dtype=torch_module.long)
+        if not torch_module.is_tensor(labels):
+            labels = torch_module.as_tensor(labels)
+        if (
+            labels.dtype == torch_module.bool
+            or labels.dtype.is_floating_point
+            or labels.dtype.is_complex
+        ):
+            return original_one_hot(labels, num_classes)
+        labels = labels.to(dtype=torch_module.long)
         return torch_module.nn.functional.one_hot(labels, num_classes).to(
             dtype=torch_module.uint8
         )
