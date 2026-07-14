@@ -36,3 +36,19 @@ def test_prefixed_symmetric_hypersphere_extract_mean_requires_convention(
         match="explicit convention|custom extractor",
     ):
         get_extract_mean(manifold_name)
+
+
+@pytest.mark.parametrize(
+    "manifold_name",
+    (
+        "circle_symmetric",
+        "symmetric_circle",
+        "hypertorus_symmetric",
+        "symm_hypertorus",
+    ),
+)
+def test_symmetric_toroidal_extract_mean_requires_convention(
+    manifold_name: str,
+) -> None:
+    with pytest.raises(NotImplementedError, match="explicit convention"):
+        get_extract_mean(manifold_name)
