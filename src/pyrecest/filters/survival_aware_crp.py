@@ -301,7 +301,8 @@ class SurvivalAwareCRPAssociationPrior:
         """Return the unnormalized new-track weight.
 
         ``base_birth_weight`` can encode a spatial birth intensity or a
-        measurement-specific birth likelihood.  The Pitman--Yor-style BNP part is
+        measurement-specific birth likelihood.  The first target-generated
+        cluster has unit Pitman--Yor weight; after that the BNP factor is
         ``concentration + discount * K``.
         """
 
@@ -313,6 +314,8 @@ class SurvivalAwareCRPAssociationPrior:
             base_birth_weight,
             "base_birth_weight",
         )
+        if num_existing_tracks == 0:
+            return base_birth_weight
         return base_birth_weight * (
             self.concentration + self.discount * num_existing_tracks
         )
