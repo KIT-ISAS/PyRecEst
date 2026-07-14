@@ -34,6 +34,7 @@ from pyrecest.backend import (
     sum,
     zeros,
 )
+from pyrecest.backend import max as backend_max
 
 from ._point_set_registration_common import (
     RegistrationLoopCallbacks,
@@ -148,10 +149,12 @@ def _normalize_weights(weights, n_points):
         raise ValueError("weights must be finite.")
     if any(weights_array < 0.0):
         raise ValueError("weights must be non-negative.")
-    weight_sum = float(weights_array.sum())
-    if weight_sum <= 0.0:
+    weight_scale = float(backend_max(weights_array))
+    if weight_scale <= 0.0:
         raise ValueError("weights must sum to a positive value.")
-    return weights_array / weight_sum
+    scaled_weights = weights_array / weight_scale
+    scaled_weight_sum = float(scaled_weights.sum())
+    return scaled_weights / scaled_weight_sum
 
 
 def _minimum_required_matches(model: TransformModel, dim: int) -> int:
