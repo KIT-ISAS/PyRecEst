@@ -1,8 +1,14 @@
 import unittest
 
+import numpy as np
 import numpy.testing as npt
+import pyrecest.backend
 from pyrecest.backend import array, ones, pi
-from pyrecest.distributions import CircularDiracDistribution, VonMisesDistribution
+from pyrecest.distributions import (
+    CircularDiracDistribution,
+    CircularGridDistribution,
+    VonMisesDistribution,
+)
 
 
 class TestCircularDiracDistribution(unittest.TestCase):
@@ -39,6 +45,20 @@ class TestCircularDiracDistribution(unittest.TestCase):
         self.assertEqual(wd.d.shape, (n_particles,))
         self.assertEqual(wd.w.shape, (n_particles,))
         npt.assert_allclose(wd.w, ones(n_particles) / n_particles)
+
+    @unittest.skipUnless(
+        pyrecest.backend.__backend_name__ == "numpy",
+        reason="Regression exercises NumPy float64 overflow semantics.",
+    )
+    def test_from_grid_distribution_scales_large_finite_weights(self):
+        largest = np.finfo(float).max
+        grid_distribution = CircularGridDistribution(array([largest, largest]))
+
+        with np.errstate(over="raise", invalid="raise"):
+            wd = CircularDiracDistribution.from_distribution(grid_distribution)
+
+        self.assertIsInstance(wd, CircularDiracDistribution)
+        npt.assert_allclose(wd.w, ones(2) / 2.0)
 
 
 if __name__ == "__main__":
