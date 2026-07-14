@@ -194,15 +194,22 @@ class RollingNISProcessNoiseAdapter:
         if not self.ratios_by_source:
             return 1.0
         if source_weights:
-            numerator = 0.0
-            denominator = 0.0
+            ratios = []
+            weights = []
             for source, ratio in self.ratios_by_source.items():
-                weight = float(source_weights.get(source, 0.0))
+                weight = _normalize_nonnegative_finite_scalar(
+                    source_weights.get(source, 0.0),
+                    f"source_weights[{source!r}]",
+                )
                 if weight > 0.0:
-                    numerator += weight * ratio
-                    denominator += weight
-            if denominator > 0.0:
-                return float(numerator / denominator)
+                    ratios.append(float(ratio))
+                    weights.append(weight)
+            if weights:
+                scaled_weights = np.asarray(weights, dtype=float) / max(weights)
+                normalized_weights = scaled_weights / float(scaled_weights.sum())
+                return float(
+                    np.dot(normalized_weights, np.asarray(ratios, dtype=float))
+                )
         return float(np.mean(list(self.ratios_by_source.values())))
 
     def scale(self, source_weights: Mapping[str, float] | None = None) -> float:
