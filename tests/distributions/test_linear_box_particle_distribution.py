@@ -75,6 +75,33 @@ class LinearBoxParticleDistributionTest(unittest.TestCase):
                         array([[0.0], [1.0]]), array([[1.0], [2.0]]), weights
                     )
 
+    def test_constructor_normalizes_extreme_finite_weights(self):
+        backend_dtype = to_numpy(array([1.0])).dtype
+        max_finite = np.finfo(backend_dtype).max
+
+        with self.assertWarnsRegex(RuntimeWarning, "not normalized"):
+            dist = LinearBoxParticleDistribution(
+                array([[0.0], [1.0]]),
+                array([[1.0], [2.0]]),
+                array([max_finite, max_finite / 2.0]),
+            )
+
+        npt.assert_allclose(to_numpy(dist.w), [2.0 / 3.0, 1.0 / 3.0])
+
+    def test_reweigh_preserves_extreme_finite_relative_weights(self):
+        backend_dtype = to_numpy(array([1.0])).dtype
+        max_finite = np.finfo(backend_dtype).max
+        dist = LinearBoxParticleDistribution(
+            array([[0.0], [1.0]]), array([[1.0], [2.0]])
+        )
+
+        reweighted = dist.reweigh(
+            lambda _centers: array([max_finite, max_finite / 2.0])
+        )
+
+        npt.assert_allclose(to_numpy(reweighted.w), [2.0 / 3.0, 1.0 / 3.0])
+        npt.assert_allclose(to_numpy(dist.w), [0.5, 0.5])
+
     def test_reweigh_rejects_invalid_weight_updates(self):
         invalid_updates = (
             ("nan", lambda _centers: array([1.0, np.nan]), "finite"),
