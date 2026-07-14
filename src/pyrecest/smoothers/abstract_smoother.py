@@ -28,7 +28,15 @@ class AbstractSmoother(ABC):
     @staticmethod
     def _normalize_measurements(measurements) -> list:
         if isinstance(measurements, (list, tuple)):
-            return [asarray(measurement).reshape(-1) for measurement in measurements]
+            normalized = [
+                asarray(measurement).reshape(-1) for measurement in measurements
+            ]
+            if normalized and any(
+                measurement.shape != normalized[0].shape
+                for measurement in normalized[1:]
+            ):
+                raise ValueError("All measurements must have the same dimension.")
+            return normalized
 
         measurements_array = asarray(measurements)
         if ndim(measurements_array) == 0:
