@@ -155,15 +155,15 @@ def uniform(low=0.0, high=1.0, size=None, dtype=None):
     size = _LEGACY._uniform_size(size, low, high)
     _LEGACY._validate_uniform_bounds(low, high)
 
-    sample_dtype = dtype or torch.promote_types(
+    arithmetic_dtype = dtype or torch.promote_types(
         torch.result_type(low, high), torch.get_default_dtype()
     )
-    low = low.to(dtype=sample_dtype)
-    high = high.to(dtype=sample_dtype)
+    low = low.to(dtype=arithmetic_dtype)
+    high = high.to(dtype=arithmetic_dtype)
     span = high - low
     if bool(torch.any(~torch.isfinite(span))):
         raise OverflowError(_UNIFORM_RANGE_ERROR)
-    return span * torch.rand(size, dtype=sample_dtype, device=device) + low
+    return span * torch.rand(size, dtype=dtype, device=device) + low
 
 
 def multivariate_normal(mean, cov, size=None, *args, **kwargs):
