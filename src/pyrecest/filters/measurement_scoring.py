@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -25,10 +26,17 @@ class MeasurementScore:
     predicted_measurements: Any | None
     innovation_covariance: Any | None
     residual: Any | None
-    active_measurement_indices: list[int]
+    active_measurement_indices: Sequence[int]
     measurement_weights: Any | None = None
     quadratic_form: float | None = None
     skipped_reason: str | None = None
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "active_measurement_indices",
+            tuple(self.active_measurement_indices),
+        )
 
     @property
     def is_active(self) -> bool:
