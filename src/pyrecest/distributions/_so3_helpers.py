@@ -4,6 +4,7 @@
 from pyrecest.backend import (
     abs,
     all,
+    amax,
     arccos,
     arctan2,
     array,
@@ -51,15 +52,20 @@ def normalize_quaternions(quaternions):
     else:
         raise ValueError("SO(3) quaternions must have length 4.")
 
-    norms = linalg.norm(quaternions, axis=-1)
     if not bool(all(isfinite(quaternions))):
         raise ValueError("SO(3) quaternions must be finite.")
-    if not bool(all(isfinite(norms))):
-        raise ValueError("SO(3) quaternion norms must be finite.")
-    if not bool(all(norms > 0.0)):
+
+    scales = amax(abs(quaternions), axis=-1)
+    if not bool(all(scales > 0.0)):
         raise ValueError("SO(3) quaternions must be nonzero.")
 
-    normalized = quaternions / reshape(norms, tuple(norms.shape) + (1,))
+    scales_col = reshape(scales, tuple(scales.shape) + (1,))
+    scaled_quaternions = quaternions / scales_col
+    norms = linalg.norm(scaled_quaternions, axis=-1)
+    if not bool(all(isfinite(norms))):
+        raise ValueError("SO(3) quaternion norms must be finite.")
+
+    normalized = scaled_quaternions / reshape(norms, tuple(norms.shape) + (1,))
     return where(normalized[..., -1:] < 0.0, -normalized, normalized)
 
 
