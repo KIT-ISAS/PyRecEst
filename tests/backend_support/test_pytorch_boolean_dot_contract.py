@@ -21,6 +21,8 @@ def test_pytorch_dot_supports_boolean_operands():
     )
 
     code = """
+import torch
+
 import pyrecest.backend as backend
 import pyrecest._backend.pytorch as raw_pytorch
 
@@ -38,8 +40,8 @@ for left, right, expected in cases:
     public_result = backend.dot(backend.array(left), backend.array(right))
     raw_result = raw_pytorch.dot(raw_pytorch.array(left), raw_pytorch.array(right))
 
-    assert public_result.dtype == backend.bool
-    assert raw_result.dtype == raw_pytorch.bool
+    assert public_result.dtype == torch.bool
+    assert raw_result.dtype == torch.bool
     assert public_result.tolist() == expected
     assert raw_result.tolist() == expected
 """
