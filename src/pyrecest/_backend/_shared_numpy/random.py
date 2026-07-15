@@ -131,3 +131,157 @@ def _normal(loc=0.0, scale=1.0, size=None):
 normal = _modify_func_default_dtype(
     copy=False, kw_only=True, target=_allow_complex_dtype(target=_normal)
 )
+
+
+def _validate_multivariate_normal_parameter(value, name):
+    if _contains_boolean_value(value):
+        raise TypeError(f"{name} must be real numeric, not boolean")
+    try:
+        value_array = _np.asarray(value)
+    except (TypeError, ValueError) as exc:
+        raise TypeError(f"{name} must be real numeric") from exc
+    if value_array.dtype.kind not in "iuf":
+        raise TypeError(f"{name} must be real numeric")
+    if _np.any(~_np.isfinite(value_array)):
+        raise ValueError(f"{name} must be finite")
+    return value_array
+
+
+def _multivariate_normal(mean, cov, size=None, check_valid="warn", tol=1e-8):
+    mean = _validate_multivariate_normal_parameter(mean, "mean")
+    cov = _validate_multivariate_normal_parameter(cov, "cov")
+    return _np.random.multivariate_normal(
+        mean, cov, _normalize_size(size), check_valid, tol
+    )
+
+
+multivariate_normal = _modify_func_default_dtype(
+    copy=False,
+    kw_only=True,
+    target=_allow_complex_dtype(target=_multivariate_normal),
+)
+
+
+def _normalize_choice_axis(axis, ndim):
+    if isinstance(axis, _BOOLEAN_TYPES):
+        raise TypeError("axis must be an integer")
+    try:
+        axis = _operator.index(axis)
+    except TypeError as exc:
+        raise TypeError("axis must be an integer") from exc
+    if axis < -ndim or axis >= ndim:
+        raise ValueError(f"axis {axis} is out of bounds for array of dimension {ndim}")
+    return axis % ndim
+
+
+def _choice_bool(value, name):
+    if isinstance(value, _BOOLEAN_TYPES):
+        return bool(value)
+    value_array = _np.asarray(value)
+    if value_array.shape == () and value_array.dtype.kind == "b":
+        return bool(value_array.item())
+    raise TypeError(f"{name} must be a boolean")
+
+
+def _validate_choice_population(a_array):
+    if a_array.ndim != 0:
+        return
+    if _is_temporal_scalar_array(a_array):
+        raise ValueError("a must be a positive integer or a non-empty array")
+    scalar = a_array.item()
+    if isinstance(scalar, _BOOLEAN_TYPES):
+        raise ValueError("a must be a positive integer or a non-empty array")
+
+
+def _normalize_probability_values(values):
+    if _np.any(values < 0.0) or _np.any(~_np.isfinite(values)):
+        raise ValueError("probabilities do not sum to a positive value")
+    scale = float(values.max()) if values.size else 0.0
+    if scale <= 0.0:
+        raise ValueError("probabilities do not sum to a positive value")
+    scaled = values / scale
+    total = scaled.sum()
+    if not _np.isfinite(total) or total <= 0.0:
+        raise ValueError("probabilities do not sum to a positive value")
+    return scaled / total
+
+
+def _maybe_preserve_choice_order(indices, *, replace, p, shuffle, size):
+    if replace or p is not None or shuffle or size is None:
+        return indices
+
+    index_array = _np.asarray(indices)
+    if index_array.ndim == 0:
+        return indices
+    return _np.sort(index_array.reshape(-1)).reshape(index_array.shape)
+
+
+def _integer_choice_population_size(a_array):
+    if a_array.ndim == 0:
+        if _is_temporal_scalar_array(a_array):
+            raise ValueError("a must be a positive integer or a non-empty array")
+        try:
+            return _operator.index(a_array.item())
+        except TypeError:
+            return None
+    return None
+
+
+def _validate_choice_probabilities(p, population_size):
+    if p is None:
+        return None
+    if _contains_boolean_value(p):
+        raise TypeError("p must be real numeric, not boolean")
+    try:
+        p_array = _np.asarray(p)
+    except (TypeError, ValueError) as exc:
+        raise TypeError("p must be real numeric") from exc
+    if p_array.dtype.kind not in "iuf":
+        raise TypeError("p must be real numeric")
+    p_array = p_array.astype(_np.float64, copy=False)
+    if p_array.ndim != 1 or p_array.shape[0] != population_size:
+        raise ValueError("p must be 1-dimensional with one entry per population item")
+    return _normalize_probability_values(p_array)
+
+
+def choice(a, size=None, replace=True, p=None, axis=0, shuffle=True):
+    """Draw samples from an integer or array population."""
+    replace = _choice_bool(replace, "replace")
+    shuffle = _choice_bool(shuffle, "shuffle")
+    size = _normalize_size(size)
+    a_array = _np.asarray(a)
+    _validate_choice_population(a_array)
+    if a_array.ndim == 0:
+        population_size = _integer_choice_population_size(a_array)
+        if population_size is not None:
+            p = _validate_choice_probabilities(p, population_size)
+        return _maybe_preserve_choice_order(
+            _np.random.choice(a, size=size, replace=replace, p=p),
+            replace=replace,
+            p=p,
+            shuffle=shuffle,
+            size=size,
+        )
+
+    axis = _normalize_choice_axis(axis, a_array.ndim)
+    p = _validate_choice_probabilities(p, a_array.shape[axis])
+    if a_array.ndim == 1 and axis == 0:
+        indices = _np.random.choice(a_array.shape[0], size=size, replace=replace, p=p)
+        indices = _maybe_preserve_choice_order(
+            indices,
+            replace=replace,
+            p=p,
+            shuffle=shuffle,
+            size=size,
+        )
+        return _np.take(a_array, indices, axis=0)
+
+    indices = _np.random.choice(a_array.shape[axis], size=size, replace=replace, p=p)
+    indices = _maybe_preserve_choice_order(
+        indices,
+        replace=replace,
+        p=p,
+        shuffle=shuffle,
+        size=size,
+    )
+    return _np.take(a_array, indices, axis=axis)
