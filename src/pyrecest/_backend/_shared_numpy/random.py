@@ -90,7 +90,10 @@ def _validate_uniform_bounds(low, high):
 
 def _uniform(low=0.0, high=1.0, size=None):
     _validate_uniform_bounds(low, high)
-    return _np.random.uniform(low, high, _normalize_size(size))
+    try:
+        return _np.random.uniform(low, high, _normalize_size(size))
+    except OverflowError as exc:
+        raise OverflowError("high - low range exceeds valid bounds") from exc
 
 
 uniform = _modify_func_default_dtype(
