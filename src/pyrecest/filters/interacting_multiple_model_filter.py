@@ -612,12 +612,13 @@ class InteractingMultipleModelFilter(AbstractFilter, EuclideanFilterMixin):
             @ measurement_matrix.T
             + meas_noise
         )
-        det_value = float(linalg.det(innovation_covariance))
-        if det_value <= 0.0:
+        determinant_sign, logdet = linalg.slogdet(innovation_covariance)
+        determinant_sign = float(determinant_sign)
+        logdet = float(logdet)
+        if determinant_sign <= 0.0 or not np.isfinite(logdet):
             raise ValueError(
                 "Innovation covariance must be positive definite to evaluate the IMM likelihood."
             )
-        logdet = float(log(array(det_value)))
         mahalanobis_distance = float(
             innovation.T @ linalg.solve(innovation_covariance, innovation)
         )
