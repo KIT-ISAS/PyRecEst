@@ -4,7 +4,7 @@ import unittest
 import pyrecest.backend
 
 # pylint: disable=no-name-in-module,no-member
-from pyrecest.backend import allclose, array, cos, exp, mod, pi, sin
+from pyrecest.backend import allclose, array, cos, exp, eye, mod, pi, sin
 from pyrecest.distributions.hypertorus.toroidal_wrapped_normal_distribution import (
     ToroidalWrappedNormalDistribution,
 )
@@ -20,6 +20,13 @@ class TestToroidalWrappedNormalDistribution(unittest.TestCase):
         self.assertIsInstance(self.twn, ToroidalWrappedNormalDistribution)
         self.assertTrue(allclose(self.twn.mu, self.mu))
         self.assertTrue(allclose(self.twn.C, self.C))
+
+    def test_rejects_non_bivariate_parameters(self):
+        for dim in (1, 3):
+            with self.subTest(dim=dim), self.assertRaisesRegex(
+                ValueError, "exactly two dimensions"
+            ):
+                ToroidalWrappedNormalDistribution(array([0.0] * dim), eye(dim))
 
     def test_mean_4d(self):
         expected_mean = array(
