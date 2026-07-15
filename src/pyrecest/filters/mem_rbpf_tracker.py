@@ -317,6 +317,13 @@ class MEMRBPFTracker(AbstractExtendedObjectTracker):
         shape_system_matrix=None,
         shape_sys_noise=None,
     ):
+        if inputs is not None:
+            inputs = array(inputs)
+            expected_shape = self.kinematic_state.shape
+            if inputs.shape != expected_shape:
+                raise ValueError(
+                    f"inputs must have shape {expected_shape}, got {inputs.shape}"
+                )
         if system_matrix is not None:
             self.system_matrix = array(system_matrix)
             self._validate_system_matrix(self.system_matrix)
@@ -326,7 +333,7 @@ class MEMRBPFTracker(AbstractExtendedObjectTracker):
             )
         self.kinematic_state = self.system_matrix @ self.kinematic_state
         if inputs is not None:
-            self.kinematic_state = self.kinematic_state + array(inputs)
+            self.kinematic_state = self.kinematic_state + inputs
         self.covariance = self._symmetrize(
             self.system_matrix @ self.covariance @ self.system_matrix.T + self.sys_noise
         )
