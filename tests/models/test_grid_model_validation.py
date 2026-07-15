@@ -21,6 +21,19 @@ class TestGridModelValidation(unittest.TestCase):
         ):
             GridTransitionDensityFactoryModel(transition_density_factory=object())
 
+    def test_transition_density_model_rejects_none(self):
+        with self.assertRaisesRegex(ValueError, "transition_density must not be None"):
+            GridTransitionDensityModel(None)
+
+    def test_transition_density_factory_rejects_none_result(self):
+        model = GridTransitionDensityFactoryModel(lambda _filter: None)
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "transition_density_factory result must not be None",
+        ):
+            model.transition_density_for_filter(object())
+
     def test_valid_grid_model_callbacks_still_evaluate(self):
         likelihood_model = GridLikelihoodMeasurementModel(
             lambda measurement, grid: (measurement, grid)
