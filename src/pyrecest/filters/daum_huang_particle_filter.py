@@ -1,9 +1,10 @@
 """Daum-Huang Gaussian particle-flow filters with weight-preserving updates."""
 
-from . import _daum_huang_particle_filter_impl as _impl
 from pyrecest.distributions.nonperiodic.linear_dirac_distribution import (
     LinearDiracDistribution,
 )
+
+from . import _daum_huang_particle_filter_impl as _impl
 
 for _name in dir(_impl):
     if not _name.startswith("__"):
@@ -23,7 +24,7 @@ class DaumHuangParticleFlowFilter(_impl.DaumHuangParticleFlowFilter):
 class LocalizedDaumHuangParticleFlowFilter(DaumHuangParticleFlowFilter):
     """Localized Daum-Huang filter with weight-preserving updates."""
 
-    flow_type: FlowType = "ledh"
+    flow_type = "ledh"
 
 
 EDHParticleFlowFilter = DaumHuangParticleFlowFilter
