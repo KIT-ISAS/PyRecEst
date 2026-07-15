@@ -205,6 +205,76 @@ def _as_nonnegative_summary_count(value: Any, name: str) -> float:
     return result
 
 
+def _stable_weighted_mean(values: np.ndarray, weights: np.ndarray | None = None) -> float:
+    values = np.asarray(values, dtype=float).reshape(-1)
+    if values.size == 0:
+        return float("nan")
+    scale = float(np.max(np.abs(values)))
+    if scale == 0.0:
+        return 0.0
+    scaled_values = values / scale
+    if weights is None:
+        scaled_mean = float(np.mean(scaled_values))
+    else:
+        weights = np.asarray(weights, dtype=float).reshape(-1)
+        weight_scale = float(np.max(weights))
+        if weight_scale == 0.0:
+            return float("nan")
+        scaled_weights = weights / weight_scale
+        scaled_mean = float(
+            np.sum(scaled_values * scaled_weights) / np.sum(scaled_weights)
+        )
+    return float(scale * scaled_mean)
+
+
+def _stable_weighted_root_mean_square(
+    values: np.ndarray, weights: np.ndarray | None = None
+) -> float:
+    values = np.asarray(values, dtype=float).reshape(-1)
+    if values.size == 0:
+        return float("nan")
+    scale = float(np.max(np.abs(values)))
+    if scale == 0.0:
+        return 0.0
+    scaled_squares = (values / scale) ** 2
+    if weights is None:
+        scaled_mean_square = float(np.mean(scaled_squares))
+    else:
+        weights = np.asarray(weights, dtype=float).reshape(-1)
+        weight_scale = float(np.max(weights))
+        if weight_scale == 0.0:
+            return float("nan")
+        scaled_weights = weights / weight_scale
+        scaled_mean_square = float(
+            np.sum(scaled_squares * scaled_weights) / np.sum(scaled_weights)
+        )
+    return float(scale * np.sqrt(scaled_mean_square))
+
+
+def _stable_standard_deviation(values: np.ndarray) -> float:
+    values = np.asarray(values, dtype=float).reshape(-1)
+    if values.size == 0:
+        return float("nan")
+    scale = float(np.max(np.abs(values)))
+    if scale == 0.0:
+        return 0.0
+    return float(scale * np.std(values / scale))
+
+
+def _stable_row_norms(values: np.ndarray) -> np.ndarray:
+    values = np.asarray(values, dtype=float)
+    if values.ndim != 2:
+        raise ValueError("values must be two-dimensional")
+    norms = np.zeros(values.shape[0], dtype=float)
+    if values.shape[1] == 0:
+        return norms
+    scales = np.max(np.abs(values), axis=1)
+    nonzero = scales > 0.0
+    scaled = values[nonzero] / scales[nonzero, None]
+    norms[nonzero] = scales[nonzero] * np.sqrt(np.sum(scaled**2, axis=1))
+    return norms
+
+
 def make_offset_grid(min_s: float, max_s: float, step_s: float) -> np.ndarray:
     min_s = _as_finite_float(min_s, "min_s")
     max_s = _as_finite_float(max_s, "max_s")
@@ -309,7 +379,7 @@ def time_offset_error_summary(measurement_times_s: np.ndarray, measurement_value
     if measurement_values.shape[1] != reference_at_query.shape[1]:
         raise ValueError("measurement_values and reference_values must have the same value dimension")
     valid &= np.isfinite(measurement_values).all(axis=1)
-    errors = np.linalg.norm(measurement_values[valid] - reference_at_query[valid], axis=1)
+    errors = _stable_row_norms(measurement_values[valid] - reference_at_query[valid])
     return _error_stats(offset, errors, total_count=len(measurement_values))
 
 
@@ -355,20 +425,36 @@ def _aggregate_summary_metric(key: str, values: np.ndarray, counts: np.ndarray) 
     if not valid.any():
         return float("nan")
     if key == "rmse":
-        return float(np.sqrt(np.average(values[valid] ** 2, weights=counts[valid])))
+        return _stable_weighted_root_mean_square(values[valid], counts[valid])
     if key == "max":
         return float(np.max(values[valid]))
-    return float(np.average(values[valid], weights=counts[valid]))
+    return _stable_weighted_mean(values[valid], counts[valid])
 
 
 def _aggregate_std_metric(stds: np.ndarray, means: np.ndarray, counts: np.ndarray) -> float:
     valid = np.isfinite(stds) & np.isfinite(means) & (counts > 0.0)
     if not valid.any():
         return float("nan")
+    stds = stds[valid]
+    means = means[valid]
     weights = counts[valid]
-    pooled_mean = float(np.average(means[valid], weights=weights))
-    second_moment = float(np.average(stds[valid] ** 2 + means[valid] ** 2, weights=weights))
-    return float(np.sqrt(max(0.0, second_moment - pooled_mean**2)))
+    scale = float(max(np.max(np.abs(stds)), np.max(np.abs(means))))
+    if scale == 0.0:
+        return 0.0
+    scaled_stds = stds / scale
+    scaled_means = means / scale
+    weight_scale = float(np.max(weights))
+    scaled_weights = weights / weight_scale
+    total_weight = float(np.sum(scaled_weights))
+    pooled_mean = float(np.sum(scaled_means * scaled_weights) / total_weight)
+    variance = float(
+        np.sum(
+            (scaled_stds**2 + (scaled_means - pooled_mean) ** 2)
+            * scaled_weights
+        )
+        / total_weight
+    )
+    return float(scale * np.sqrt(max(0.0, variance)))
 
 
 def _error_stats(offset_s: float, errors: np.ndarray, *, total_count: int) -> dict[str, float]:
@@ -376,7 +462,7 @@ def _error_stats(offset_s: float, errors: np.ndarray, *, total_count: int) -> di
     errors = errors[np.isfinite(errors)]
     if errors.size == 0:
         return {"time_offset_s": float(offset_s), "count": 0.0, "coverage": 0.0 if total_count else float("nan"), "mean": float("nan"), "std": float("nan"), "rmse": float("nan"), "p95": float("nan"), "max": float("nan")}
-    return {"time_offset_s": float(offset_s), "count": float(errors.size), "coverage": float(errors.size / total_count) if total_count > 0 else float("nan"), "mean": float(np.mean(errors)), "std": float(np.std(errors)), "rmse": float(np.sqrt(np.mean(errors**2))), "p95": float(np.percentile(errors, 95)), "max": float(np.max(errors))}
+    return {"time_offset_s": float(offset_s), "count": float(errors.size), "coverage": float(errors.size / total_count) if total_count > 0 else float("nan"), "mean": _stable_weighted_mean(errors), "std": _stable_standard_deviation(errors), "rmse": _stable_weighted_root_mean_square(errors), "p95": float(np.percentile(errors, 95)), "max": float(np.max(errors))}
 
 
 __all__ = ["TimeOffsetFitResult", "aggregate_time_offset_sweeps", "apply_time_offset", "fit_time_offset", "interpolate_reference_values", "make_offset_grid", "nearest_time_indices", "time_offset_error_summary", "time_offset_sweep"]
