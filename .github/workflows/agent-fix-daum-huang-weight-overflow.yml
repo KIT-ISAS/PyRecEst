@@ -1,15 +1,17 @@
 name: Apply Daum-Huang weight normalization fix
 
 on:
-  push:
+  pull_request:
     branches:
-      - agent/fix-daum-huang-weight-overflow
+      - main
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
   apply-fix:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.ref == 'agent/fix-daum-huang-weight-overflow'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,53 +30,53 @@ jobs:
 
           source_path = Path("src/pyrecest/filters/daum_huang_particle_filter.py")
           source = source_path.read_text(encoding="utf-8")
-          old = '''    total = float(np.sum(weights))
-              if not np.isfinite(total) or total <= 0.0:
-                  raise ValueError("weights must have positive finite total mass.")
-              return weights / total
-          '''
-          old = old.replace("              ", "")
-          new = '''    max_weight = float(np.max(weights))
-              if max_weight <= 0.0:
-                  raise ValueError("weights must have positive finite total mass.")
-              scaled = weights / max_weight
-              total = float(np.sum(scaled))
-              if not np.isfinite(total) or total <= 0.0:
-                  raise ValueError("weights must have positive finite total mass.")
-              return scaled / total
-          '''
-          new = new.replace("              ", "")
+          old = (
+              "    total = float(np.sum(weights))\n"
+              "    if not np.isfinite(total) or total <= 0.0:\n"
+              "        raise ValueError(\"weights must have positive finite total mass.\")\n"
+              "    return weights / total\n"
+          )
+          new = (
+              "    max_weight = float(np.max(weights))\n"
+              "    if max_weight <= 0.0:\n"
+              "        raise ValueError(\"weights must have positive finite total mass.\")\n"
+              "    scaled = weights / max_weight\n"
+              "    total = float(np.sum(scaled))\n"
+              "    if not np.isfinite(total) or total <= 0.0:\n"
+              "        raise ValueError(\"weights must have positive finite total mass.\")\n"
+              "    return scaled / total\n"
+          )
           if source.count(old) != 1:
               raise RuntimeError("expected exactly one particle-weight normalization block")
           source_path.write_text(source.replace(old, new), encoding="utf-8")
 
           test_path = Path("tests/filters/test_daum_huang_particle_filter.py")
           tests = test_path.read_text(encoding="utf-8")
-          marker = '''    def test_update_model_requires_jacobian(self):
-          '''.replace("          ", "")
-          regression = '''    def test_ledh_accepts_finite_weights_with_overflowing_sum(self):
-              particles = array([[-2.0], [-1.0], [1.0], [2.0]])
-              relative_weights = np.array([1.0, 0.5, 0.25, 0.125])
-              huge_weights = relative_weights * np.finfo(np.float64).max
-
-              expected = ledh_particle_flow(
-                  particles,
-                  SquareMeasurementModel(),
-                  array([1.0]),
-                  weights=relative_weights,
-                  n_steps=2,
-              )
-              actual = ledh_particle_flow(
-                  particles,
-                  SquareMeasurementModel(),
-                  array([1.0]),
-                  weights=huge_weights,
-                  n_steps=2,
-              )
-
-              npt.assert_allclose(to_numpy(actual), to_numpy(expected), atol=1e-12)
-
-          '''.replace("          ", "")
+          marker = "    def test_update_model_requires_jacobian(self):\n"
+          regression = (
+              "    def test_ledh_accepts_finite_weights_with_overflowing_sum(self):\n"
+              "        particles = array([[-2.0], [-1.0], [1.0], [2.0]])\n"
+              "        relative_weights = np.array([1.0, 0.5, 0.25, 0.125])\n"
+              "        huge_weights = relative_weights * np.finfo(np.float64).max\n"
+              "\n"
+              "        expected = ledh_particle_flow(\n"
+              "            particles,\n"
+              "            SquareMeasurementModel(),\n"
+              "            array([1.0]),\n"
+              "            weights=relative_weights,\n"
+              "            n_steps=2,\n"
+              "        )\n"
+              "        actual = ledh_particle_flow(\n"
+              "            particles,\n"
+              "            SquareMeasurementModel(),\n"
+              "            array([1.0]),\n"
+              "            weights=huge_weights,\n"
+              "            n_steps=2,\n"
+              "        )\n"
+              "\n"
+              "        npt.assert_allclose(to_numpy(actual), to_numpy(expected), atol=1e-12)\n"
+              "\n"
+          )
           if tests.count(marker) != 1:
               raise RuntimeError("expected exactly one regression insertion marker")
           test_path.write_text(tests.replace(marker, regression + marker), encoding="utf-8")
