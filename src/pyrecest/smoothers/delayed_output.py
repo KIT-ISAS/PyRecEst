@@ -118,15 +118,15 @@ class DelayedStateOutputMixin:
         if current_step < 0:
             return self.pop_ready_states()
 
-        ready = self.pop_ready_states()
-        start_step = int(self._last_emitted_step) + 1
+        ready = list(self._ready_queue)
+        previous_last_emitted_step = int(self._last_emitted_step)
+        start_step = previous_last_emitted_step + 1
         for step in range(start_step, current_step + 1):
             state = state_for_step(step)
             if state is None:
                 continue
             ready.append((step, state))
-            self._last_emitted_step = step
 
-        if int(self._last_emitted_step) < current_step:
-            self._last_emitted_step = current_step
+        self._ready_queue = []
+        self._last_emitted_step = max(previous_last_emitted_step, current_step)
         return ready
