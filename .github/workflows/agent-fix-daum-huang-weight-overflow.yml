@@ -1,0 +1,103 @@
+name: Apply Daum-Huang weight normalization fix
+
+on:
+  push:
+    branches:
+      - agent/fix-daum-huang-weight-overflow
+
+permissions:
+  contents: write
+
+jobs:
+  apply-fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/fix-daum-huang-weight-overflow
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Apply focused source and regression-test patch
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          source_path = Path("src/pyrecest/filters/daum_huang_particle_filter.py")
+          source = source_path.read_text(encoding="utf-8")
+          old = '''    total = float(np.sum(weights))
+              if not np.isfinite(total) or total <= 0.0:
+                  raise ValueError("weights must have positive finite total mass.")
+              return weights / total
+          '''
+          old = old.replace("              ", "")
+          new = '''    max_weight = float(np.max(weights))
+              if max_weight <= 0.0:
+                  raise ValueError("weights must have positive finite total mass.")
+              scaled = weights / max_weight
+              total = float(np.sum(scaled))
+              if not np.isfinite(total) or total <= 0.0:
+                  raise ValueError("weights must have positive finite total mass.")
+              return scaled / total
+          '''
+          new = new.replace("              ", "")
+          if source.count(old) != 1:
+              raise RuntimeError("expected exactly one particle-weight normalization block")
+          source_path.write_text(source.replace(old, new), encoding="utf-8")
+
+          test_path = Path("tests/filters/test_daum_huang_particle_filter.py")
+          tests = test_path.read_text(encoding="utf-8")
+          marker = '''    def test_update_model_requires_jacobian(self):
+          '''.replace("          ", "")
+          regression = '''    def test_ledh_accepts_finite_weights_with_overflowing_sum(self):
+              particles = array([[-2.0], [-1.0], [1.0], [2.0]])
+              relative_weights = np.array([1.0, 0.5, 0.25, 0.125])
+              huge_weights = relative_weights * np.finfo(np.float64).max
+
+              expected = ledh_particle_flow(
+                  particles,
+                  SquareMeasurementModel(),
+                  array([1.0]),
+                  weights=relative_weights,
+                  n_steps=2,
+              )
+              actual = ledh_particle_flow(
+                  particles,
+                  SquareMeasurementModel(),
+                  array([1.0]),
+                  weights=huge_weights,
+                  n_steps=2,
+              )
+
+              npt.assert_allclose(to_numpy(actual), to_numpy(expected), atol=1e-12)
+
+          '''.replace("          ", "")
+          if tests.count(marker) != 1:
+              raise RuntimeError("expected exactly one regression insertion marker")
+          test_path.write_text(tests.replace(marker, regression + marker), encoding="utf-8")
+
+          Path(".github/workflows/agent-fix-daum-huang-weight-overflow.yml").unlink()
+          PY
+
+      - name: Validate syntax
+        run: |
+          python -m py_compile \
+            src/pyrecest/filters/daum_huang_particle_filter.py \
+            tests/filters/test_daum_huang_particle_filter.py
+
+      - name: Commit and push patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/pyrecest/filters/daum_huang_particle_filter.py tests/filters/test_daum_huang_particle_filter.py .github/workflows/agent-fix-daum-huang-weight-overflow.yml
+          git commit -m "Normalize particle-flow weights safely"
+          git push origin HEAD:agent/fix-daum-huang-weight-overflow
+
+      - name: Install package and run focused regression
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e . pytest
+          PYTHONPATH=src python -m pytest -q tests/filters/test_daum_huang_particle_filter.py
