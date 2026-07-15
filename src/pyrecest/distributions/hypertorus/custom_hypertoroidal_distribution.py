@@ -1,5 +1,5 @@
 # pylint: disable=no-name-in-module,no-member
-from pyrecest.backend import mod, pi, zeros
+from pyrecest.backend import asarray, mod, pi, zeros
 
 from ..abstract_custom_distribution import AbstractCustomDistribution
 from ..circle.custom_circular_distribution import CustomCircularDistribution
