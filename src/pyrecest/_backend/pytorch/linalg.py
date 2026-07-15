@@ -237,6 +237,10 @@ class _Logm(_torch.autograd.Function):
     @staticmethod
     def _logm(x):
         mat_log = _gsnplinalg.logm(_as_numpy_no_grad(x))
+        if mat_log.dtype.kind == "c":
+            target_complex_dtype = _COMPLEX_DTYPE_FOR_TENSOR_DTYPE.get(x.dtype)
+            if target_complex_dtype is not None:
+                mat_log = mat_log.astype(target_complex_dtype, copy=False)
         return _torch_as_like(mat_log, x)
 
     @staticmethod
