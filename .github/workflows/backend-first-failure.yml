@@ -1,4 +1,4 @@
-name: Backend first-failure diagnosis
+name: Backend reduction diagnosis
 
 on:
   pull_request:
@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  first-failure:
+  reduction-values:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -51,26 +51,48 @@ jobs:
               "torch>=2.4,<3.0"
           fi
 
-      - name: Capture first test failure
+      - name: Capture reduction intermediates
         run: |
           if [ "${{ matrix.backend }}" = "jax" ]; then
             export JAX_ENABLE_X64=True
           fi
           export PYRECEST_BACKEND=${{ matrix.backend }}
-          set +e
-          poetry run python -m pytest \
-            --rootdir . \
-            -q \
-            --maxfail=1 \
-            ./tests 2>&1 | tee first-failure-${{ matrix.backend }}.log
-          printf '%s\n' "${PIPESTATUS[0]}" > exit-code-${{ matrix.backend }}.txt
-          exit 0
+          poetry run python - <<'PY' 2>&1 | tee backend-values-${{ matrix.backend }}.log
+          import numpy as np
+          import pyrecest.backend as backend
+          from pyrecest.distributions.abstract_dirac_distribution import AbstractDiracDistribution
+
+          dtype = backend.to_numpy(backend.array([0.0], dtype=float)).dtype
+          maximum = np.finfo(dtype).max
+          weights = backend.array([maximum, maximum / 2.0], dtype=float)
+          scale = backend.max(weights)
+          scaled = weights / scale
+          total = backend.sum(scaled)
+          finite = backend.isfinite(total)
+          positive = total > 0
+
+          print("backend", backend.__backend_name__)
+          print("dtype", dtype)
+          print("max function", backend.max, getattr(backend.max, "__module__", None))
+          print("sum function", backend.sum, getattr(backend.sum, "__module__", None))
+          print("isfinite function", backend.isfinite, getattr(backend.isfinite, "__module__", None))
+          print("weights", repr(weights), type(weights))
+          print("scale", repr(scale), type(scale), backend.to_numpy(scale))
+          print("scaled", repr(scaled), type(scaled), backend.to_numpy(scaled))
+          print("total", repr(total), type(total), backend.to_numpy(total))
+          print("finite", repr(finite), bool(finite))
+          print("positive", repr(positive), bool(positive))
+          try:
+              result = AbstractDiracDistribution._validate_weights(weights)
+          except Exception as exc:
+              print("validate exception", type(exc).__name__, str(exc))
+          else:
+              print("validate result", result)
+          PY
 
       - name: Upload diagnosis
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: first-failure-${{ matrix.backend }}
-          path: |
-            first-failure-${{ matrix.backend }}.log
-            exit-code-${{ matrix.backend }}.txt
+          name: backend-values-${{ matrix.backend }}
+          path: backend-values-${{ matrix.backend }}.log
