@@ -127,7 +127,10 @@ class FibonacciRejectionSampler(AbstractEuclideanSampler):
 
     @staticmethod
     def _evaluate_pdf(pdf, samples, n_candidates):
-        density_values = np.asarray(pdf(samples), dtype=float)
+        raw_density_values = np.asarray(pdf(samples))
+        if np.iscomplexobj(raw_density_values):
+            raise ValueError("pdf must return real density values")
+        density_values = np.asarray(raw_density_values, dtype=float)
         if density_values.ndim == 0:
             density_values = np.full(n_candidates, density_values)
         else:
