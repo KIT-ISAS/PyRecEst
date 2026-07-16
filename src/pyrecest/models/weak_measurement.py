@@ -32,7 +32,11 @@ _NON_REAL_NUMERIC_SCALAR_TYPES = (
 def diagonal_measurement_covariance(stds: Sequence[float] | np.ndarray) -> np.ndarray:
     "Return a diagonal covariance matrix from measurement standard deviations."
     values = _standard_deviations_array(stds)
-    return np.diag(values**2)
+    with np.errstate(over="ignore", invalid="ignore"):
+        variances = np.square(values)
+    if not np.isfinite(variances).all():
+        raise ValueError("stds must produce a finite measurement covariance")
+    return np.diag(variances)
 
 
 def block_diag_measurement_covariance(
