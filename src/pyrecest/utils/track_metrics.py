@@ -324,6 +324,8 @@ def _session_times(
 ) -> np.ndarray:
     if session_times is None:
         return np.arange(n_sessions, dtype=float)
+    if np.ma.is_masked(session_times):
+        raise ValueError("session_times must contain only finite numeric values")
     try:
         native_times = np.asarray(session_times)
     except (TypeError, ValueError, RuntimeError) as exc:
@@ -354,6 +356,8 @@ def _session_times(
 
 def _validate_missed_value(value: Any) -> float:
     message = "missed_value must be a scalar numeric value"
+    if np.ma.is_masked(value):
+        raise ValueError(message)
     try:
         native_value = np.asarray(value)
     except (TypeError, ValueError, RuntimeError) as exc:
@@ -404,6 +408,8 @@ def _contains_bool_or_text(values: np.ndarray) -> bool:
 
 
 def _as_positive_int(value: Any, name: str) -> int:
+    if np.ma.is_masked(value):
+        raise ValueError(f"{name} must be a positive integer")
     array = np.asarray(value)
     if array.ndim != 0 or array.dtype == np.bool_ or array.dtype.kind in "Mm":
         raise ValueError(f"{name} must be a positive integer")
