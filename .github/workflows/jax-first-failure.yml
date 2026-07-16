@@ -1,4 +1,4 @@
-name: Temporary focused JAX diagnosis
+name: Temporary sharded JAX diagnosis
 
 on:
   pull_request:
@@ -9,8 +9,12 @@ permissions:
   contents: read
 
 jobs:
-  focused-tests:
+  sharded-tests:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
@@ -39,21 +43,23 @@ jobs:
           poetry env use python
           poetry install --with dev --extras "healpy_support jax_support"
 
-      - name: Run focused JAX tests
+      - name: Run JAX test shard
         run: |
           export JAX_ENABLE_X64=True
           export PYRECEST_BACKEND=jax
+          mapfile -t files < <(
+            find tests -type f -name 'test_*.py' -print \
+              | sort \
+              | awk -v shard="${{ matrix.shard }}" '((NR - 1) % 4) == shard'
+          )
+          printf '%s\n' "${files[@]}" > jax-shard-files.txt
           set +e
           poetry run python -m pytest \
             --rootdir . \
             -q \
             --maxfail=1 \
             --tb=long \
-            tests/distributions/test_abstract_dirac_extreme_weights.py \
-            tests/distributions/test_hypertoroidal_dirac_grid_conversion.py \
-            tests/distributions/test_hypercylindrical_dirac_distribution.py \
-            tests/distributions/test_linear_dirac_distribution.py \
-            > full-jax-failure.log 2>&1
+            "${files[@]}" > full-jax-failure.log 2>&1
           status=$?
           tail -n 320 full-jax-failure.log > jax-first-failure.log
           printf '%s\n' "$status" > jax-exit-code.txt
@@ -63,7 +69,8 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: jax-focused-diagnosis
+          name: jax-shard-${{ matrix.shard }}
           path: |
+            jax-shard-files.txt
             jax-first-failure.log
             jax-exit-code.txt
