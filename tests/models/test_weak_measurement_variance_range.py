@@ -12,7 +12,7 @@ from pyrecest.models import (
 
 @pytest.mark.parametrize(
     "std",
-    [np.finfo(float).max, np.nextafter(0.0, 1.0)],
+    [np.finfo(float).max, np.finfo(float).smallest_subnormal],
     ids=["overflow", "underflow"],
 )
 def test_measurement_covariance_rejects_unrepresentable_variances(std: float) -> None:
