@@ -43,16 +43,30 @@ def test_pytorch_trapezoid_rejects_boolean_axis_like_numpy():
     result = run_backend_code(
         "pytorch",
         """
+import numpy as np
+import torch
+
 import pyrecest.backend as backend
 import pyrecest._backend.pytorch as raw_pytorch
 
 for target_name, target in (("backend", backend), ("raw_pytorch", raw_pytorch)):
-    for axis in (True, False):
+    for axis in (
+        True,
+        False,
+        np.bool_(True),
+        np.bool_(False),
+        torch.tensor(True),
+        torch.tensor(False),
+    ):
         try:
             target.trapezoid([[1.0, 2.0], [3.0, 4.0]], axis=axis)
         except TypeError:
             continue
         raise AssertionError(f"{target_name}.trapezoid accepted boolean axis {axis!r}")
+
+    for axis in (np.int64(1), torch.tensor(1)):
+        integrated = target.trapezoid([[1.0, 2.0], [3.0, 4.0]], axis=axis)
+        assert target.to_numpy(integrated).tolist() == [1.5, 3.5]
 print("ok")
 """,
     )
