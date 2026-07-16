@@ -6,6 +6,8 @@ import math
 from dataclasses import dataclass
 from typing import Any, Callable
 
+import numpy as np
+
 # pylint: disable=no-name-in-module,no-member
 from pyrecest.backend import all as backend_all
 from pyrecest.backend import (
@@ -13,7 +15,6 @@ from pyrecest.backend import (
     asarray,
     cast,
     empty,
-    full,
     int64,
     isfinite,
     mean,
@@ -306,39 +307,45 @@ def solve_gated_assignment(cost_matrix, *, max_cost: float = float("inf")):
     if valid_costs.shape[0] == 0:
         return zeros((costs.shape[0],), dtype=int64) - 1
 
-    highest_valid_cost = float(valid_costs.max())
-    unassigned_cost = (
-        max_cost_value
-        if math.isfinite(max_cost_value)
-        else max(highest_valid_cost, 0.0) + 1.0
+    costs_numpy = np.asarray(costs, dtype=float)
+    valid_cost_mask_numpy = np.asarray(valid_cost_mask, dtype=bool)
+    valid_costs_numpy = costs_numpy[valid_cost_mask_numpy]
+    cost_scale = max(float(np.max(np.abs(valid_costs_numpy))), 1.0)
+    scaled_costs = costs_numpy / cost_scale
+    scaled_valid_costs = scaled_costs[valid_cost_mask_numpy]
+    cardinality_penalty = 2.0 * (
+        float(np.sum(np.abs(scaled_valid_costs))) + 1.0
     )
-    cost_scale = max(abs(highest_valid_cost), abs(unassigned_cost), 1.0)
-    invalid_cost = max(highest_valid_cost, 2.0 * unassigned_cost) + cost_scale
+    invalid_cost = 2.0 * cardinality_penalty + 1.0
 
-    n_reference, n_moving = costs.shape
+    n_reference, n_moving = costs_numpy.shape
     augmented_size = n_reference + n_moving
-    augmented_costs = full((augmented_size, augmented_size), invalid_cost)
-    augmented_costs[:n_reference, :n_moving] = where(
-        valid_cost_mask,
-        costs,
+    augmented_costs = np.full(
+        (augmented_size, augmented_size), invalid_cost, dtype=float
+    )
+    augmented_costs[:n_reference, :n_moving] = np.where(
+        valid_cost_mask_numpy,
+        scaled_costs,
         invalid_cost,
     )
-
     for reference_index in range(n_reference):
-        augmented_costs[reference_index, n_moving + reference_index] = unassigned_cost
+        augmented_costs[
+            reference_index, n_moving + reference_index
+        ] = cardinality_penalty
     for moving_index in range(n_moving):
-        augmented_costs[n_reference + moving_index, moving_index] = unassigned_cost
+        augmented_costs[n_reference + moving_index, moving_index] = 0.0
     augmented_costs[n_reference:, n_moving:] = 0.0
 
     row_indices, col_indices = linear_sum_assignment(augmented_costs)
-
-    assignment = zeros((n_reference,), dtype=int64) - 1
+    assignment = np.full((n_reference,), -1, dtype=np.int64)
     for row_index, col_index in zip(row_indices, col_indices):
-        if row_index >= n_reference or col_index >= n_moving:
-            continue
-        if bool(valid_cost_mask[row_index, col_index]):
-            assignment[row_index] = int(col_index)
-    return assignment
+        if (
+            row_index < n_reference
+            and col_index < n_moving
+            and valid_cost_mask_numpy[row_index, col_index]
+        ):
+            assignment[row_index] = col_index
+    return asarray(assignment, dtype=int64)
 
 
 def default_cost(transformed_reference_points, moving_points):
