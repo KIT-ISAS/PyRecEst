@@ -378,8 +378,6 @@ def protected_tail_topk_mask(
             "primary_scores, tail_scores, and reliability_scores must have the same length."
         )
     count = int(primary.shape[0])
-    if count == 0:
-        return np.zeros((0,), dtype=bool)
 
     retained_total = retained_count_from_fraction(
         count,
@@ -498,8 +496,6 @@ def tail_rescue_topk_mask(
             "primary_scores, tail_scores, and reliability_scores must have the same length."
         )
     count = int(primary.shape[0])
-    if count == 0:
-        return np.zeros((0,), dtype=bool)
 
     retained_total = retained_count_from_fraction(
         count,
@@ -513,6 +509,13 @@ def tail_rescue_topk_mask(
         sanitize_nonnegative=sanitize_nonnegative,
     )
     tail_indices = np.flatnonzero(tail_mask)
+    rescue_quota = min(
+        int(tail_indices.size),
+        tail_rescue_quota_count(
+            retained_total,
+            rescue_fraction=rescue_fraction,
+        ),
+    )
     if tail_indices.size == 0:
         return top_count_mask(
             primary,
@@ -524,13 +527,6 @@ def tail_rescue_topk_mask(
         primary,
         retained_total,
         sanitize_nonnegative=sanitize_nonnegative,
-    )
-    rescue_quota = min(
-        int(tail_indices.size),
-        tail_rescue_quota_count(
-            retained_total,
-            rescue_fraction=rescue_fraction,
-        ),
     )
     current_tail = int(np.sum(mask[tail_indices]))
     missing_tail = rescue_quota - current_tail
