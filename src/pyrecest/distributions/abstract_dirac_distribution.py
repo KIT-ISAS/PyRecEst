@@ -91,8 +91,13 @@ class AbstractDiracDistribution(AbstractDistributionType):
         if not bool(all(w >= 0)):
             raise ValueError("Dirac weights must be nonnegative.")
 
-        total_weight = sum(w)
-        if bool(isfinite(total_weight)) and bool(total_weight > 0):
+        try:
+            total_weight = sum(w)
+        except FloatingPointError:
+            total_weight = None
+        if total_weight is not None and bool(isfinite(total_weight)) and bool(
+            total_weight > 0
+        ):
             return 1.0, total_weight
 
         weight_scale = max(w)
