@@ -45,6 +45,7 @@ from .pareto import (
     record_dominates,
     select_under_constraints,
 )
+from .parameter_sweeps import summarize_parameter_sweep_records
 from .perform_predict_update_cycles import perform_predict_update_cycles
 from .plot_results import plot_results
 from .point_set_metrics import (
@@ -161,6 +162,7 @@ __all__ = [
     "pareto_front_indices",
     "record_dominates",
     "select_under_constraints",
+    "summarize_parameter_sweep_records",
     "as_point_set",
     "chamfer_distance",
     "deterministic_subsample",
