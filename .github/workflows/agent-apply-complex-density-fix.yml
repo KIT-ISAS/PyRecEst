@@ -28,21 +28,19 @@ jobs:
 
           path = Path("src/pyrecest/sampling/euclidean_sampler.py")
           text = path.read_text(encoding="utf-8")
-          old = '''    @staticmethod
-              def _evaluate_pdf(pdf, samples, n_candidates):
-                  density_values = np.asarray(pdf(samples), dtype=float)
-          '''
-          new = '''    @staticmethod
-              def _evaluate_pdf(pdf, samples, n_candidates):
-                  raw_density_values = np.asarray(pdf(samples))
-                  if np.iscomplexobj(raw_density_values):
-                      raise ValueError("pdf must return real density values")
-                  density_values = np.asarray(raw_density_values, dtype=float)
-          '''
-          # Triple-quoted indentation above is normalized explicitly to avoid YAML
-          # heredoc indentation affecting the exact source match.
-          old = old.replace("              ", "        ")
-          new = new.replace("              ", "        ")
+          old = (
+              "    @staticmethod\n"
+              "    def _evaluate_pdf(pdf, samples, n_candidates):\n"
+              "        density_values = np.asarray(pdf(samples), dtype=float)\n"
+          )
+          new = (
+              "    @staticmethod\n"
+              "    def _evaluate_pdf(pdf, samples, n_candidates):\n"
+              "        raw_density_values = np.asarray(pdf(samples))\n"
+              "        if np.iscomplexobj(raw_density_values):\n"
+              "            raise ValueError(\"pdf must return real density values\")\n"
+              "        density_values = np.asarray(raw_density_values, dtype=float)\n"
+          )
           if text.count(old) != 1:
               raise SystemExit("expected exactly one _evaluate_pdf source block")
           path.write_text(text.replace(old, new, 1), encoding="utf-8")
