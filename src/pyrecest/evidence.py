@@ -28,6 +28,8 @@ _RESERVED_DIAGNOSTIC_METADATA_KEYS = frozenset(
 def _coerce_bool_flag(value: bool, name: str) -> bool:
     """Return a bool flag without treating arbitrary truthy objects as true."""
 
+    if np.ma.is_masked(value):
+        raise ValueError(f"{name} must be a bool")
     try:
         value_array = np.asarray(value)
     except (TypeError, ValueError, RuntimeError, OverflowError) as exc:
