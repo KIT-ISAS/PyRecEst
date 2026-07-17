@@ -33,6 +33,46 @@ assert backend.to_numpy(list_quantile).tolist() == [[1.5, 5.0], [2.5, 7.0]]
 
 
 @pytest.mark.backend_portable
+def test_pytorch_quantile_accepts_multidimensional_q_like_numpy():
+    if importlib.util.find_spec("torch") is None:
+        pytest.skip("PyTorch is not installed")
+
+    result = run_backend_code(
+        "pytorch",
+        """
+import numpy as np
+
+import pyrecest.backend as backend
+import pyrecest._backend.pytorch as raw_backend
+
+q = np.array([[0.25, 0.75], [0.1, 0.9]])
+integer_values = [[1, 4], [3, 8]]
+cube = np.arange(24.0).reshape(2, 3, 4)
+
+for target in (backend, raw_backend):
+    column_quantiles = target.quantile(integer_values, q, axis=0)
+    tuple_axis_quantiles = target.quantile(
+        cube,
+        q,
+        axis=(0, 2),
+        keepdims=True,
+    )
+
+    np.testing.assert_allclose(
+        backend.to_numpy(column_quantiles),
+        np.quantile(integer_values, q, axis=0),
+    )
+    np.testing.assert_allclose(
+        backend.to_numpy(tuple_axis_quantiles),
+        np.quantile(cube, q, axis=(0, 2), keepdims=True),
+    )
+""",
+    )
+
+    assert result.returncode == 0, result.stderr
+
+
+@pytest.mark.backend_portable
 def test_pytorch_quantile_preserves_empty_batch_dimensions():
     if importlib.util.find_spec("torch") is None:
         pytest.skip("PyTorch is not installed")
