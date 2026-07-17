@@ -4,7 +4,7 @@ from __future__ import annotations
 
 
 def patch_pytorch_quantile_empty_batch_contract() -> None:
-    """Preserve empty non-reduced dimensions in PyTorch quantile reductions."""
+    """Preserve NumPy quantile shapes unsupported by native PyTorch."""
 
     try:
         import numpy as np  # pylint: disable=import-outside-toplevel
@@ -50,6 +50,7 @@ def patch_pytorch_quantile_empty_batch_contract() -> None:
 
         effective_method = method if interpolation is None else interpolation
         values = raw_pytorch.array(a)
+        q_shape = raw_pytorch._quantile_q_shape(q)
         is_integral_axis = isinstance(
             effective_axis, (int, np.integer)
         ) and not isinstance(effective_axis, (bool, np.bool_))
@@ -67,7 +68,8 @@ def patch_pytorch_quantile_empty_batch_contract() -> None:
                         values, dtype=raw_pytorch.get_default_dtype()
                     )
                 q_arg = raw_pytorch._quantile_q(q, values)
-                q_shape = raw_pytorch._quantile_q_shape(q)
+                if len(q_shape) > 1:
+                    q_arg = q_arg.reshape(-1)
                 validation_values = torch.zeros(
                     values.shape[normalized_axis],
                     dtype=values.dtype,
@@ -90,6 +92,34 @@ def patch_pytorch_quantile_empty_batch_contract() -> None:
                     out.copy_(result)
                     return out
                 return result
+
+        if len(q_shape) > 1:
+            quantile_values = values
+            if not raw_pytorch.is_floating(
+                quantile_values
+            ) and not raw_pytorch.is_complex(quantile_values):
+                quantile_values = raw_pytorch.cast(
+                    quantile_values,
+                    dtype=raw_pytorch.get_default_dtype(),
+                )
+            q_arg = raw_pytorch._quantile_q(q, quantile_values).reshape(-1)
+            result = original_quantile(
+                a,
+                q_arg,
+                axis=axis,
+                out=None,
+                overwrite_input=overwrite_input,
+                method=method,
+                keepdims=keepdims,
+                dim=dim,
+                keepdim=keepdim,
+                interpolation=interpolation,
+            )
+            result = result.reshape(q_shape + tuple(result.shape[1:]))
+            if out is not None:
+                out.copy_(result)
+                return out
+            return result
 
         return original_quantile(
             a,
