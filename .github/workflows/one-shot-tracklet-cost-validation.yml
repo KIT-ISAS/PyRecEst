@@ -1,9 +1,6 @@
 name: One-shot tracklet cost validation patch
 
 on:
-  push:
-    branches:
-      - agent/reject-nonfinite-tracklet-costs
   pull_request:
     branches:
       - main
@@ -41,112 +38,57 @@ jobs:
           source_path = Path("src/pyrecest/filters/tracklet_viterbi.py")
           source = source_path.read_text(encoding="utf-8")
 
+          candidate_anchor = (
+              "    metadata: Mapping[str, Any] = field(default_factory=dict)\n"
+              "\n\n"
+              "@dataclass(frozen=True)\n"
+              "class TrackletViterbiConfig:\n"
+          )
+          candidate_replacement = (
+              "    metadata: Mapping[str, Any] = field(default_factory=dict)\n"
+              "\n"
+              "    def __post_init__(self) -> None:\n"
+              "        object.__setattr__(\n"
+              "            self,\n"
+              "            \"unary_cost\",\n"
+              "            _as_scalar_float(self.unary_cost, \"unary_cost\"),\n"
+              "        )\n"
+              "\n\n"
+              "@dataclass(frozen=True)\n"
+              "class TrackletViterbiConfig:\n"
+          )
           source = replace_once(
               source,
-              '''    metadata: Mapping[str, Any] = field(default_factory=dict)
-
-
-          @dataclass(frozen=True)
-          class TrackletViterbiConfig:
-          ''',
-              '''    metadata: Mapping[str, Any] = field(default_factory=dict)
-
-              def __post_init__(self) -> None:
-                  object.__setattr__(
-                      self,
-                      "unary_cost",
-                      _as_scalar_float(self.unary_cost, "unary_cost"),
-                  )
-
-
-          @dataclass(frozen=True)
-          class TrackletViterbiConfig:
-          ''',
+              candidate_anchor,
+              candidate_replacement,
               "candidate validation",
           )
 
+          transition_anchor = (
+              "                    transition_value = float(\n"
+              "                        transition(\n"
+              "                            previous_node.candidate,\n"
+              "                            current_node.candidate,\n"
+              "                            previous_miss_streak,\n"
+              "                        )\n"
+              "                    )\n"
+          )
+          transition_replacement = (
+              "                    transition_value = _as_scalar_float(\n"
+              "                        transition(\n"
+              "                            previous_node.candidate,\n"
+              "                            current_node.candidate,\n"
+              "                            previous_miss_streak,\n"
+              "                        ),\n"
+              "                        \"transition_cost\",\n"
+              "                    )\n"
+          )
           source = replace_once(
               source,
-              '''                    transition_value = float(
-                                      transition(
-                                          previous_node.candidate,
-                                          current_node.candidate,
-                                          previous_miss_streak,
-                                      )
-                                  )
-          ''',
-              '''                    transition_value = _as_scalar_float(
-                                      transition(
-                                          previous_node.candidate,
-                                          current_node.candidate,
-                                          previous_miss_streak,
-                                      ),
-                                      "transition_cost",
-                                  )
-          ''',
-              "dynamic-program transition validation",
+              transition_anchor,
+              transition_replacement,
+              "transition validation",
           )
-
-          source = replace_once(
-              source,
-              '''    unary_cost = 0.0 if selected is None else float(selected.unary_cost)
-              transition = transition_cost or (
-                  lambda previous, current, miss_streak: default_tracklet_transition_cost(
-                      previous,
-                      current,
-                      miss_streak,
-                      config,
-                  )
-              )
-              if previous_committed is None:
-          ''',
-              '''    unary_cost = 0.0 if selected is None else float(selected.unary_cost)
-              transition = transition_cost or (
-                  lambda previous, current, miss_streak: default_tracklet_transition_cost(
-                      previous,
-                      current,
-                      miss_streak,
-                      config,
-                  )
-              )
-
-              def evaluated_transition(previous, current, miss_streak):
-                  return _as_scalar_float(
-                      transition(previous, current, miss_streak),
-                      "transition_cost",
-                  )
-
-              if previous_committed is None:
-          ''',
-              "fixed-lag transition helper",
-          )
-
-          source = replace_once(
-              source,
-              '''            return float(unary_cost + transition(None, selected, committed_miss_streak))
-          ''',
-              '''            return float(
-                              unary_cost
-                              + evaluated_transition(None, selected, committed_miss_streak)
-                          )
-          ''',
-              "leading-gap transition call",
-          )
-
-          source = replace_once(
-              source,
-              '''        unary_cost + transition(previous_committed, selected, committed_miss_streak)
-          ''',
-              '''        unary_cost
-                      + evaluated_transition(
-                          previous_committed,
-                          selected,
-                          committed_miss_streak,
-                      )
-          ''',
-              "committed transition call",
-          )
-
           source_path.write_text(source, encoding="utf-8")
 
           tests_path = Path("tests/filters/test_tracklet_viterbi.py")
