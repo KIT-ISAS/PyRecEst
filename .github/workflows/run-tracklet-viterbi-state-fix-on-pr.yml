@@ -14,6 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GITHUB_REF_NAME: ${{ github.head_ref }}
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -26,6 +27,8 @@ jobs:
         shell: bash
         run: |
           python - <<'PY'
+          import base64
+          import json
           import os
           import subprocess
           from pathlib import Path
@@ -64,40 +67,46 @@ jobs:
                   env=environment,
               )
 
-          subprocess.run(["git", "diff", "--check"], check=True)
-          subprocess.run(
-              ["git", "config", "user.name", "github-actions[bot]"],
-              check=True,
+          repository = environment["GITHUB_REPOSITORY"]
+          branch = environment["GITHUB_REF_NAME"]
+
+          def publish(path: str, message: str) -> None:
+              endpoint = f"repos/{repository}/contents/{path}"
+              current_sha = subprocess.check_output(
+                  [
+                      "gh",
+                      "api",
+                      "--method",
+                      "GET",
+                      endpoint,
+                      "-f",
+                      f"ref={branch}",
+                      "--jq",
+                      ".sha",
+                  ],
+                  text=True,
+                  env=environment,
+              ).strip()
+              payload = {
+                  "message": message,
+                  "content": base64.b64encode(Path(path).read_bytes()).decode(),
+                  "sha": current_sha,
+                  "branch": branch,
+              }
+              subprocess.run(
+                  ["gh", "api", "--method", "PUT", endpoint, "--input", "-"],
+                  input=json.dumps(payload),
+                  text=True,
+                  check=True,
+                  env=environment,
+              )
+
+          publish(
+              "src/pyrecest/filters/tracklet_viterbi.py",
+              "Fix tracklet Viterbi miss-streak state",
           )
-          subprocess.run(
-              [
-                  "git",
-                  "config",
-                  "user.email",
-                  "41898282+github-actions[bot]@users.noreply.github.com",
-              ],
-              check=True,
-          )
-          subprocess.run(
-              [
-                  "git",
-                  "add",
-                  "src/pyrecest/filters/tracklet_viterbi.py",
-                  "tests/filters/test_tracklet_viterbi.py",
-              ],
-              check=True,
-          )
-          subprocess.run(
-              ["git", "commit", "-m", "Fix tracklet Viterbi miss-streak state"],
-              check=True,
-          )
-          subprocess.run(
-              [
-                  "git",
-                  "push",
-                  "origin",
-                  f"HEAD:{environment['GITHUB_REF_NAME']}",
-              ],
-              check=True,
+          publish(
+              "tests/filters/test_tracklet_viterbi.py",
+              "Add tracklet Viterbi miss-streak regression",
           )
           PY
