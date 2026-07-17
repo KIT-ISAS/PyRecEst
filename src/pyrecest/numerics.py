@@ -42,6 +42,8 @@ def _object_item_contains_unsupported_numeric_values(item) -> bool:
 
 
 def _contains_unsupported_numeric_values(value) -> bool:
+    if np.ma.is_masked(value):
+        return True
     try:
         value_array = np.asarray(value)
     except (TypeError, ValueError, OverflowError, RuntimeError):
@@ -57,6 +59,8 @@ def _contains_unsupported_numeric_values(value) -> bool:
 
 
 def _to_numpy_array(value, *, name: str = "matrix") -> np.ndarray:
+    if np.ma.is_masked(value):
+        raise ValueError(f"{name} must contain numeric values.")
     try:
         import pyrecest.backend as backend
 
@@ -84,6 +88,8 @@ def _from_numpy_array(value: np.ndarray):
 
 
 def _validate_nonnegative_finite(name: str, value: float) -> float:
+    if np.ma.is_masked(value):
+        raise ValueError(f"{name} must be a scalar number.")
     try:
         value_array = np.asarray(value)
     except (TypeError, ValueError, OverflowError, RuntimeError) as exc:
@@ -110,6 +116,8 @@ def _validate_positive_finite(name: str, value: float) -> float:
 
 
 def _validate_nonnegative_integer(name: str, value: int) -> int:
+    if np.ma.is_masked(value):
+        raise ValueError(f"{name} must be a nonnegative integer.")
     try:
         value_array = np.asarray(value)
     except (TypeError, ValueError, OverflowError, RuntimeError) as exc:
