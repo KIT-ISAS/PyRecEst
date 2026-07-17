@@ -55,8 +55,12 @@ jobs:
               "Run focused regression",
               "Commit and push fix",
           ):
+              script = extract_step(step_name).replace(
+                  "sed -i 's/^          //' /tmp/tracklet.patch\n",
+                  "",
+              )
               subprocess.run(
-                  ["bash", "-lc", extract_step(step_name)],
+                  ["bash", "-lc", script],
                   check=True,
                   env=environment,
               )
