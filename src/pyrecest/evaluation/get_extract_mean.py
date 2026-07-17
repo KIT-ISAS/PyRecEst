@@ -16,6 +16,8 @@ def _normalize_registry_name(manifold_name: str) -> str:
 
 
 def _coerce_mtt_scenario_flag(value: Any) -> bool:
+    if np.ma.isMaskedArray(value) and bool(np.any(np.ma.getmaskarray(value))):
+        raise ValueError("mtt_scenario must be a bool")
     try:
         value_array = np.asarray(value)
     except (TypeError, ValueError) as exc:
