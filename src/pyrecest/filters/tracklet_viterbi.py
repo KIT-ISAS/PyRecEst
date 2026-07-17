@@ -71,6 +71,13 @@ class TrackletAssociationCandidate:
     velocity: Any | None = None
     metadata: Mapping[str, Any] = field(default_factory=dict)
 
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "unary_cost",
+            _as_scalar_float(self.unary_cost, "unary_cost"),
+        )
+
 
 @dataclass(frozen=True)
 class TrackletViterbiConfig:
@@ -283,12 +290,13 @@ def _solve_tracklet_viterbi(
                 for previous_miss_streak, previous_cost in state_costs[-1][
                     previous_index
                 ].items():
-                    transition_value = float(
+                    transition_value = _as_scalar_float(
                         transition(
                             previous_node.candidate,
                             current_node.candidate,
                             previous_miss_streak,
-                        )
+                        ),
+                        "transition_cost",
                     )
                     current_miss_streak = (
                         previous_miss_streak + 1 if current_node.is_miss else 0

@@ -268,3 +268,31 @@ def test_full_viterbi_preserves_competing_miss_streak_states():
         (1,),
         (2,),
     ]
+
+
+
+@pytest.mark.parametrize("invalid_cost", [np.nan, np.inf, -np.inf])
+def test_tracklet_candidate_rejects_nonfinite_unary_costs(invalid_cost):
+    with pytest.raises(ValueError, match="unary_cost must be finite"):
+        TrackletAssociationCandidate("invalid", unary_cost=invalid_cost)
+
+
+@pytest.mark.parametrize("invalid_cost", [np.nan, np.inf, -np.inf])
+def test_tracklet_viterbi_solvers_reject_nonfinite_transition_costs(invalid_cost):
+    frames = [
+        [TrackletAssociationCandidate("a", unary_cost=0.0)],
+        [TrackletAssociationCandidate("b", unary_cost=0.0)],
+    ]
+
+    def transition(_previous, _current, _miss_streak):
+        return invalid_cost
+
+    with pytest.raises(ValueError, match="transition_cost must be finite"):
+        solve_tracklet_viterbi(frames, transition_cost=transition)
+
+    with pytest.raises(ValueError, match="transition_cost must be finite"):
+        solve_fixed_lag_tracklet_viterbi(
+            frames,
+            lag_s=0.1,
+            transition_cost=transition,
+        )
