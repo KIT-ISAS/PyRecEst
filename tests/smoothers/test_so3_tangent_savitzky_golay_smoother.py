@@ -27,6 +27,16 @@ def geodesic_distance(rotation_a, rotation_b):
 
 
 class SO3TangentSavitzkyGolaySmootherTest(unittest.TestCase):
+    def test_log_map_round_trips_pi_rotation_about_general_axis(self):
+        smoother = SO3TangentSavitzkyGolaySmoother()
+        axis = array([1.0, 2.0, 3.0])
+        axis = axis / np.linalg.norm(np.asarray(axis))
+        rotation = smoother._exp_map(math.pi * axis)
+
+        reconstructed = smoother._exp_map(smoother._log_map(rotation))
+
+        self.assertLess(geodesic_distance(reconstructed, rotation), ATOL)
+
     def test_bridges_single_frame_occlusion_on_linear_z_sequence(self):
         rotations = [z_rotation(0.1 * idx) for idx in range(5)]
         mask = [True, True, False, True, True]
