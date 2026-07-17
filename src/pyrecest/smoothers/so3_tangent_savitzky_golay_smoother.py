@@ -152,7 +152,8 @@ class SO3TangentSavitzkyGolaySmoother(AbstractSmoother):
         axis_index = max(range(3), key=lambda idx: diagonal[idx])
         axis = [0.0, 0.0, 0.0]
         axis[axis_index] = math.sqrt(max(0.5 * (diagonal[axis_index] + 1.0), 0.0))
-        denominator = max(2.0 * axis[axis_index], 1e-8)
+        # For a pi rotation, R_ij + R_ji = 4 * axis_i * axis_j.
+        denominator = max(4.0 * axis[axis_index], 1e-8)
         if axis_index == 0:
             axis[1] = float(rotation[0, 1] + rotation[1, 0]) / denominator
             axis[2] = float(rotation[0, 2] + rotation[2, 0]) / denominator
