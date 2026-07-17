@@ -22,7 +22,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Execute one-shot fix steps
+      - name: Execute and publish one-shot fix
         shell: bash
         run: |
           python - <<'PY'
@@ -53,7 +53,6 @@ jobs:
           for step_name in (
               "Apply source and regression patches",
               "Run focused regression",
-              "Commit and push fix",
           ):
               script = extract_step(step_name).replace(
                   "sed -i 's/^          //' /tmp/tracklet.patch\n",
@@ -64,4 +63,41 @@ jobs:
                   check=True,
                   env=environment,
               )
+
+          subprocess.run(["git", "diff", "--check"], check=True)
+          subprocess.run(
+              ["git", "config", "user.name", "github-actions[bot]"],
+              check=True,
+          )
+          subprocess.run(
+              [
+                  "git",
+                  "config",
+                  "user.email",
+                  "41898282+github-actions[bot]@users.noreply.github.com",
+              ],
+              check=True,
+          )
+          subprocess.run(
+              [
+                  "git",
+                  "add",
+                  "src/pyrecest/filters/tracklet_viterbi.py",
+                  "tests/filters/test_tracklet_viterbi.py",
+              ],
+              check=True,
+          )
+          subprocess.run(
+              ["git", "commit", "-m", "Fix tracklet Viterbi miss-streak state"],
+              check=True,
+          )
+          subprocess.run(
+              [
+                  "git",
+                  "push",
+                  "origin",
+                  f"HEAD:{environment['GITHUB_REF_NAME']}",
+              ],
+              check=True,
+          )
           PY
