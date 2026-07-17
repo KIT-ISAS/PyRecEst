@@ -6,6 +6,7 @@ from operator import index as _operator_index
 
 
 _INTEGER_MESSAGE = "num_classes must be an integer"
+_NONNEGATIVE_MESSAGE = "num_classes must be non-negative"
 
 
 def _is_boolean_take_axis(axis, torch_module) -> bool:
@@ -20,7 +21,7 @@ def _is_boolean_take_axis(axis, torch_module) -> bool:
 
 
 def _normalize_num_classes(num_classes, torch_module) -> int:
-    """Return a non-boolean integer ``num_classes`` value."""
+    """Return a non-negative, non-boolean integer ``num_classes`` value."""
     if isinstance(num_classes, bool) or type(num_classes).__name__ == "bool_":
         raise TypeError(f"{_INTEGER_MESSAGE}, not boolean")
     if torch_module.is_tensor(num_classes):
@@ -28,9 +29,12 @@ def _normalize_num_classes(num_classes, torch_module) -> int:
             raise TypeError(_INTEGER_MESSAGE)
         num_classes = num_classes.item()
     try:
-        return _operator_index(num_classes)
+        normalized = _operator_index(num_classes)
     except TypeError as exc:
         raise TypeError(_INTEGER_MESSAGE) from exc
+    if normalized < 0:
+        raise ValueError(_NONNEGATIVE_MESSAGE)
+    return normalized
 
 
 def _patch_pytorch_take_axis_contract(pytorch_backend, torch_module) -> None:
