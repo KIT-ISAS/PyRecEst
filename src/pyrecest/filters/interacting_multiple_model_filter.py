@@ -13,6 +13,7 @@ from pyrecest.backend import (
     array,
     asarray,
     diag,
+    diagonal,
     empty,
     exp,
     eye,
@@ -612,12 +613,13 @@ class InteractingMultipleModelFilter(AbstractFilter, EuclideanFilterMixin):
             @ measurement_matrix.T
             + meas_noise
         )
-        det_value = float(linalg.det(innovation_covariance))
-        if det_value <= 0.0:
+        try:
+            cholesky_factor = linalg.cholesky(innovation_covariance)
+        except (np.linalg.LinAlgError, RuntimeError, ValueError) as exc:
             raise ValueError(
                 "Innovation covariance must be positive definite to evaluate the IMM likelihood."
-            )
-        logdet = float(log(array(det_value)))
+            ) from exc
+        logdet = 2.0 * float(log(diagonal(cholesky_factor)).sum())
         mahalanobis_distance = float(
             innovation.T @ linalg.solve(innovation_covariance, innovation)
         )

@@ -1,4 +1,5 @@
 import copy
+import math
 import unittest
 
 import numpy.testing as npt
@@ -139,6 +140,27 @@ class InteractingMultipleModelFilterTest(unittest.TestCase):
             posterior_probabilities,
             array([0.8807970779778823, 0.11920292202211755]),
         )
+
+    def test_linear_likelihood_handles_positive_definite_determinant_underflow(self):
+        predicted_state = GaussianDistribution(
+            array([0.0, 0.0]),
+            array([[0.0, 0.0], [0.0, 0.0]]),
+            check_validity=False,
+        )
+        measurement_noise = array([[1e-200, 0.0], [0.0, 1e-200]])
+
+        log_likelihood = (
+            InteractingMultipleModelFilter._log_linear_measurement_likelihood(
+                array([0.0, 0.0]),
+                predicted_state,
+                eye(2),
+                measurement_noise,
+            )
+        )
+
+        expected = -math.log(2.0 * math.pi) + 200.0 * math.log(10.0)
+        self.assertTrue(math.isfinite(log_likelihood))
+        self.assertAlmostEqual(log_likelihood, expected, places=12)
 
     def test_rejects_nonfinite_transition_matrix_and_mode_probabilities(self):
         filter_bank = [
