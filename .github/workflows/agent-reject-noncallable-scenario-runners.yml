@@ -1,0 +1,51 @@
+name: Apply scenario runner callable validation
+
+on:
+  push:
+    branches:
+      - agent/reject-noncallable-scenario-runners
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/reject-noncallable-scenario-runners
+          fetch-depth: 0
+
+      - name: Apply fix and regression tests
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          source_path = Path("src/pyrecest/scenarios.py")
+          source = source_path.read_text(encoding="utf-8")
+          old = '''    scenario_type = _normalize_scenario_type(scenario_type)\n    if scenario_type in _SCENARIO_RUNNERS:\n'''
+          new = '''    scenario_type = _normalize_scenario_type(scenario_type)\n    if not callable(runner):\n        raise TypeError("runner must be callable")\n    if scenario_type in _SCENARIO_RUNNERS:\n'''
+          if old not in source:
+              raise SystemExit("scenario registration insertion point not found")
+          source_path.write_text(source.replace(old, new, 1), encoding="utf-8")
+
+          test_path = Path("tests/test_scenario_type_validation.py")
+          tests = test_path.read_text(encoding="utf-8")
+          marker = "def test_register_scenario_runner_rejects_non_callable_runners"
+          if marker not in tests:
+              tests += '''\n\n@pytest.mark.parametrize("runner", [None, 1, "not-callable"])\ndef test_register_scenario_runner_rejects_non_callable_runners(runner):\n    name = "temporary_non_callable_scenario_runner"\n    registry = scenarios._SCENARIO_RUNNERS  # pylint: disable=protected-access\n    registry.pop(name, None)\n\n    with pytest.raises(TypeError, match="runner must be callable"):\n        scenarios.register_scenario_runner(name, runner)\n\n    assert name not in registry\n\n\ndef test_scenario_runner_decorator_rejects_non_callable_runner():\n    name = "temporary_non_callable_scenario_decorator"\n    registry = scenarios._SCENARIO_RUNNERS  # pylint: disable=protected-access\n    registry.pop(name, None)\n\n    decorator = scenarios.scenario_runner(name)\n    with pytest.raises(TypeError, match="runner must be callable"):\n        decorator(None)\n\n    assert name not in registry\n'''
+              test_path.write_text(tests, encoding="utf-8")
+          PY
+
+      - name: Commit patch
+        shell: bash
+        run: |
+          rm .github/workflows/agent-reject-noncallable-scenario-runners.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/pyrecest/scenarios.py tests/test_scenario_type_validation.py .github/workflows/agent-reject-noncallable-scenario-runners.yml
+          git commit -m "Reject non-callable scenario runners"
+          git push origin HEAD:agent/reject-noncallable-scenario-runners
