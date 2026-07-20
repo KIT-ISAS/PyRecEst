@@ -9,6 +9,7 @@ from pyrecest.backend import (
     array,
     complex128,
     conj,
+    diagonal,
     exp,
     eye,
     gammaln,
@@ -116,7 +117,10 @@ class ComplexAngularCentralGaussianDistribution:
         d = self.dim
         # gamma(d) / (2 * pi^d) in log space: gammaln(d) - log(2) - d*log(pi)
         log_normalizer = gammaln(array(float(d))) - log(2.0) - d * log(array(pi))
-        p = exp(log_normalizer) * abs(inner) ** (-d) / abs(linalg.det(self.C))
+        cholesky_factor = linalg.cholesky(self.C)
+        log_determinant = 2.0 * sum(log(real(diagonal(cholesky_factor))))
+        log_density = log_normalizer - d * log(abs(inner)) - log_determinant
+        p = exp(log_density)
 
         if single:
             return p[0]
