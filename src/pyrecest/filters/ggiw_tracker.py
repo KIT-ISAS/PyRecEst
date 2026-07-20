@@ -7,6 +7,7 @@ from pyrecest.backend import (
     array,
     concatenate,
     cos,
+    diagonal,
     eye,
     gammaln,
     linalg,
@@ -292,13 +293,15 @@ class GGIWTracker(
         )
 
     def _gaussian_log_likelihood(self, innovation, covariance):
-        determinant = linalg.det(covariance)
-        if float(determinant) <= 0.0:
+        try:
+            cholesky_factor = linalg.cholesky(covariance)
+        except (np.linalg.LinAlgError, RuntimeError, ValueError):
             return float("-inf")
+        log_determinant = 2.0 * log(diagonal(cholesky_factor)).sum()
         mahalanobis_distance = innovation.T @ linalg.solve(covariance, innovation)
         return -0.5 * (
             innovation.shape[0] * log(array(2.0 * pi))
-            + log(determinant)
+            + log_determinant
             + mahalanobis_distance
         )
 
