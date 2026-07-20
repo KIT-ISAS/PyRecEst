@@ -155,6 +155,32 @@ def _as_positive_integer(value, name: str) -> int:
     return integer_value
 
 
+def _as_sparse_coordinate_vector(values, name: str):
+    """Return flattened sparse pixel coordinates after lossless validation."""
+
+    try:
+        values_array = asarray(values).ravel()
+    except (TypeError, ValueError, RuntimeError, OverflowError) as exc:
+        raise ValueError(
+            f"{name} must contain non-negative integer coordinates."
+        ) from exc
+
+    raw_values = values_array.tolist()
+    coordinates = []
+    for value in raw_values:
+        if isinstance(value, (bool, str, bytes, bytearray, complex)):
+            raise ValueError(
+                f"{name} must contain non-negative integer coordinates."
+            )
+        try:
+            coordinates.append(_as_nonnegative_integer(value, name))
+        except ValueError as exc:
+            raise ValueError(
+                f"{name} must contain non-negative integer coordinates."
+            ) from exc
+    return array(coordinates, dtype=int64)
+
+
 def _histogram(values, *, bins: int, value_min: float, value_max: float):
     bins = _as_positive_integer(bins, "nbins")
 
@@ -189,11 +215,11 @@ def _extract_roi_support(roi) -> set[tuple[int, int]]:
             raise KeyError(
                 "Sparse ROI mappings must provide both 'ypix' and 'xpix' keys."
             )
-        ypix = asarray(roi["ypix"], dtype=int64).ravel()
-        xpix = asarray(roi["xpix"], dtype=int64).ravel()
+        ypix = _as_sparse_coordinate_vector(roi["ypix"], "ypix")
+        xpix = _as_sparse_coordinate_vector(roi["xpix"], "xpix")
     elif isinstance(roi, tuple) and len(roi) == 2:
-        ypix = asarray(roi[0], dtype=int64).ravel()
-        xpix = asarray(roi[1], dtype=int64).ravel()
+        ypix = _as_sparse_coordinate_vector(roi[0], "ypix")
+        xpix = _as_sparse_coordinate_vector(roi[1], "xpix")
     else:
         mask = asarray(roi)
         if mask.ndim != 2:
