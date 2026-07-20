@@ -2,6 +2,7 @@ from pyrecest.backend import all as backend_all
 from pyrecest.backend import (
     array,
     is_complex,
+    isfinite,
     logical_and,
     ones,
     reshape,
@@ -40,6 +41,8 @@ class HyperrectangularUniformDistribution(
         xs = array(xs)
         if is_complex(xs):
             raise ValueError("xs must be real-valued")
+        if not bool(backend_all(isfinite(xs))):
+            raise ValueError("xs must contain only finite values")
         if xs.ndim == 0:
             if self.dim != 1:
                 raise ValueError("Scalar points are only valid for dim == 1")
