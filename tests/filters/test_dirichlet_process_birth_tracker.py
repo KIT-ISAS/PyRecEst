@@ -3,6 +3,7 @@ import pytest
 
 import pyrecest.backend
 from pyrecest.filters.dirichlet_process_birth_tracker import (
+    DPBirthAtom,
     DPBirthMultiBernoulliTracker,
     DirichletProcessBirthMultiBernoulliTracker,
 )
@@ -87,6 +88,26 @@ def test_nearby_unassigned_measurement_reuses_existing_birth_atom():
     assert len(tracker.birth_atoms) == 1
     assert tracker.birth_atoms[0].count > 1.0
     assert tracker.last_birth_diagnostics[-1]["action"] == "existing_atom"
+
+
+@pytest.mark.parametrize("invalid_count", [np.nan, np.inf, -np.inf])
+def test_birth_atom_rejects_nonfinite_count(invalid_count):
+    with pytest.raises(ValueError, match="count must be finite and positive"):
+        DPBirthAtom(np.zeros(2), np.eye(2), invalid_count)
+
+
+@pytest.mark.parametrize("invalid_concentration", [np.nan, np.inf, -np.inf])
+def test_tracker_rejects_nonfinite_dp_concentration(invalid_concentration):
+    tracker, measurement_matrix, measurement_covariance = _tracker(
+        dp_concentration=invalid_concentration
+    )
+
+    with pytest.raises(ValueError, match="dp_concentration must be finite and positive"):
+        tracker._create_birth_component_from_measurement(
+            np.zeros(2),
+            measurement_matrix,
+            measurement_covariance,
+        )
 
 
 def test_alias_export_matches_long_class_name():

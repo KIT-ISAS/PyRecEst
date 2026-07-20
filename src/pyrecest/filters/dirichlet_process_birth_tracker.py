@@ -35,8 +35,8 @@ class DirichletProcessBirthAtom:
             self.mean.shape[0],
         )
         self.count = float(self.count)
-        if self.count <= 0.0:
-            raise ValueError("count must be positive")
+        if not np.isfinite(self.count) or self.count <= 0.0:
+            raise ValueError("count must be finite and positive")
 
     def copy(self):
         """Return a deep copy of the birth atom."""
@@ -279,8 +279,8 @@ class DirichletProcessBirthMultiBernoulliTracker(MultiBernoulliTracker):
         birth_covariance,
     ):
         concentration = float(self.tracker_param["dp_concentration"])
-        if concentration <= 0.0:
-            raise ValueError("dp_concentration must be positive")
+        if not np.isfinite(concentration) or concentration <= 0.0:
+            raise ValueError("dp_concentration must be finite and positive")
 
         base_likelihood = _linear_gaussian_likelihood(
             measurement,
