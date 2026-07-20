@@ -215,9 +215,11 @@ class RollingNISProcessNoiseAdapter:
     def scale(self, source_weights: Mapping[str, float] | None = None) -> float:
         """Return the adapted process-noise multiplier."""
 
+        scale = self.config.base_scale * adaptive_scale_from_ratio(
+            self.ratio(source_weights), self.config
+        )
         return float(
-            self.config.base_scale
-            * adaptive_scale_from_ratio(self.ratio(source_weights), self.config)
+            np.clip(scale, float(self.config.min_scale), float(self.config.max_scale))
         )
 
     def scaled_covariance(
