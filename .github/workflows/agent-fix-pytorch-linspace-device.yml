@@ -30,28 +30,35 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
+          from textwrap import dedent
 
           source_path = Path("src/pyrecest/_backend/pytorch/__init__.py")
           source = source_path.read_text(encoding="utf-8")
-          old = '''    device = next(
-              (value.device for value in (start, stop) if _torch.is_tensor(value)),
-              None,
+          old = "\n".join(
+              [
+                  "    device = next(",
+                  "        (value.device for value in (start, stop) if _torch.is_tensor(value)),",
+                  "        None,",
+                  "    )",
+              ]
           )
-          '''
-          new = '''    device = next(
-              (
-                  value.device
-                  for value in (start, stop)
-                  if _torch.is_tensor(value) and value.device.type != "cpu"
-              ),
-              None,
+          new = "\n".join(
+              [
+                  "    device = next(",
+                  "        (",
+                  "            value.device",
+                  "            for value in (start, stop)",
+                  '            if _torch.is_tensor(value) and value.device.type != "cpu"',
+                  "        ),",
+                  "        None,",
+                  "    )",
+                  "    if device is None:",
+                  "        device = next(",
+                  "            (value.device for value in (start, stop) if _torch.is_tensor(value)),",
+                  "            None,",
+                  "        )",
+              ]
           )
-          if device is None:
-              device = next(
-                  (value.device for value in (start, stop) if _torch.is_tensor(value)),
-                  None,
-              )
-          '''
           if source.count(old) != 1:
               raise RuntimeError("Expected exactly one PyTorch linspace device-selection block")
           source_path.write_text(source.replace(old, new, 1), encoding="utf-8")
@@ -60,65 +67,72 @@ jobs:
               "tests/backend_support/test_pytorch_linspace_device_contract.py"
           )
           test_path.write_text(
-              '''import importlib.util
+              dedent(
+                  '''\
+                  import importlib.util
 
-          import pytest
+                  import pytest
 
-          from tests.support.backend_runner import run_backend_code
+                  from tests.support.backend_runner import run_backend_code
 
-          pytestmark = pytest.mark.backend_portable
-
-
-          def _linspace_device_contract_code(target_module):
-              return f"""
-          import torch
-          import pyrecest  # noqa: F401  # triggers backend-support compatibility patches
-          import pyrecest.backend as backend
-          import pyrecest._backend.pytorch as raw_pytorch
+                  pytestmark = pytest.mark.backend_portable
 
 
-          def _non_cpu_device():
-              if torch.cuda.is_available():
-                  return torch.device("cuda")
-              return torch.device("meta")
+                  def _linspace_device_contract_code(target_module):
+                      return f"""
+                  import torch
+                  import pyrecest  # noqa: F401  # triggers backend-support compatibility patches
+                  import pyrecest.backend as backend
+                  import pyrecest._backend.pytorch as raw_pytorch
 
 
-          target = {target_module}
-          device = _non_cpu_device()
-          start = torch.tensor(0.0)
-          stop = torch.tensor(1.0, device=device)
-
-          result = target.linspace(start, stop, num=3)
-
-          assert result.device.type == device.type
-          assert result.shape == (3,)
-          if device.type != "meta":
-              expected = torch.tensor([0.0, 0.5, 1.0], device=device)
-              assert torch.allclose(result, expected)
-
-          print("ok")
-          """
+                  def _non_cpu_device():
+                      if torch.cuda.is_available():
+                          return torch.device("cuda")
+                      return torch.device("meta")
 
 
-          def test_raw_pytorch_linspace_prefers_existing_non_cpu_endpoint_device():
-              if importlib.util.find_spec("torch") is None:
-                  pytest.skip("PyTorch is not installed")
+                  target = {target_module}
+                  device = _non_cpu_device()
+                  start = torch.tensor(0.0)
+                  stop = torch.tensor(1.0, device=device)
 
-              result = run_backend_code("numpy", _linspace_device_contract_code("raw_pytorch"))
+                  result = target.linspace(start, stop, num=3)
 
-              assert result.returncode == 0, result.stderr
-              assert "ok" in result.stdout
+                  assert result.device.type == device.type
+                  assert result.shape == (3,)
+                  if device.type != "meta":
+                      expected = torch.tensor([0.0, 0.5, 1.0], device=device)
+                      assert torch.allclose(result, expected)
+
+                  print("ok")
+                  """
 
 
-          def test_public_pytorch_linspace_prefers_existing_non_cpu_endpoint_device():
-              if importlib.util.find_spec("torch") is None:
-                  pytest.skip("PyTorch is not installed")
+                  def test_raw_pytorch_linspace_prefers_existing_non_cpu_endpoint_device():
+                      if importlib.util.find_spec("torch") is None:
+                          pytest.skip("PyTorch is not installed")
 
-              result = run_backend_code("pytorch", _linspace_device_contract_code("backend"))
+                      result = run_backend_code(
+                          "numpy", _linspace_device_contract_code("raw_pytorch")
+                      )
 
-              assert result.returncode == 0, result.stderr
-              assert "ok" in result.stdout
-          ''',
+                      assert result.returncode == 0, result.stderr
+                      assert "ok" in result.stdout
+
+
+                  def test_public_pytorch_linspace_prefers_existing_non_cpu_endpoint_device():
+                      if importlib.util.find_spec("torch") is None:
+                          pytest.skip("PyTorch is not installed")
+
+                      result = run_backend_code(
+                          "pytorch", _linspace_device_contract_code("backend")
+                      )
+
+                      assert result.returncode == 0, result.stderr
+                      assert "ok" in result.stdout
+                  '''
+              ),
               encoding="utf-8",
           )
           PY
