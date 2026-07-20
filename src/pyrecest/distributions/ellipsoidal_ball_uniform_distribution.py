@@ -3,10 +3,12 @@ from typing import Union
 
 # pylint: disable=no-name-in-module,no-member
 from pyrecest.backend import (
+    all as backend_all,
     array,
     int32,
     int64,
     is_complex,
+    isfinite,
     linalg,
     random,
     reshape,
@@ -81,9 +83,18 @@ class EllipsoidalBallUniformDistribution(
         return pdf_values[0] if single else pdf_values
 
     def _coerce_points(self, xs):
-        xs = array(xs)
+        try:
+            xs = array(xs)
+        except (TypeError, ValueError, RuntimeError, OverflowError) as exc:
+            raise ValidationError("xs must be a finite real-valued array") from exc
         if is_complex(xs):
             raise ValidationError("xs must be real-valued")
+        try:
+            finite = bool(backend_all(isfinite(xs)))
+        except (TypeError, ValueError, RuntimeError) as exc:
+            raise ValidationError("xs must be a finite real-valued array") from exc
+        if not finite:
+            raise ValidationError("xs must contain only finite values")
         if xs.ndim == 0:
             if self.dim != 1:
                 raise ShapeError(
