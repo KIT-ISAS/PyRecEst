@@ -47,6 +47,10 @@ class VonMisesDistribution(AbstractCircularDistribution):
         kappa_scalar = self._as_float_scalar(kappa, "kappa")
         if kappa_scalar < 0.0:
             raise ValueError("kappa must be nonnegative.")
+        if norm_const is not None:
+            norm_const = self._as_float_scalar(norm_const, "norm_const")
+            if norm_const <= 0.0:
+                raise ValueError("norm_const must be positive.")
         super().__init__()
         self.mu = mu
         self.kappa = kappa
