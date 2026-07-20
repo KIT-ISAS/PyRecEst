@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - agent/fix-pytorch-linspace-device-selection
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
