@@ -23,16 +23,19 @@ def _non_cpu_device():
 
 target = {target_module}
 device = _non_cpu_device()
-start = torch.tensor(0.0)
-stop = torch.tensor(1.0, device=device)
+endpoint_pairs = [
+    (torch.tensor(0.0), torch.tensor(1.0, device=device)),
+    (torch.tensor(0.0, device=device), torch.tensor(1.0)),
+]
 
-result = target.linspace(start, stop, num=3)
+for start, stop in endpoint_pairs:
+    result = target.linspace(start, stop, num=3)
 
-assert result.device.type == device.type
-assert result.shape == (3,)
-if device.type != "meta":
-    expected = torch.tensor([0.0, 0.5, 1.0], device=device)
-    assert torch.allclose(result, expected)
+    assert result.device.type == device.type
+    assert result.shape == (3,)
+    if device.type != "meta":
+        expected = torch.tensor([0.0, 0.5, 1.0], device=device)
+        assert torch.allclose(result, expected)
 
 print("ok")
 """
