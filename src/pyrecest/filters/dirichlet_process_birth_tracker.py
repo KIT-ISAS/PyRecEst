@@ -357,9 +357,33 @@ class DirichletProcessBirthMultiBernoulliTracker(MultiBernoulliTracker):
         ]
         if maximum_number_of_birth_atoms is None:
             return
-        maximum_number_of_birth_atoms = int(maximum_number_of_birth_atoms)
-        if maximum_number_of_birth_atoms < 0:
-            raise ValueError("maximum_number_of_birth_atoms must be non-negative or None")
+
+        validation_message = (
+            "maximum_number_of_birth_atoms must be a non-negative integer or None"
+        )
+        if isinstance(maximum_number_of_birth_atoms, (bool, np.bool_)):
+            raise ValueError(validation_message)
+        try:
+            maximum_number_of_birth_atoms_array = np.asarray(
+                maximum_number_of_birth_atoms
+            )
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError(validation_message) from exc
+        if maximum_number_of_birth_atoms_array.shape != ():
+            raise ValueError(validation_message)
+        try:
+            maximum_number_of_birth_atoms_float = float(
+                maximum_number_of_birth_atoms_array.item()
+            )
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError(validation_message) from exc
+        if (
+            not np.isfinite(maximum_number_of_birth_atoms_float)
+            or maximum_number_of_birth_atoms_float < 0.0
+            or not maximum_number_of_birth_atoms_float.is_integer()
+        ):
+            raise ValueError(validation_message)
+        maximum_number_of_birth_atoms = int(maximum_number_of_birth_atoms_float)
         self.birth_atoms = sorted(
             self.birth_atoms,
             key=lambda atom: atom.count,
