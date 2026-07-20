@@ -11,6 +11,8 @@ from pyrecest.utils.roi_assignment import roi_iou
         ({"ypix": [0], "xpix": [float("nan")]}, "xpix"),
         (([0], [float("inf")]), "xpix"),
         (([True], [0]), "ypix"),
+        ({"ypix": ["1"], "xpix": [0]}, "ypix"),
+        ({"ypix": [0], "xpix": [1 + 0j]}, "xpix"),
     ],
 )
 def test_sparse_roi_rejects_lossy_or_invalid_coordinates(roi, coordinate_name):
