@@ -46,6 +46,8 @@ def register_scenario_runner(
 ) -> ScenarioRunner:
     """Register ``runner`` for a TOML ``scenario.type`` value."""
     scenario_type = _normalize_scenario_type(scenario_type)
+    if not callable(runner):
+        raise TypeError("runner must be callable")
     if scenario_type in _SCENARIO_RUNNERS:
         raise ValueError(f"Scenario type {scenario_type!r} is already registered")
     _SCENARIO_RUNNERS[scenario_type] = runner
