@@ -24,7 +24,7 @@ from pyrecest.backend import (
 from .abstract_circular_distribution import AbstractCircularDistribution
 
 _SMALL_RATE_SERIES_THRESHOLD = 1e-4
-_INVALID_RATE_SCALAR_TYPES = (
+_INVALID_REAL_SCALAR_TYPES = (
     bool,
     np.bool_,
     str,
@@ -37,23 +37,22 @@ _INVALID_RATE_SCALAR_TYPES = (
     np.datetime64,
     np.timedelta64,
 )
-_INVALID_RATE_DTYPE_KINDS = {"b", "S", "U", "c", "M", "m"}
+_INVALID_REAL_DTYPE_KINDS = {"b", "S", "U", "c", "M", "m"}
 
 
-def _contains_invalid_rate_scalar(value) -> bool:
-    """Return whether a rate candidate is boolean, textual, complex, or temporal."""
+def _contains_invalid_real_value(value) -> bool:
+    """Return whether a value is boolean, textual, complex, or temporal."""
 
-    if isinstance(value, _INVALID_RATE_SCALAR_TYPES):
+    if isinstance(value, _INVALID_REAL_SCALAR_TYPES):
         return True
 
     dtype = getattr(value, "dtype", None)
     if dtype is not None:
         try:
-            if np.dtype(dtype).kind in _INVALID_RATE_DTYPE_KINDS:
-                return True
+            return np.dtype(dtype).kind in _INVALID_REAL_DTYPE_KINDS
         except (TypeError, ValueError):
             dtype_name = str(dtype).lower()
-            if any(
+            return any(
                 token in dtype_name
                 for token in (
                     "bool",
@@ -63,18 +62,17 @@ def _contains_invalid_rate_scalar(value) -> bool:
                     "datetime",
                     "timedelta",
                 )
-            ):
-                return True
+            )
 
     try:
         values = np.asarray(value, dtype=object).reshape(-1)
     except (OverflowError, TypeError, ValueError, RuntimeError):
         return False
-    return any(isinstance(item, _INVALID_RATE_SCALAR_TYPES) for item in values)
+    return any(isinstance(item, _INVALID_REAL_SCALAR_TYPES) for item in values)
 
 
 def _validate_positive_scalar(value, name):
-    if _contains_invalid_rate_scalar(value):
+    if _contains_invalid_real_value(value):
         raise ValueError(f"{name} must be a positive real scalar.")
     try:
         value = asarray(value)
@@ -93,6 +91,25 @@ def _validate_positive_scalar(value, name):
         raise ValueError(f"{name} must be finite.")
     if not positive:
         raise ValueError(f"{name} must be positive.")
+    return value
+
+
+def _validate_pdf_points(value):
+    message = "xs must contain only finite real values."
+    if _contains_invalid_real_value(value):
+        raise ValueError(message)
+    try:
+        value = asarray(value)
+    except Exception as exc:  # pragma: no cover - backend-specific conversion type
+        raise ValueError(message) from exc
+    if ndim(value) > 1:
+        raise ValueError("xs must be a scalar or one-dimensional array.")
+    try:
+        finite = bool(all(isfinite(value)))
+    except (OverflowError, TypeError, ValueError, RuntimeError) as exc:
+        raise ValueError(message) from exc
+    if not finite:
+        raise ValueError(message)
     return value
 
 
@@ -126,9 +143,7 @@ class WrappedExponentialDistribution(AbstractCircularDistribution):
         self._density_scale = _density_scale_from_log_beta(self._log_beta)
 
     def pdf(self, xs):
-        xs = asarray(xs)
-        if ndim(xs) > 1:
-            raise ValueError("xs must be a scalar or one-dimensional array.")
+        xs = _validate_pdf_points(xs)
         xs = mod(xs, 2.0 * pi)
         return self._density_scale * exp(-self.lambda_ * xs)
 
