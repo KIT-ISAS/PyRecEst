@@ -7,9 +7,29 @@ import torch as _torch
 from ._common import array as _array
 
 
+_BOOLEAN_FFT_LENGTH_ERROR = "n must be an integer length, not boolean"
+
+
 def _as_fft_tensor(value):
     """Convert array-like FFT inputs to torch tensors."""
     return value if _torch.is_tensor(value) else _array(value)
+
+
+def _is_boolean_fft_length(value):
+    """Return whether a real-FFT length is Boolean-valued."""
+    if isinstance(value, bool):
+        return True
+    if _torch.is_tensor(value):
+        return value.dtype == _torch.bool
+    dtype = getattr(value, "dtype", None)
+    return dtype is not None and str(dtype) in {"bool", "bool_"}
+
+
+def _validate_real_fft_length_args(args, kwargs):
+    """Reject Boolean ``n`` values before PyTorch's FFT argument parser."""
+    length = args[0] if args else kwargs.get("n")
+    if _is_boolean_fft_length(length):
+        raise TypeError(_BOOLEAN_FFT_LENGTH_ERROR)
 
 
 def _is_empty_dim(dim):
@@ -138,6 +158,7 @@ def _wrap_arraylike_fft(
     normalize_scalar_dim=False,
     normalize_dim_sequence=False,
     normalize_shape_sequence=False,
+    validate_real_length=False,
     none_alias_means_default=True,
 ):
     @_wraps(torch_func)
@@ -149,6 +170,8 @@ def _wrap_arraylike_fft(
                 func_name,
                 none_alias_means_default=none_alias_means_default,
             )
+        if validate_real_length:
+            _validate_real_fft_length_args(args, kwargs)
         if normalize_scalar_dim and "dim" in kwargs:
             kwargs = dict(kwargs)
             kwargs["dim"] = _normalize_single_fft_dim(kwargs["dim"])
@@ -174,6 +197,7 @@ rfft = _wrap_arraylike_fft(
     func_name="rfft",
     dim_alias="axis",
     normalize_scalar_dim=True,
+    validate_real_length=True,
     none_alias_means_default=False,
 )
 irfft = _wrap_arraylike_fft(
@@ -181,6 +205,7 @@ irfft = _wrap_arraylike_fft(
     func_name="irfft",
     dim_alias="axis",
     normalize_scalar_dim=True,
+    validate_real_length=True,
     none_alias_means_default=False,
 )
 fftshift = _wrap_arraylike_fft(
