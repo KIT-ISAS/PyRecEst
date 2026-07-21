@@ -43,3 +43,21 @@ def test_circular_uniform_cdf_rejects_invalid_starting_points(starting_point):
 
     with pytest.raises(ValueError, match="starting_point.*finite real scalar"):
         dist.cdf(array([0.0]), starting_point=starting_point)
+
+
+@pytest.mark.parametrize(
+    "evaluation_points",
+    (
+        np.array([True]),
+        np.array([float("nan")]),
+        np.array([float("inf")]),
+        np.array([float("-inf")]),
+        np.array([1.0 + 1.0j]),
+        np.array(["0.0"]),
+    ),
+)
+def test_circular_uniform_cdf_rejects_invalid_evaluation_points(evaluation_points):
+    dist = CircularUniformDistribution()
+
+    with pytest.raises(ValueError, match="xa.*finite real"):
+        dist.cdf(evaluation_points)
