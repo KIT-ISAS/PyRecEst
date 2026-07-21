@@ -1,0 +1,83 @@
+name: Apply affine transform finite validation
+
+on:
+  push:
+    branches:
+      - agent/reject-nonfinite-affine-transform
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: agent/reject-nonfinite-affine-transform
+
+      - name: Patch source and regression tests
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          source_path = Path("src/pyrecest/utils/point_set_registration.py")
+          source = source_path.read_text(encoding="utf-8")
+          old = '''        if offset.shape[0] != matrix.shape[0]:
+              raise ValueError("offset dimension must match matrix dimension.")
+          object.__setattr__(self, "matrix", matrix)
+          object.__setattr__(self, "offset", offset)
+          '''
+          new = '''        if offset.shape[0] != matrix.shape[0]:
+              raise ValueError("offset dimension must match matrix dimension.")
+          if any(~isfinite(matrix)):
+              raise ValueError("matrix must contain only finite values.")
+          if any(~isfinite(offset)):
+              raise ValueError("offset must contain only finite values.")
+          object.__setattr__(self, "matrix", matrix)
+          object.__setattr__(self, "offset", offset)
+          '''
+          if source.count(old) != 1:
+              raise SystemExit("AffineTransform constructor snippet changed unexpectedly")
+          source_path.write_text(source.replace(old, new), encoding="utf-8")
+
+          test_path = Path("tests/test_affine_transform_algebra.py")
+          tests = test_path.read_text(encoding="utf-8")
+          marker = "def test_constructor_rejects_nonfinite_parameters"
+          if marker in tests:
+              raise SystemExit("Regression test already exists")
+          anchor = '''    def test_compose_matches_sequential_application(self):
+          '''
+          test = '''    def test_constructor_rejects_nonfinite_parameters(self):
+              for invalid_value in (float("nan"), float("inf"), -float("inf")):
+                  with self.subTest(component="matrix", invalid_value=invalid_value):
+                      with self.assertRaisesRegex(ValueError, "matrix.*finite"):
+                          AffineTransform(
+                              array([[1.0, invalid_value], [0.0, 1.0]]),
+                              array([0.0, 0.0]),
+                          )
+                  with self.subTest(component="offset", invalid_value=invalid_value):
+                      with self.assertRaisesRegex(ValueError, "offset.*finite"):
+                          AffineTransform(
+                              array([[1.0, 0.0], [0.0, 1.0]]),
+                              array([0.0, invalid_value]),
+                          )
+
+          '''
+          if tests.count(anchor) != 1:
+              raise SystemExit("AffineTransform test anchor changed unexpectedly")
+          test_path.write_text(tests.replace(anchor, test + anchor), encoding="utf-8")
+          PY
+
+      - name: Check syntax
+        run: python -m compileall -q src/pyrecest/utils/point_set_registration.py tests/test_affine_transform_algebra.py
+
+      - name: Commit patch
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/pyrecest/utils/point_set_registration.py tests/test_affine_transform_algebra.py
+          git commit -m "Reject nonfinite affine transforms"
+          git push origin HEAD:agent/reject-nonfinite-affine-transform
