@@ -94,13 +94,20 @@ def surface_band_probability_from_signed_distance(
     """Probability that a normal signed distance lies within a surface band."""
     epsilon = _positive_float("epsilon", epsilon)
     min_std = _positive_float("min_std", min_std)
-    cdf = ndtr if normal_cdf is None else normal_cdf
+    cdf = _standard_normal_cdf if normal_cdf is None else normal_cdf
     distance = _as_numeric_field(distance, "distance")
     distance_std = _nonnegative_finite_numeric_field(distance_std, "distance_std")
     std = _maximum(distance_std, min_std)
     upper = (epsilon - distance) / std
     lower = (-epsilon - distance) / std
     return _clip_01(cdf(upper) - cdf(lower))
+
+
+def _standard_normal_cdf(values: Any) -> Any:
+    """Evaluate the standard normal CDF without detaching tensor inputs."""
+    if hasattr(values, "erf"):
+        return 0.5 * (1.0 + (values / np.sqrt(2.0)).erf())
+    return ndtr(values)
 
 
 def _boolean_flag(name: str, value: bool) -> bool:
