@@ -49,11 +49,10 @@ def _contains_invalid_real_value(value) -> bool:
     dtype = getattr(value, "dtype", None)
     if dtype is not None:
         try:
-            if np.dtype(dtype).kind in _INVALID_REAL_DTYPE_KINDS:
-                return True
+            return np.dtype(dtype).kind in _INVALID_REAL_DTYPE_KINDS
         except (TypeError, ValueError):
             dtype_name = str(dtype).lower()
-            if any(
+            return any(
                 token in dtype_name
                 for token in (
                     "bool",
@@ -63,8 +62,7 @@ def _contains_invalid_real_value(value) -> bool:
                     "datetime",
                     "timedelta",
                 )
-            ):
-                return True
+            )
 
     try:
         values = np.asarray(value, dtype=object).reshape(-1)
