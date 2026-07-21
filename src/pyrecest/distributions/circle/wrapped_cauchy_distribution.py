@@ -84,6 +84,7 @@ class WrappedCauchyDistribution(AbstractCircularDistribution):
         def coth(x):
             return 1 / tanh(x)
 
+        starting_point = _validate_finite_scalar(starting_point, "starting_point")
         xs = _as_1d_input(xs)
 
         def primitive(angles):
