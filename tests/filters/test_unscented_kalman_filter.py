@@ -188,6 +188,26 @@ class UnscentedKalmanFilterTest(unittest.TestCase):
         pyrecest.backend.__backend_name__ in ("pytorch", "jax"),
         reason="Not supported on this backend",
     )
+    def test_predict_rejects_wrong_transition_dimension_without_mutating_state(self):
+        kf = UnscentedKalmanFilter(
+            GaussianDistribution(array([0.5, -0.25]), diag(array([1.2, 0.8])))
+        )
+
+        def fx(_x, _dt):
+            return array([0.0])
+
+        with self.assertRaisesRegex(
+            ValueError, "transition function must return vectors with state dimension 2"
+        ):
+            kf.predict_nonlinear(fx, eye(2), dt=1.0)
+
+        npt.assert_allclose(kf.get_point_estimate(), array([0.5, -0.25]))
+        npt.assert_allclose(kf.filter_state.covariance(), diag(array([1.2, 0.8])))
+
+    @unittest.skipIf(
+        pyrecest.backend.__backend_name__ in ("pytorch", "jax"),
+        reason="Not supported on this backend",
+    )
     def test_linear_predict_update_with_process_noise_matches_kalman_filter(self):
         initial_state = GaussianDistribution(
             array([0.5, -0.25]),
