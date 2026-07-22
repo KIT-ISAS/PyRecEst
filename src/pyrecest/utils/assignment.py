@@ -21,6 +21,7 @@ from pyrecest.backend import isfinite as _isfinite
 from pyrecest.backend import isinf as _isinf
 from pyrecest.backend import isnan as _isnan
 from pyrecest.backend import sum as _sum
+from pyrecest.backend import to_numpy as _to_numpy
 from pyrecest.backend import where as _where
 from pyrecest.backend import zeros as _zeros
 from scipy.optimize import linear_sum_assignment
@@ -110,7 +111,7 @@ def _contains_boolean_values(value) -> bool:
     if isinstance(value, _BOOLEAN_TYPES):
         return True
     try:
-        values = _np.asarray(value, dtype=object).reshape(-1)
+        values = _np.asarray(_to_numpy(value), dtype=object).reshape(-1)
     except (TypeError, ValueError, RuntimeError):
         return False
     return any(isinstance(item, _BOOLEAN_TYPES) for item in values)
@@ -120,7 +121,7 @@ def _contains_text_values(value) -> bool:
     if isinstance(value, _TEXT_TYPES):
         return True
     try:
-        values = _np.asarray(value, dtype=object).reshape(-1)
+        values = _np.asarray(_to_numpy(value), dtype=object).reshape(-1)
     except (TypeError, ValueError, RuntimeError):
         return False
     return any(isinstance(item, _TEXT_TYPES) for item in values)
@@ -130,7 +131,7 @@ def _contains_temporal_values(value) -> bool:
     if isinstance(value, _TEMPORAL_TYPES):
         return True
     try:
-        values = _np.asarray(value, dtype=object).reshape(-1)
+        values = _np.asarray(_to_numpy(value), dtype=object).reshape(-1)
     except (TypeError, ValueError, RuntimeError):
         return False
     return any(isinstance(item, _TEMPORAL_TYPES) for item in values)
@@ -140,7 +141,7 @@ def _contains_complex_values(value) -> bool:
     if isinstance(value, _COMPLEX_TYPES):
         return True
     try:
-        values = _np.asarray(value, dtype=object).reshape(-1)
+        values = _np.asarray(_to_numpy(value), dtype=object).reshape(-1)
     except (TypeError, ValueError, RuntimeError):
         return False
     return any(isinstance(item, _COMPLEX_TYPES) for item in values)
@@ -309,7 +310,7 @@ def _solve_subproblem(  # pylint: disable=too-many-locals
             row_index, col_index
         ]
 
-    row_ind, col_ind = linear_sum_assignment(modified_cost_matrix)
+    row_ind, col_ind = linear_sum_assignment(_to_numpy(modified_cost_matrix))
     chosen_costs = modified_cost_matrix[row_ind, col_ind]
     if _any(chosen_costs >= large_cost / 2.0):
         return None
