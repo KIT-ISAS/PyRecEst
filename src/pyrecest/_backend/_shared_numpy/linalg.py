@@ -50,6 +50,18 @@ def _cast_scipy_linalg_result_to_input_dtype(result, input_array):
     return result
 
 
+def _empty_batched_square_matrix_result(array):
+    """Return an empty matrix-function result for a valid empty batch."""
+
+    if (
+        array.ndim > 2
+        and 0 in array.shape[:-2]
+        and array.shape[-2] == array.shape[-1]
+    ):
+        return _np.empty_like(array)
+    return None
+
+
 def _is_symmetric(x, tol=atol):
     return (_np.abs(x - _transpose(x)) < tol).all()
 
@@ -69,6 +81,9 @@ _logm_vec = _np.vectorize(_scipy.linalg.logm, signature="(n,m)->(n,m)")
 
 def logm(x):
     x = _as_scipy_linalg_array(x)
+    empty_result = _empty_batched_square_matrix_result(x)
+    if empty_result is not None:
+        return empty_result
     if _is_symmetric(x) and x.dtype not in [_np.complex64, _np.complex128]:
         eigvals, eigvecs = _np.linalg.eigh(x)
         if (eigvals > 0).all():
@@ -108,6 +123,9 @@ def solve_sylvester(a, b, q, tol=atol):
 
 def sqrtm(x):
     x = _as_scipy_linalg_array(x)
+    empty_result = _empty_batched_square_matrix_result(x)
+    if empty_result is not None:
+        return empty_result
     result = _np.vectorize(_scipy.linalg.sqrtm, signature="(n,m)->(n,m)")(x)
     return _cast_scipy_linalg_result_to_input_dtype(result, x)
 
@@ -157,6 +175,9 @@ def is_single_matrix_pd(mat):
 
 def fractional_matrix_power(A, t):
     A = _as_scipy_linalg_array(A)
+    empty_result = _empty_batched_square_matrix_result(A)
+    if empty_result is not None:
+        return empty_result
     result = _np.vectorize(
         lambda one_matrix: _scipy.linalg.fractional_matrix_power(one_matrix, t),
         signature="(n,n)->(n,n)",
@@ -178,7 +199,6 @@ def solve(a, b):
 
     Computes the "exact" solution, `x`, of the well-determined, i.e., full
     rank, linear matrix equation `ax = b`.
-
     Parameters
     ----------
     a : array-like, shape=[..., M, M]
