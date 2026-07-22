@@ -1,3 +1,5 @@
+from pyrecest.backend import array, reshape
+
 from .abstract_custom_lin_bounded_cart_prod_distribution import (
     AbstractCustomLinBoundedCartProdDistribution,
 )
@@ -49,6 +51,13 @@ class CustomHypercylindricalDistribution(
         return AbstractHypercylindricalDistribution.integrate(
             self, integration_boundaries
         )
+
+    def linear_covariance_numerical(self, approximate_mean=None):
+        """Return numerical linear covariance with a stable matrix shape."""
+        covariance = AbstractHypercylindricalDistribution.linear_covariance_numerical(
+            self, approximate_mean
+        )
+        return reshape(array(covariance), (self.lin_dim, self.lin_dim))
 
     def condition_on_periodic(self, input_periodic, normalize=True):
         # Call the condition_on_periodic method from the superclass
