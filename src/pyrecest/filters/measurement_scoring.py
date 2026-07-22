@@ -33,10 +33,11 @@ class MeasurementScore:
 
     def __post_init__(self) -> None:
         # Own caller-provided sequences so this frozen result cannot be mutated indirectly.
+        # Keep the established list-valued API used by tracker diagnostics.
         object.__setattr__(
             self,
             "active_measurement_indices",
-            tuple(self.active_measurement_indices),
+            list(self.active_measurement_indices),
         )
 
     @property
