@@ -2,7 +2,17 @@
 from numbers import Integral
 
 import numpy as np
-from pyrecest.backend import all, asarray, exp, isfinite, mod, ndim, pi, to_numpy
+from pyrecest.backend import (
+    all,
+    asarray,
+    copy as backend_copy,
+    exp,
+    isfinite,
+    mod,
+    ndim,
+    pi,
+    to_numpy,
+)
 
 from .abstract_circular_distribution import AbstractCircularDistribution
 
@@ -54,8 +64,8 @@ class WrappedLaplaceDistribution(AbstractCircularDistribution):
 
     def __init__(self, lambda_, kappa_):
         AbstractCircularDistribution.__init__(self)
-        lambda_ = _validate_positive_scalar(lambda_, "lambda_")
-        kappa_ = _validate_positive_scalar(kappa_, "kappa_")
+        lambda_ = backend_copy(_validate_positive_scalar(lambda_, "lambda_"))
+        kappa_ = backend_copy(_validate_positive_scalar(kappa_, "kappa_"))
         self.lambda_ = lambda_
         self.kappa = kappa_
 
