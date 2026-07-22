@@ -16,6 +16,8 @@ from typing import Any, Literal
 
 import numpy as np
 
+from pyrecest.numerics import assert_covariance_matrix
+
 ReliabilityMode = Literal["off", "inflate", "hard"] | str
 _TEXT_OR_BOOL_SCALAR_TYPES = (
     bool,
@@ -345,6 +347,7 @@ def _covariance_matrix(value: Any, *, dim: int | None = None) -> np.ndarray:
         raise ValueError(f"covariance must have shape ({dim}, {dim})")
     if not np.isfinite(covariance).all():
         raise ValueError("covariance must contain only finite values")
+    assert_covariance_matrix(covariance, name="covariance")
     return covariance.copy()
 
 
