@@ -63,8 +63,8 @@ class CircularDiracDistribution(
             distribution.sample(n_particles), ones(n_particles) / n_particles
         )
 
-    def plot_interpolated(self, _):
-        """
-        Raises an exception since interpolation is not available for WDDistribution.
-        """
-        raise NotImplementedError("No interpolation available for WDDistribution.")
+    def plot_interpolated(self, _=None):
+        """Raise because interpolation is unavailable for Dirac distributions."""
+        raise NotImplementedError(
+            "Interpolation is not available for CircularDiracDistribution."
+        )
