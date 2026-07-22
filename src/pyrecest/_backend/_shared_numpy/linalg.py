@@ -166,6 +166,15 @@ def fractional_matrix_power(A, t):
 
 def polar(a, side="right"):
     """Polar decomposition of a square or rectangular matrix."""
+    if side not in {"left", "right"}:
+        raise ValueError("`side` must be either 'right' or 'left'")
+
+    a = _as_scipy_linalg_array(a)
+    if 0 in a.shape[:-2]:
+        positive_dim = a.shape[-2] if side == "left" else a.shape[-1]
+        positive_shape = a.shape[:-2] + (positive_dim, positive_dim)
+        return _np.empty_like(a), _np.empty(positive_shape, dtype=a.dtype)
+
     signature = "(m,n)->(m,n),(m,m)" if side == "left" else "(m,n)->(m,n),(n,n)"
     return _np.vectorize(_scipy.linalg.polar, signature=signature, excluded=["side"])(
         a, side=side
