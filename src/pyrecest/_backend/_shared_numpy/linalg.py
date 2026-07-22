@@ -117,6 +117,8 @@ def quadratic_assignment(a, b, options=None):
 
 
 def qr(a, mode="reduced"):
+    if 0 in _np.shape(a)[:-2]:
+        return _np.linalg.qr(a, mode=mode)
     if mode == "r":
         signature = "(n,m)->(k,m)"
     elif mode == "raw":
