@@ -68,6 +68,20 @@ def _as_linalg_tensor(value):
     return tensor
 
 
+def _has_empty_matrix_batch(matrix):
+    """Return whether a matrix batch has a zero-length leading dimension."""
+    return matrix.ndim > 2 and 0 in matrix.shape[:-2]
+
+
+def _empty_square_matrix_batch_result(matrix, function_name):
+    """Return a shape-preserving empty result for a square matrix batch."""
+    if not _has_empty_matrix_batch(matrix):
+        return None
+    if matrix.shape[-2] != matrix.shape[-1]:
+        raise ValueError(f"{function_name} requires square matrices")
+    return matrix.new_empty(matrix.shape)
+
+
 def _is_boolean_scalar(value):
     """Return whether ``value`` is a scalar boolean exponent candidate."""
     if isinstance(value, (bool, _np.bool_)):
@@ -272,6 +286,10 @@ def logm(x):
 
 def sqrtm(x):
     x = _as_linalg_tensor(x)
+    empty_result = _empty_square_matrix_batch_result(x, "sqrtm")
+    if empty_result is not None:
+        return empty_result
+
     x_np = _as_numpy_no_grad(x)
     np_sqrtm = _np.vectorize(_scipy.linalg.sqrtm, signature="(n,m)->(n,m)")(x_np)
     if np_sqrtm.dtype.kind == "c":
@@ -495,6 +513,11 @@ def fractional_matrix_power(A, t):
     if exponent.ndim != 0:
         raise TypeError("t must be a scalar")
     exponent = exponent.item()
+
+    empty_result = _empty_square_matrix_batch_result(A, "fractional_matrix_power")
+    if empty_result is not None:
+        return empty_result
+
     out = _np.vectorize(
         lambda one_matrix: _scipy.linalg.fractional_matrix_power(
             one_matrix, exponent
@@ -512,7 +535,15 @@ def fractional_matrix_power(A, t):
 
 def polar(a, side="right"):
     """Polar decomposition of a square or rectangular matrix."""
+    if side not in {"right", "left"}:
+        raise ValueError("`side` must be either 'right' or 'left'")
+
     a = _as_linalg_tensor(a)
+    if _has_empty_matrix_batch(a):
+        factor_dim = a.shape[-2] if side == "left" else a.shape[-1]
+        factor_shape = a.shape[:-2] + (factor_dim, factor_dim)
+        return a.new_empty(a.shape), a.new_empty(factor_shape)
+
     signature = "(m,n)->(m,n),(m,m)" if side == "left" else "(m,n)->(m,n),(n,n)"
     func = _np.vectorize(_scipy.linalg.polar, signature=signature, excluded=["side"])
     unitary, hermitian = func(_as_numpy_no_grad(a), side=side)
