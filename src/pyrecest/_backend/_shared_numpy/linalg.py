@@ -108,6 +108,8 @@ def solve_sylvester(a, b, q, tol=atol):
 
 def sqrtm(x):
     x = _as_scipy_linalg_array(x)
+    if 0 in x.shape[:-2]:
+        return _np.empty_like(x)
     result = _np.vectorize(_scipy.linalg.sqrtm, signature="(n,m)->(n,m)")(x)
     return _cast_scipy_linalg_result_to_input_dtype(result, x)
 
@@ -178,7 +180,6 @@ def solve(a, b):
 
     Computes the "exact" solution, `x`, of the well-determined, i.e., full
     rank, linear matrix equation `ax = b`.
-
     Parameters
     ----------
     a : array-like, shape=[..., M, M]
