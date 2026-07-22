@@ -308,9 +308,12 @@ def ellipsoid_sigma_points(
         single = False
 
     pieces: list[np.ndarray] = []
-    if include_center:
+    zero_radius_requested = any(radius == 0.0 for radius in radii_tuple)
+    if include_center or zero_radius_requested:
         pieces.append(centers)
     for radius in radii_tuple:
+        if radius == 0.0:
+            continue
         offsets = ellipsoid_axis_offsets(
             covariances,
             radius=radius,
