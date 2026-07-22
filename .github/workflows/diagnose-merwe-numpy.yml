@@ -1,0 +1,43 @@
+name: Diagnose Merwe NumPy
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install package and focused test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e . pytest
+
+      - name: Run focused NumPy sigma-point tests
+        continue-on-error: true
+        env:
+          PYRECEST_BACKEND: numpy
+          PYTHONPATH: ${{ github.workspace }}/src
+        run: |
+          python -m pytest -q \
+            --junitxml=merwe-numpy-results.xml \
+            tests/test_sigma_points.py \
+            tests/test_sigma_points_small_alpha.py
+
+      - name: Upload focused test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: merwe-numpy-results
+          path: merwe-numpy-results.xml
