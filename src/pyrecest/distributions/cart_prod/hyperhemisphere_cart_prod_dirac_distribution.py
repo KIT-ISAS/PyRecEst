@@ -1,8 +1,20 @@
 import copy
 from collections.abc import Callable
+from operator import index as operator_index
 
 # pylint: disable=no-name-in-module,no-member
-from pyrecest.backend import argmax, array, linalg, outer, reshape, stack, sum, where
+from pyrecest.backend import (
+    argmax,
+    array,
+    is_bool,
+    linalg,
+    ndim,
+    outer,
+    reshape,
+    stack,
+    sum,
+    where,
+)
 
 from ..abstract_dirac_distribution import AbstractDiracDistribution
 from ..hypersphere_subset.abstract_hypersphere_subset_distribution import (
@@ -79,8 +91,34 @@ class HyperhemisphereCartProdDiracDistribution(
         """Return locations with shape ``(n, (dim_hemisphere + 1) * n_hemispheres)``."""
         return reshape(self.as_component_array(), (self.d.shape[0], self.input_dim))
 
+    def _normalize_component_index(self, component_index):
+        """Return a non-boolean scalar component index in range."""
+        try:
+            index_array = array(component_index)
+        except (TypeError, ValueError, RuntimeError) as exc:
+            raise ValueError("component_index must be a scalar integer.") from exc
+
+        if ndim(index_array) != 0:
+            raise ValueError("component_index must be a scalar integer.")
+        if is_bool(index_array):
+            raise ValueError("component_index must be an integer, not a boolean.")
+
+        try:
+            normalized_index = operator_index(component_index)
+        except TypeError:
+            try:
+                normalized_index = operator_index(index_array.item())
+            except (AttributeError, TypeError) as exc:
+                raise ValueError("component_index must be an integer.") from exc
+
+        normalized_index = int(normalized_index)
+        if normalized_index < 0 or normalized_index >= self.n_hemispheres:
+            raise ValueError("component_index is out of range.")
+        return normalized_index
+
     def component_particles(self, component_index):
         """Return Dirac locations for one hyperhemisphere component."""
+        component_index = self._normalize_component_index(component_index)
         return self.as_component_array()[:, component_index, :]
 
     def get_manifold_size(self):
