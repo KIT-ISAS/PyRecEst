@@ -66,7 +66,7 @@ def _validate_zonal_vmf(distribution, role):
 
 
 def _validate_vmf_measurement(z, input_dim):
-    measurement = asarray(z).ravel()
+    measurement = asarray(z)
     if measurement.shape != (input_dim,):
         raise ValueError(f"measurement z must have shape ({input_dim},).")
     if not _to_python_bool(backend_all(isfinite(measurement))):
