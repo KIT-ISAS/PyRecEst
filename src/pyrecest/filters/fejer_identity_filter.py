@@ -8,9 +8,14 @@ from scipy import signal
 
 import pyrecest.backend
 from pyrecest.backend import array, column_stack, pi, reshape, stack, tile, zeros
-from pyrecest.distributions.hypertorus.abstract_hypertoroidal_distribution import AbstractHypertoroidalDistribution
-from pyrecest.distributions.hypertorus.hypertoroidal_fourier_distribution import HypertoroidalFourierDistribution
+from pyrecest.distributions.hypertorus.abstract_hypertoroidal_distribution import (
+    AbstractHypertoroidalDistribution,
+)
+from pyrecest.distributions.hypertorus.hypertoroidal_fourier_distribution import (
+    HypertoroidalFourierDistribution,
+)
 from pyrecest.distributions.hypertorus.fejer import (
+    _validate_integer_control,
     normalize_coefficient_shape,
     normalize_kernel_name,
 )
@@ -45,8 +50,14 @@ class FejerIdentityFilter(AbstractFilter, HypertoroidalFilterMixin):
         oversampling_factor: int = 1,
         exponent_search_steps: int = 24,
     ):
-        if pyrecest.backend.__backend_name__ in ("jax", "pytorch"):  # pylint: disable=no-member
-            raise NotImplementedError(f"FejerIdentityFilter is not supported on the {pyrecest.backend.__backend_name__} backend.")
+        if pyrecest.backend.__backend_name__ in (
+            "jax",
+            "pytorch",
+        ):  # pylint: disable=no-member
+            raise NotImplementedError(
+                "FejerIdentityFilter is not supported on the "
+                f"{pyrecest.backend.__backend_name__} backend."
+            )
 
         if isinstance(n_coefficients, int):
             n_coefficients = (n_coefficients,)
@@ -56,15 +67,28 @@ class FejerIdentityFilter(AbstractFilter, HypertoroidalFilterMixin):
         self.reduction_kernel = normalize_kernel_name(reduction_kernel)
         self.adaptive_reduction = bool(adaptive_reduction)
         self.min_value_tolerance = float(min_value_tolerance)
-        self.oversampling_factor = int(oversampling_factor)
-        self.exponent_search_steps = int(exponent_search_steps)
+        self.oversampling_factor = _validate_integer_control(
+            oversampling_factor,
+            "oversampling_factor",
+            minimum=1,
+        )
+        self.exponent_search_steps = _validate_integer_control(
+            exponent_search_steps,
+            "exponent_search_steps",
+            minimum=0,
+        )
 
         coeff_mat = zeros(n_coefficients, dtype=complex)
         center = tuple((n - 1) // 2 for n in n_coefficients)
         coeff_mat[center] = 1.0 / (2.0 * pi) ** dim
 
         HypertoroidalFilterMixin.__init__(self)
-        AbstractFilter.__init__(self, FejerHypertoroidalFourierDistribution(coeff_mat, **self.reduction_options))
+        AbstractFilter.__init__(
+            self,
+            FejerHypertoroidalFourierDistribution(
+                coeff_mat, **self.reduction_options
+            ),
+        )
 
     @property
     def reduction_options(self):
@@ -106,16 +130,20 @@ class FejerIdentityFilter(AbstractFilter, HypertoroidalFilterMixin):
 
         if isinstance(new_state, HypertoroidalFourierDistribution):
             if new_state.transformation != "identity":
-                raise ValueError("FejerIdentityFilter only accepts identity Fourier distributions.")
+                raise ValueError(
+                    "FejerIdentityFilter only accepts identity Fourier distributions."
+                )
             warnings.warn(
                 "setState:nonFejerFourier: converting identity Fourier distribution to positive-kernel identity form.",
                 RuntimeWarning,
             )
-            self._filter_state = FejerHypertoroidalFourierDistribution.from_fourier_distribution(
-                new_state,
-                self._filter_state.coeff_mat.shape,
-                apply_fejer=True,
-                **self.reduction_options,
+            self._filter_state = (
+                FejerHypertoroidalFourierDistribution.from_fourier_distribution(
+                    new_state,
+                    self._filter_state.coeff_mat.shape,
+                    apply_fejer=True,
+                    **self.reduction_options,
+                )
             )
             return
 
@@ -141,13 +169,17 @@ class FejerIdentityFilter(AbstractFilter, HypertoroidalFilterMixin):
             d_sys,
             "predict_identity:automaticConversion: d_sys is not a positive-kernel identity Fourier distribution. Transforming with the same number of coefficients as the filter.",
         )
-        self._filter_state = self._filter_state.convolve(d_sys, self._filter_state.coeff_mat.shape)
+        self._filter_state = self._filter_state.convolve(
+            d_sys, self._filter_state.coeff_mat.shape
+        )
 
     def get_f_trans_as_hfd(self, f, noise_distribution):
         """Build a positive-kernel identity transition density for nonlinear prediction."""
 
         if not isinstance(noise_distribution, AbstractHypertoroidalDistribution):
-            raise TypeError("noise_distribution must be an AbstractHypertoroidalDistribution.")
+            raise TypeError(
+                "noise_distribution must be an AbstractHypertoroidalDistribution."
+            )
         if not callable(f):
             raise TypeError("f must be callable.")
 
@@ -163,19 +195,31 @@ class FejerIdentityFilter(AbstractFilter, HypertoroidalFilterMixin):
             if dim == 1:
                 ws_flat = args[0].ravel() - f_out[0].ravel()
             else:
-                ws_flat = column_stack([args[i].ravel() - f_out[i].ravel() for i in range(dim)])
+                ws_flat = column_stack(
+                    [
+                        args[i].ravel() - f_out[i].ravel()
+                        for i in range(dim)
+                    ]
+                )
 
             pdf_vals = noise_distribution.pdf(ws_flat)
             return reshape(pdf_vals, grid_shape) / (2.0 * pi) ** dim
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", "Normalization:notNormalized")
-            return FejerHypertoroidalFourierDistribution.from_function(_f_trans, n_coefficients_2d, apply_fejer=True, **self.reduction_options)
+            return FejerHypertoroidalFourierDistribution.from_function(
+                _f_trans,
+                n_coefficients_2d,
+                apply_fejer=True,
+                **self.reduction_options,
+            )
 
     def predict_nonlinear(self, f, noise_distribution):
         """Predict with ``x(k+1) = f(x(k)) + w(k) mod 2*pi``."""
 
-        self.predict_nonlinear_via_transition_density(self.get_f_trans_as_hfd(f, noise_distribution))
+        self.predict_nonlinear_via_transition_density(
+            self.get_f_trans_as_hfd(f, noise_distribution)
+        )
 
     def predict_nonlinear_via_transition_density(self, f_trans):
         """Predict using a 2*dim-dimensional transition density."""
@@ -183,7 +227,9 @@ class FejerIdentityFilter(AbstractFilter, HypertoroidalFilterMixin):
         dim = self._filter_state.dim
         n_coefficients = self._filter_state.coeff_mat.shape
 
-        if callable(f_trans) and not isinstance(f_trans, HypertoroidalFourierDistribution):
+        if callable(f_trans) and not isinstance(
+            f_trans, HypertoroidalFourierDistribution
+        ):
             f_trans = FejerHypertoroidalFourierDistribution.from_function(
                 f_trans,
                 n_coefficients * 2,
@@ -192,11 +238,15 @@ class FejerIdentityFilter(AbstractFilter, HypertoroidalFilterMixin):
             )
         else:
             if not isinstance(f_trans, HypertoroidalFourierDistribution):
-                raise TypeError("f_trans must be a HypertoroidalFourierDistribution or a callable.")
+                raise TypeError(
+                    "f_trans must be a HypertoroidalFourierDistribution or a callable."
+                )
             if f_trans.transformation != "identity":
                 raise ValueError("f_trans must use the identity transformation.")
             if f_trans.dim != 2 * dim:
-                raise ValueError("f_trans must be a 2*dim-dimensional HFD (first dim dims for x_{k+1}, last dim dims for x_k).")
+                raise ValueError(
+                    "f_trans must be a 2*dim-dimensional HFD (first dim dims for x_{k+1}, last dim dims for x_k)."
+                )
             if not isinstance(f_trans, FejerHypertoroidalFourierDistribution):
                 f_trans = FejerHypertoroidalFourierDistribution.from_fourier_distribution(
                     f_trans,
@@ -205,12 +255,21 @@ class FejerIdentityFilter(AbstractFilter, HypertoroidalFilterMixin):
                     **self.reduction_options,
                 )
 
-        hfd_reshaped = reshape(self._filter_state.coeff_mat, (1,) * dim + self._filter_state.coeff_mat.shape)
+        hfd_reshaped = reshape(
+            self._filter_state.coeff_mat,
+            (1,) * dim + self._filter_state.coeff_mat.shape,
+        )
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", "Normalization:notNormalized")
-            c_predicted = (2.0 * pi) ** (2 * dim) * signal.fftconvolve(f_trans.coeff_mat, hfd_reshaped, mode="valid")
+            c_predicted = (2.0 * pi) ** (2 * dim) * signal.fftconvolve(
+                f_trans.coeff_mat,
+                hfd_reshaped,
+                mode="valid",
+            )
             c_predicted = reshape(c_predicted, n_coefficients)
-            self._filter_state = FejerHypertoroidalFourierDistribution(c_predicted, **self.reduction_options)
+            self._filter_state = FejerHypertoroidalFourierDistribution(
+                c_predicted, **self.reduction_options
+            )
 
     def update_identity(self, d_meas, z):
         """Update with ``z(k) = x(k) + v(k) mod 2*pi``."""
@@ -221,9 +280,13 @@ class FejerIdentityFilter(AbstractFilter, HypertoroidalFilterMixin):
         )
         z = array(z)
         if z.shape != (self._filter_state.dim,):
-            raise ValueError(f"z must have shape ({self._filter_state.dim},), got {z.shape}")
+            raise ValueError(
+                f"z must have shape ({self._filter_state.dim},), got {z.shape}"
+            )
         d_meas_shifted = d_meas.shift(z)
-        self._filter_state = self._filter_state.multiply(d_meas_shifted, self._filter_state.coeff_mat.shape)
+        self._filter_state = self._filter_state.multiply(
+            d_meas_shifted, self._filter_state.coeff_mat.shape
+        )
 
     def update_nonlinear(self, likelihood, z=None):
         """Update with a Fourier likelihood or a callable likelihood."""
@@ -231,14 +294,21 @@ class FejerIdentityFilter(AbstractFilter, HypertoroidalFilterMixin):
         n_coefficients = self._filter_state.coeff_mat.shape
         if z is None:
             if not isinstance(likelihood, HypertoroidalFourierDistribution):
-                raise TypeError("When z is not given, likelihood must be a HypertoroidalFourierDistribution.")
-            likelihood = self._as_fejer_identity_distribution(likelihood, "update_nonlinear:nonFejerFourier: converting likelihood to positive-kernel identity form.")
+                raise TypeError(
+                    "When z is not given, likelihood must be a HypertoroidalFourierDistribution."
+                )
+            likelihood = self._as_fejer_identity_distribution(
+                likelihood,
+                "update_nonlinear:nonFejerFourier: converting likelihood to positive-kernel identity form.",
+            )
         else:
             if not callable(likelihood):
                 raise TypeError("likelihood must be callable when z is provided.")
             z = array(z)
             if z.shape != (self._filter_state.dim,):
-                raise ValueError(f"z must have shape ({self._filter_state.dim},), got {z.shape}")
+                raise ValueError(
+                    f"z must have shape ({self._filter_state.dim},), got {z.shape}"
+                )
             z_col = reshape(z, (-1, 1))
 
             def _likelihood_fn(*grid_args):
@@ -256,10 +326,19 @@ class FejerIdentityFilter(AbstractFilter, HypertoroidalFilterMixin):
                 **self.reduction_options,
             )
 
-        self._filter_state = self._filter_state.multiply(likelihood, n_coefficients)
+        self._filter_state = self._filter_state.multiply(
+            likelihood, n_coefficients
+        )
 
-    def _as_fejer_identity_distribution(self, distribution, warning_message: str) -> FejerHypertoroidalFourierDistribution:
-        if isinstance(distribution, FejerHypertoroidalFourierDistribution) and distribution.coeff_mat.shape == self._filter_state.coeff_mat.shape:
+    def _as_fejer_identity_distribution(
+        self,
+        distribution,
+        warning_message: str,
+    ) -> FejerHypertoroidalFourierDistribution:
+        if (
+            isinstance(distribution, FejerHypertoroidalFourierDistribution)
+            and distribution.coeff_mat.shape == self._filter_state.coeff_mat.shape
+        ):
             return distribution
 
         if isinstance(distribution, HypertoroidalFourierDistribution):
@@ -274,7 +353,9 @@ class FejerIdentityFilter(AbstractFilter, HypertoroidalFilterMixin):
             )
 
         if not isinstance(distribution, AbstractHypertoroidalDistribution):
-            raise TypeError("distribution must be an AbstractHypertoroidalDistribution.")
+            raise TypeError(
+                "distribution must be an AbstractHypertoroidalDistribution."
+            )
         warnings.warn(warning_message, RuntimeWarning)
         return FejerHypertoroidalFourierDistribution.from_distribution(
             distribution,
