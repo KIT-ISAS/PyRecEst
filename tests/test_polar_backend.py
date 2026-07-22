@@ -30,6 +30,21 @@ def test_numpy_polar_handles_rectangular_left_factor():
     npt.assert_allclose(positive @ unitary, value, atol=1e-12)
 
 
+@pytest.mark.parametrize(
+    ("side", "positive_shape"),
+    [("right", (0, 2, 2)), ("left", (0, 3, 3))],
+)
+def test_numpy_polar_handles_empty_batches(side, positive_shape):
+    value = np.empty((0, 3, 2), dtype=np.float32)
+
+    unitary, positive = numpy_backend.linalg.polar(value, side=side)
+
+    assert unitary.shape == value.shape
+    assert positive.shape == positive_shape
+    assert unitary.dtype == value.dtype
+    assert positive.dtype == value.dtype
+
+
 @pytest.mark.skipif(pytorch_backend is None, reason="PyTorch is not installed")
 def test_pytorch_polar_handles_rectangular_right_factor():
     value = pytorch_backend.array(
