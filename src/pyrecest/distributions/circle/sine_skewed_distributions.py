@@ -50,7 +50,7 @@ class GeneralizedKSineSkewedVonMisesDistribution(AbstractCircularDistribution):
     # pylint: disable=too-many-positional-arguments
     def __init__(self, mu, kappa, lambda_, k, m):
         AbstractCircularDistribution.__init__(self)
-        self.mu = mod(mu, 2 * pi)
+        self.mu = mod(_validate_finite_scalar_parameter(mu, "mu"), 2 * pi)
         self.kappa = kappa
         self.lambda_ = lambda_
         self.k = k
@@ -160,7 +160,7 @@ class AbstractSineSkewedDistribution(AbstractCircularDistribution):
         and a skewness parameter lambda_.
         """
         AbstractCircularDistribution.__init__(self)
-        self.mu = mu
+        self.mu = mod(_validate_finite_scalar_parameter(mu, "mu"), 2 * pi)
         self.lambda_ = array(lambda_)
         self.validate_parameters()
 
@@ -196,7 +196,7 @@ class AbstractSineSkewedDistribution(AbstractCircularDistribution):
 class SineSkewedWrappedNormalDistribution(AbstractSineSkewedDistribution):
     def __init__(self, mu, sigma, lambda_):
         super().__init__(mu, lambda_)
-        self.wrapped_normal = WrappedNormalDistribution(mu, sigma)
+        self.wrapped_normal = WrappedNormalDistribution(self.mu, sigma)
 
     @property
     def sigma(self):
@@ -209,7 +209,7 @@ class SineSkewedWrappedNormalDistribution(AbstractSineSkewedDistribution):
 class SineSkewedWrappedCauchyDistribution(AbstractSineSkewedDistribution):
     def __init__(self, mu, gamma, lambda_):
         super().__init__(mu, lambda_)
-        self.wrapped_cauchy = WrappedCauchyDistribution(mu, gamma)
+        self.wrapped_cauchy = WrappedCauchyDistribution(self.mu, gamma)
 
     @property
     def gamma(self):
@@ -235,7 +235,7 @@ class GeneralizedKSineSkewedWrappedCauchyDistribution(AbstractCircularDistributi
     # pylint: disable=too-many-positional-arguments
     def __init__(self, mu, gamma, lambda_, k, m):
         AbstractCircularDistribution.__init__(self)
-        self.mu = mod(mu, 2 * pi)
+        self.mu = mod(_validate_finite_scalar_parameter(mu, "mu"), 2 * pi)
         self.gamma = gamma
         self.lambda_ = lambda_
         self.k = k
