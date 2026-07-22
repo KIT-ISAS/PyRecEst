@@ -133,24 +133,40 @@ def _patch_pytorch_uniform_empty_bounds_contract() -> None:
         return
 
     def _empty_result(low, high, size, dtype):
-        dtype = raw_random._normalize_random_dtype(dtype, default=None)  # pylint: disable=protected-access
-        device = None
-        if torch.is_tensor(low):
-            device = low.device
-        elif torch.is_tensor(high):
-            device = high.device
-        low_tensor = raw_random._validate_uniform_bound(  # pylint: disable=protected-access
-            low,
-            "low",
-            dtype=dtype,
-            device=device,
+        dtype = raw_random._normalize_random_dtype(  # pylint: disable=protected-access
+            dtype,
+            default=None,
         )
-        high_tensor = raw_random._validate_uniform_bound(  # pylint: disable=protected-access
-            high,
-            "high",
-            dtype=dtype,
-            device=device,
+        tensor_bounds = [bound for bound in (low, high) if torch.is_tensor(bound)]
+        non_cpu_bounds = [bound for bound in tensor_bounds if bound.device.type != "cpu"]
+        device = (
+            non_cpu_bounds[0].device
+            if non_cpu_bounds
+            else tensor_bounds[0].device if tensor_bounds else None
         )
+
+        def _coerce_bound(bound, name):
+            if device is None or device.type != "meta":
+                return raw_random._validate_uniform_bound(  # pylint: disable=protected-access
+                    bound,
+                    name,
+                    dtype=dtype,
+                    device=device,
+                )
+            if raw_random._contains_boolean_value(bound):  # pylint: disable=protected-access
+                raise TypeError(f"{name} must be real numeric, not boolean")
+            try:
+                bound_tensor = torch.as_tensor(bound, dtype=dtype, device=device)
+            except (TypeError, ValueError, RuntimeError) as exc:
+                raise TypeError(f"{name} must be real numeric") from exc
+            if not raw_random._is_real_numeric_dtype(  # pylint: disable=protected-access
+                bound_tensor.dtype
+            ):
+                raise TypeError(f"{name} must be real numeric")
+            return bound_tensor
+
+        low_tensor = _coerce_bound(low, "low")
+        high_tensor = _coerce_bound(high, "high")
         sample_shape = raw_random._uniform_size(  # pylint: disable=protected-access
             size,
             low_tensor,
