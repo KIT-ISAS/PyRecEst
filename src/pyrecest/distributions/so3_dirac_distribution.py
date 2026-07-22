@@ -19,6 +19,9 @@ from pyrecest.backend import (
 )
 
 from ._so3_helpers import geodesic_distance, normalize_quaternions
+from .hypersphere_subset.abstract_hypersphere_subset_grid_distribution import (
+    AbstractHypersphereSubsetGridDistribution,
+)
 from .hypersphere_subset.hyperhemispherical_dirac_distribution import (
     HyperhemisphericalDiracDistribution,
 )
@@ -99,7 +102,9 @@ class SO3DiracDistribution(HyperhemisphericalDiracDistribution):
 
     @classmethod
     def from_distribution(cls, distribution, n_particles=None):
-        """Create an SO(3) Dirac distribution by sampling another distribution."""
+        """Create an SO(3) Dirac distribution from another distribution."""
+        if isinstance(distribution, AbstractHypersphereSubsetGridDistribution):
+            return cls(distribution.get_grid(), distribution.grid_values)
         n_particles = cls._validate_particle_count(n_particles)
         return cls(distribution.sample(n_particles))
 
