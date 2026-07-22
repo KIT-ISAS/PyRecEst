@@ -259,11 +259,30 @@ def _validate_positive_finite_scalar_argument(value, name: str) -> float:
     return float_value
 
 
+def _as_real_float_array(value, name: str) -> np.ndarray:
+    """Convert an array-like argument without silently discarding complex parts."""
+    try:
+        raw_value = np.asarray(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{name} must contain real numeric values") from exc
+
+    contains_complex_object = raw_value.dtype == object and any(
+        isinstance(item, (complex, np.complexfloating))
+        for item in raw_value.reshape(-1)
+    )
+    if np.iscomplexobj(raw_value) or contains_complex_object:
+        raise ValueError(f"{name} must contain real numeric values")
+    try:
+        return np.asarray(value, dtype=float)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(f"{name} must contain real numeric values") from exc
+
+
 def _validate_gaussian_transform_args(d, covariance, mean):
     if covariance is None:
         covariance = np.eye(d)
     else:
-        covariance = np.asarray(covariance, dtype=float)
+        covariance = _as_real_float_array(covariance, "covariance")
 
     if covariance.shape != (d, d):
         raise ValueError("covariance must have shape (dim, dim)")
@@ -279,7 +298,9 @@ def _validate_gaussian_transform_args(d, covariance, mean):
 
     if mean is None:
         mean = np.zeros(d)
-    mean = np.asarray(mean, dtype=float).ravel()
+    else:
+        mean = _as_real_float_array(mean, "mean")
+    mean = mean.ravel()
     if mean.shape != (d,):
         raise ValueError("mean must have shape (dim,)")
     if not np.all(np.isfinite(mean)):
