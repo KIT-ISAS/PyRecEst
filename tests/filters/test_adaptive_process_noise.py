@@ -48,6 +48,27 @@ def test_rolling_adapter_updates_source_ratio_and_scales_covariance():
     assert np.allclose(scaled, np.eye(2) * adapter.scale({"radar": 1.0}))
 
 
+@pytest.mark.parametrize(
+    "covariance",
+    [
+        np.array([[1.0 + 2.0j]]),
+        np.array([[True]]),
+        np.array([[np.nan]]),
+        np.array([[np.inf]]),
+        np.array([[1.0 + 2.0j]], dtype=object),
+        np.array([[np.timedelta64(1, "ns")]], dtype=object),
+    ],
+)
+def test_scaled_covariance_rejects_nonreal_or_nonfinite_values(covariance):
+    adapter = RollingNISProcessNoiseAdapter()
+
+    with pytest.raises(
+        ValueError,
+        match="process_noise_covariance must contain only finite real numeric values",
+    ):
+        adapter.scaled_covariance(covariance)
+
+
 def test_config_normalizes_scalar_numeric_values():
     config = AdaptiveProcessNoiseConfig(
         base_scale=np.array(1.25),
