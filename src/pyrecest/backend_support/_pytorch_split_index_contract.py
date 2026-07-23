@@ -39,12 +39,14 @@ def _normalize_split_section_count(indices_or_sections, torch_module):
         raise TypeError(_SPLIT_INDEX_TYPE_MESSAGE)
 
     try:
-        scalar_float = float(scalar)
-    except (TypeError, ValueError, OverflowError) as exc:
+        section_count = int(scalar)
+    except (ValueError, OverflowError) as exc:
+        raise ValueError(_SPLIT_SECTION_COUNT_MESSAGE) from exc
+    except TypeError as exc:
         raise TypeError(_SPLIT_INDEX_TYPE_MESSAGE) from exc
-    if not np.isfinite(scalar_float) or not scalar_float.is_integer():
+    if scalar != section_count:
         raise ValueError(_SPLIT_SECTION_COUNT_MESSAGE)
-    return int(scalar_float)
+    return section_count
 
 
 def _normalize_split_cut_indices(indices_or_sections, torch_module):
