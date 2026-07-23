@@ -1,3 +1,4 @@
+from . import _record_smoother_numeric_contract  # noqa: F401
 from .abstract_smoother import AbstractSmoother
 from .delayed_output import DelayedStateOutput, DelayedStateOutputMixin
 from .fixed_lag_mem_qkf_smoother import (
