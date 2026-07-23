@@ -113,8 +113,11 @@ class AbstractConditionalDistribution(ABC):
         array of shape (n_points,)
         """
         d = self.grid.shape[1]
-        if point.shape[0] != d:
-            raise ValueError(f"point must have length {d} (grid dimension).")
+        expected_shape = (d,)
+        if tuple(point.shape) != expected_shape:
+            raise ValueError(
+                f"point must have shape {expected_shape} (grid dimension)."
+            )
         diffs = linalg.norm(self.grid - point[None, :], axis=1)
         locb = argmin(diffs)
         if diffs[locb] > 1e-10:
