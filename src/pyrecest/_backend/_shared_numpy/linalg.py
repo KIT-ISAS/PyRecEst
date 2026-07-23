@@ -75,6 +75,60 @@ def _sylvester_candidate_is_accurate(a, b, q, candidate):
     return _np.all(_np.isclose(residual_target, q, atol=atol, rtol=rtol))
 
 
+def _broadcast_shapes(*shapes):
+    """Return the NumPy-style broadcast shape without allocating arrays."""
+
+    reversed_shapes = [tuple(reversed(shape)) for shape in shapes]
+    result = []
+    for index in range(max((len(shape) for shape in reversed_shapes), default=0)):
+        dimensions = {
+            shape[index] if index < len(shape) else 1 for shape in reversed_shapes
+        }
+        dimensions.discard(1)
+        if len(dimensions) > 1:
+            raise ValueError("operands could not be broadcast together")
+        result.append(dimensions.pop() if dimensions else 1)
+    return tuple(reversed(result))
+
+
+def _empty_sylvester_batch_result(a, b, q):
+    """Return a broadcast, SciPy-compatible empty Sylvester result."""
+
+    if a.ndim < 2 or b.ndim < 2 or q.ndim < 2:
+        return None
+    if a.shape[-2] != a.shape[-1] or b.shape[-2] != b.shape[-1]:
+        return None
+    if q.shape[-2:] != (a.shape[-1], b.shape[-1]):
+        return None
+
+    try:
+        batch_shape = _broadcast_shapes(
+            a.shape[:-2],
+            b.shape[:-2],
+            q.shape[:-2],
+        )
+    except ValueError:
+        return None
+    if 0 not in batch_shape:
+        return None
+
+    promoted_dtypes = []
+    for array in (a, b, q):
+        dtype = array.dtype
+        if dtype.kind in "iu":
+            dtype = _np.dtype(_np.float64)
+        elif dtype.kind == "b" or dtype == _np.dtype(_np.float16):
+            dtype = _np.dtype(_np.float32)
+        elif dtype.kind not in "fc":
+            return None
+        promoted_dtypes.append(dtype)
+
+    return _np.empty(
+        batch_shape + q.shape[-2:],
+        dtype=_np.result_type(*promoted_dtypes),
+    )
+
+
 _diag_vec = _np.vectorize(_np.diag, signature="(n)->(n,n)")
 _logm_vec = _np.vectorize(_scipy.linalg.logm, signature="(n,m)->(n,m)")
 
@@ -104,6 +158,10 @@ def solve_sylvester(a, b, q, tol=atol):
     a = _np.asarray(a)
     b = _np.asarray(b)
     q = _np.asarray(q)
+
+    empty_result = _empty_sylvester_batch_result(a, b, q)
+    if empty_result is not None:
+        return empty_result
 
     if a.shape == b.shape:
         if _np.all(_np.isclose(a, b)) and _is_hermitian(a, tol=tol):
