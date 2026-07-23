@@ -237,12 +237,22 @@ def _standard_deviations_array(stds: Sequence[float] | np.ndarray) -> np.ndarray
     return values
 
 
+def _value_contains_non_real_numeric_values(value: Any) -> bool:
+    if isinstance(value, _NON_REAL_NUMERIC_SCALAR_TYPES):
+        return True
+    if isinstance(value, np.ndarray):
+        return _array_contains_non_real_numeric_values(value)
+    if isinstance(value, (list, tuple)):
+        return any(_value_contains_non_real_numeric_values(item) for item in value)
+    return False
+
+
 def _array_contains_non_real_numeric_values(array: np.ndarray) -> bool:
     if array.dtype.kind in _NON_REAL_NUMERIC_KINDS:
         return True
     if array.dtype.kind != "O":
         return False
-    return any(isinstance(item, _NON_REAL_NUMERIC_SCALAR_TYPES) for item in array.flat)
+    return any(_value_contains_non_real_numeric_values(item) for item in array.flat)
 
 
 def _contains_non_real_numeric_values(value: Any) -> bool:
