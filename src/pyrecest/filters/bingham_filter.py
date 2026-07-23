@@ -30,6 +30,15 @@ def _to_python_bool(value):
     return bool(value)
 
 
+def _is_complex_array(value):
+    """Return whether a NumPy/JAX array or PyTorch tensor has complex dtype."""
+    dtype = getattr(value, "dtype", None)
+    if getattr(dtype, "kind", None) == "c":
+        return True
+    is_complex = getattr(value, "is_complex", None)
+    return bool(is_complex()) if callable(is_complex) else False
+
+
 def _validate_bingham_distribution(distribution, role):
     if not isinstance(distribution, BinghamDistribution):
         raise ValueError(f"{role} must be a BinghamDistribution.")
@@ -65,6 +74,8 @@ def _validate_bingham_measurement(z, input_dim):
     measurement = asarray(z)
     if measurement.shape != (input_dim,):
         raise ValueError(f"measurement z must have shape ({input_dim},).")
+    if _is_complex_array(measurement):
+        raise ValueError("measurement z must be real-valued.")
     if not _to_python_bool(backend_all(isfinite(measurement))):
         raise ValueError("measurement z must be finite.")
     if not _to_python_bool(isclose(linalg.norm(measurement), 1.0)):
@@ -76,6 +87,8 @@ def _validate_bingham_system_output(value, input_dim):
     propagated = asarray(value)
     if propagated.shape != (input_dim,):
         raise ValueError(f"system function output must have shape ({input_dim},).")
+    if _is_complex_array(propagated):
+        raise ValueError("system function output must be real-valued.")
     if not _to_python_bool(backend_all(isfinite(propagated))):
         raise ValueError("system function output must be finite.")
     if not _to_python_bool(isclose(linalg.norm(propagated), 1.0)):
