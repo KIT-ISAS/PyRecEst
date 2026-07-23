@@ -208,7 +208,7 @@ def eigvalsh(a, UPLO="L", out=None):
 
 
 def inv(a, out=None):
-    """Invert a matrix after PyRecEst-style array-like promotion."""
+    """Invert a matrix after PyRecEst-style array-like input promotion."""
     return _torch.linalg.inv(_as_linalg_tensor(a), **_out_kwargs(out))
 
 
@@ -412,6 +412,30 @@ def _sylvester_candidate_is_accurate(a, b, q, candidate):
     )
 
 
+def _empty_sylvester_batch_result(a, b, q):
+    """Return a broadcast, shape-preserving empty Sylvester result."""
+
+    if a.ndim < 2 or b.ndim < 2 or q.ndim < 2:
+        return None
+    if a.shape[-2] != a.shape[-1] or b.shape[-2] != b.shape[-1]:
+        return None
+    if q.shape[-2:] != (a.shape[-1], b.shape[-1]):
+        return None
+
+    try:
+        batch_shape = _torch.broadcast_shapes(
+            a.shape[:-2],
+            b.shape[:-2],
+            q.shape[:-2],
+        )
+    except (RuntimeError, ValueError):
+        return None
+    if 0 not in batch_shape:
+        return None
+
+    return q.new_empty(tuple(batch_shape) + tuple(q.shape[-2:]))
+
+
 def solve_sylvester(a, b, q):
     device = _preferred_linalg_device(a, b, q)
     a = _as_linalg_tensor(a)
@@ -425,6 +449,11 @@ def solve_sylvester(a, b, q):
     a = a.to(dtype=common_dtype)
     b = b.to(dtype=common_dtype)
     q = q.to(dtype=common_dtype)
+
+    empty_result = _empty_sylvester_batch_result(a, b, q)
+    if empty_result is not None:
+        return empty_result
+
     is_shared_factor = a.shape == b.shape and _torch.allclose(
         a, b, atol=1e-6, rtol=1e-6
     )
