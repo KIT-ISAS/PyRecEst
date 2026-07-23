@@ -17,7 +17,6 @@ from pyrecest.backend import (
     full,
     isfinite,
     linalg,
-    reshape,
     stack,
     transpose,
 )
@@ -106,7 +105,7 @@ def _validate_finite_scalar(value, name: str) -> float:
 def _validate_sigma_inputs(x, P, n: int):
     if _has_complex_dtype(x):
         raise ValueError("x must contain real values")
-    x = reshape(asarray(x, dtype=float64), (-1,))
+    x = asarray(x, dtype=float64)
     if x.shape != (n,):
         raise ValueError(f"x must have shape ({n},)")
     if not _to_python_bool(all(isfinite(x))):
