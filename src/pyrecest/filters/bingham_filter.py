@@ -72,6 +72,17 @@ def _validate_bingham_measurement(z, input_dim):
     return measurement
 
 
+def _validate_bingham_system_output(value, input_dim):
+    propagated = asarray(value)
+    if propagated.shape != (input_dim,):
+        raise ValueError(f"system function output must have shape ({input_dim},).")
+    if not _to_python_bool(backend_all(isfinite(propagated))):
+        raise ValueError("system function output must be finite.")
+    if not _to_python_bool(isclose(linalg.norm(propagated), 1.0)):
+        raise ValueError("system function output must be a unit vector.")
+    return propagated
+
+
 class BinghamFilter(AbstractFilter):
     """Recursive filter based on the Bingham distribution.
 
@@ -137,9 +148,11 @@ class BinghamFilter(AbstractFilter):
 
         samples, weights = self.filter_state.sample_deterministic(0.5)
 
-        # Propagate each sample through the system function
+        # Propagate each sample through the system function.
+        input_dim = self.filter_state.input_dim
         for i in range(len(weights)):
-            samples[:, i] = a(samples[:, i])
+            propagated = _validate_bingham_system_output(a(samples[:, i]), input_dim)
+            samples[:, i] = propagated
 
         # Compute scatter matrix of propagated samples
         S = samples @ diag(weights) @ samples.T
