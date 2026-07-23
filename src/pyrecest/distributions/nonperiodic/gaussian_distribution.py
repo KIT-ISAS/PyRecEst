@@ -42,6 +42,17 @@ def _to_python_bool(value):
     return bool(value)
 
 
+def _validate_real_values(value, name):
+    """Reject complex arrays before numerical backends can discard parts."""
+    dtype = getattr(value, "dtype", None)
+    try:
+        is_complex = bool(np.issubdtype(dtype, np.complexfloating))
+    except TypeError:
+        is_complex = "complex" in str(dtype).lower()
+    if is_complex:
+        raise ValueError(f"{name} must contain only real values.")
+
+
 def _validate_finite_values(value, name):
     """Reject arrays containing NaN or infinite values."""
     if not _to_python_bool(backend_all(isfinite(value))):
@@ -124,6 +135,8 @@ class GaussianDistribution(AbstractLinearDistribution):
     def __init__(self, mu, C, check_validity=True):
         mu = _as_backend_array(mu, "mu")
         C = _as_backend_array(C, "C")
+        _validate_real_values(mu, "mu")
+        _validate_real_values(C, "C")
         if ndim(mu) > 1:
             raise ValueError("mu must be one-dimensional or scalar.")
         if ndim(mu) == 0:
@@ -163,6 +176,7 @@ class GaussianDistribution(AbstractLinearDistribution):
             raise ValueError(
                 f"new_mean must have shape ({self.dim},), got {new_mean.shape}."
             )
+        _validate_real_values(new_mean, "new_mean")
         _validate_finite_values(new_mean, "new_mean")
         new_dist = copy.deepcopy(self)
         new_dist.mu = backend_copy(new_mean)
@@ -177,6 +191,7 @@ class GaussianDistribution(AbstractLinearDistribution):
             raise ValueError(
                 f"xs must have trailing dimension {self.dim}; got shape {xs.shape}."
             )
+        _validate_real_values(xs, "xs")
         return xs
 
     def pdf(self, xs):
@@ -257,6 +272,7 @@ class GaussianDistribution(AbstractLinearDistribution):
             raise ValueError(
                 f"shift_by must be scalar for dim=1 or have shape ({self.dim},)."
             )
+        _validate_real_values(shift_by, "shift_by")
         _validate_finite_values(shift_by, "shift_by")
 
         new_gaussian = copy.deepcopy(self)
