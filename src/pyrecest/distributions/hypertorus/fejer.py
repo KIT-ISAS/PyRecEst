@@ -250,7 +250,7 @@ def apply_kernel_weights(coefficients, *, kernel: str = "fejer", exponent: float
 
 
 def apply_fejer_weights(coefficients):
-    """Apply separable Fejer weights to a centered Fourier coefficient tensor."""
+    """Apply separable Fejer weights to a centered coefficient tensor."""
 
     return apply_kernel_weights(coefficients, kernel="fejer")
 
