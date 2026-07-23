@@ -140,6 +140,8 @@ class AbstractMixture(AbstractDistributionType):
 
         if not all(dists[0].dim == dist.dim for dist in dists):
             raise ValueError("All distributions must have the same dimension")
+        if not all(dists[0].input_dim == dist.input_dim for dist in dists):
+            raise ValueError("All distributions must have the same input dimension")
 
         non_zero_indices = [i for i, weight in enumerate(weights) if bool(weight != 0)]
 
