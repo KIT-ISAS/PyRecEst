@@ -15,6 +15,14 @@ _ARGSORT_CONFLICT_MESSAGE = "argsort() got conflicting 'kind' and 'stable' argum
 _ARGSORT_DEFAULT_AXIS = object()
 
 
+def _normalize_bool_flag(value, name, *, allow_none=False):
+    if value is None and allow_none:
+        return None
+    if isinstance(value, (bool, _np.bool_)):
+        return bool(value)
+    raise TypeError(f"{name} must be a boolean")
+
+
 def normalize_sort_axis(axis, torch_module=None):
     """Return a sort axis while preserving NumPy's flatten-all sentinel."""
     if axis is None:
@@ -36,7 +44,7 @@ def resolve_sort_stability(kind, stable):
     if kind is not None and stable is not None:
         raise ValueError(_SORT_CONFLICT_MESSAGE)
     if kind is None:
-        return stable
+        return _normalize_bool_flag(stable, "stable", allow_none=True)
     if stable is not None:
         raise TypeError(_SORT_CONFLICT_MESSAGE)
     if kind in {"stable", "mergesort"}:
@@ -60,6 +68,7 @@ def sort_axis_none(
     """Sort values with NumPy-style ``axis=None`` and keyword support."""
     if order is not None:
         raise ValueError("order is not supported by this backend")
+    descending = _normalize_bool_flag(descending, "descending")
     values = backend_module.array(values)
     axis = normalize_sort_axis(axis, torch_module)
     stable = resolve_sort_stability(kind, stable)
@@ -69,8 +78,8 @@ def sort_axis_none(
     return torch_module.sort(
         values,
         dim=axis,
-        descending=bool(descending),
-        stable=bool(stable) if stable is not None else False,
+        descending=descending,
+        stable=stable if stable is not None else False,
     ).values
 
 
@@ -102,6 +111,8 @@ def patch_argsort_stability_contract() -> None:
     ):
         if kind is not None and stable is not None:
             raise ValueError(_ARGSORT_CONFLICT_MESSAGE)
+        stable = _normalize_bool_flag(stable, "stable", allow_none=True)
+        descending = _normalize_bool_flag(descending, "descending")
         if axis is _ARGSORT_DEFAULT_AXIS:
             return original_argsort(
                 a,
