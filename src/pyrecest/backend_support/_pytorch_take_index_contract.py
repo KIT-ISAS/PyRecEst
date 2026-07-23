@@ -17,8 +17,13 @@ def _validate_take_indices(indices, torch_module):
             raise TypeError(_TAKE_INDEX_TYPE_MESSAGE)
         return indices
 
-    if isinstance(indices, np.ndarray) and not np.can_cast(
-        indices.dtype,
+    try:
+        indices_array = np.asarray(indices)
+    except (TypeError, ValueError):
+        return indices
+
+    if indices_array.ndim > 0 and not np.can_cast(
+        indices_array.dtype,
         np.dtype(np.intp),
         casting="same_kind",
     ):
