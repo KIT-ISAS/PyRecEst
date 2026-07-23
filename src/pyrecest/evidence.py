@@ -40,13 +40,16 @@ def _coerce_bool_flag(value: bool, name: str) -> bool:
 
 
 def _coerce_metadata(metadata: Any) -> dict[str, Any]:
-    """Return a plain metadata dictionary without sequence-to-dict surprises."""
+    """Return a plain metadata dictionary with stable string keys."""
 
     if metadata is None:
         return {}
     if not isinstance(metadata, Mapping):
         raise ValueError("metadata must be a mapping or None")
-    return dict(metadata)
+    result = dict(metadata)
+    if any(not isinstance(key, str) for key in result):
+        raise ValueError("metadata keys must be strings")
+    return result
 
 
 @dataclass(frozen=True, slots=True)
