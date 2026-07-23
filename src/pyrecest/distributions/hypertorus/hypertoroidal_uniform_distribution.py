@@ -8,6 +8,7 @@ from pyrecest.backend import (
     asarray,
     int32,
     int64,
+    isfinite,
     log,
     ndim,
     ones,
@@ -20,6 +21,68 @@ from pyrecest.exceptions import ShapeError
 
 from ..abstract_uniform_distribution import AbstractUniformDistribution
 from .abstract_hypertoroidal_distribution import AbstractHypertoroidalDistribution
+
+
+_INVALID_REAL_SCALAR_TYPES = (
+    bool,
+    np.bool_,
+    str,
+    bytes,
+    bytearray,
+    np.str_,
+    np.bytes_,
+    complex,
+    np.complexfloating,
+    np.datetime64,
+    np.timedelta64,
+)
+_INVALID_REAL_DTYPE_KINDS = {"b", "S", "U", "c", "M", "m"}
+
+
+def _contains_invalid_real_value(value) -> bool:
+    if np.ma.is_masked(value) or isinstance(value, _INVALID_REAL_SCALAR_TYPES):
+        return True
+
+    dtype = getattr(value, "dtype", None)
+    if dtype is not None:
+        try:
+            return np.dtype(dtype).kind in _INVALID_REAL_DTYPE_KINDS
+        except (TypeError, ValueError):
+            dtype_name = str(dtype).lower()
+            return any(
+                token in dtype_name
+                for token in (
+                    "bool",
+                    "complex",
+                    "str",
+                    "bytes",
+                    "datetime",
+                    "timedelta",
+                )
+            )
+
+    try:
+        values = np.asarray(value, dtype=object).reshape(-1)
+    except (OverflowError, TypeError, ValueError, RuntimeError):
+        return False
+    return any(isinstance(item, _INVALID_REAL_SCALAR_TYPES) for item in values)
+
+
+def _validate_finite_real_values(name: str, value):
+    message = f"{name} must contain only finite real values."
+    if _contains_invalid_real_value(value):
+        raise ValueError(message)
+    try:
+        value = asarray(value)
+    except Exception as exc:  # pragma: no cover - backend-specific conversion type
+        raise ValueError(message) from exc
+    try:
+        finite = bool(backend_all(isfinite(value)))
+    except (OverflowError, TypeError, ValueError, RuntimeError) as exc:
+        raise ValueError(message) from exc
+    if not finite:
+        raise ValueError(message)
+    return value
 
 
 def _validate_positive_sample_count(n) -> int:
@@ -75,7 +138,7 @@ def _validate_trigonometric_moment_order(n: Union[int, int32, int64]) -> int:
 
 
 def _validate_pdf_inputs(xs, dim: int):
-    xs = asarray(xs)
+    xs = _validate_finite_real_values("xs", xs)
     if xs.ndim == 0:
         if dim != 1:
             raise ShapeError(
@@ -99,14 +162,14 @@ def _validate_pdf_inputs(xs, dim: int):
 
 
 def _validate_vector(name: str, value, dim: int):
-    value = asarray(value)
+    value = _validate_finite_real_values(name, value)
     if value.shape != (dim,):
         raise ShapeError(name, value.shape, expected=f"({dim},)")
     return value
 
 
 def _validate_boundary(name: str, value, dim: int):
-    value = asarray(value)
+    value = _validate_finite_real_values(name, value)
     if ndim(value) == 0:
         if dim != 1:
             raise ShapeError(
