@@ -16,11 +16,14 @@ def _validate_positive_sample_count(n) -> int:
 
     try:
         count_int = int(count)
-        count_float = float(count)
     except (OverflowError, TypeError, ValueError) as exc:
         raise ValueError("n must be an integer") from exc
 
-    if not np.isfinite(count_float) or not count_float.is_integer():
+    try:
+        is_exact_integer = count == count_int
+    except (OverflowError, TypeError, ValueError) as exc:
+        raise ValueError("n must be a finite integer") from exc
+    if not bool(is_exact_integer):
         raise ValueError("n must be a finite integer")
     if count_int <= 0:
         raise ValueError("n must be positive")
@@ -111,7 +114,7 @@ class CartProdStackedDistribution(AbstractCartProdDistribution):
         Convenient access to hybrid_mean() to have a consistent interface
         throughout manifolds.
 
-        :return: The mean of the distribution.
+        :return: The mean of the distribution
         :rtype:
         """
         return self.hybrid_mean()
