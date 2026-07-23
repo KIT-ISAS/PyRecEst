@@ -85,18 +85,21 @@ def _call_model(
     return array
 
 
-setattr(_record_arrays, "_pyrecest_real_numeric_contract", True)
-setattr(_call_model, "_pyrecest_real_numeric_contract", True)
+def install_record_smoother_numeric_contract() -> None:
+    """Install real-value validation on the record smoother implementation."""
 
-if not getattr(
-    _record_smoother._record_arrays,
-    "_pyrecest_real_numeric_contract",
-    False,
-):
-    _record_smoother._record_arrays = _record_arrays
-if not getattr(
-    _record_smoother._call_model,
-    "_pyrecest_real_numeric_contract",
-    False,
-):
-    _record_smoother._call_model = _call_model
+    setattr(_record_arrays, "_pyrecest_real_numeric_contract", True)
+    setattr(_call_model, "_pyrecest_real_numeric_contract", True)
+
+    if not getattr(
+        _record_smoother._record_arrays,
+        "_pyrecest_real_numeric_contract",
+        False,
+    ):
+        _record_smoother._record_arrays = _record_arrays
+    if not getattr(
+        _record_smoother._call_model,
+        "_pyrecest_real_numeric_contract",
+        False,
+    ):
+        _record_smoother._call_model = _call_model
