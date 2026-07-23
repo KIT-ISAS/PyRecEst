@@ -127,6 +127,29 @@ def _normalize_nonnegative_finite_scalar(value: float, name: str) -> float:
     return value_float
 
 
+def _normalize_finite_real_array(value: object, name: str) -> np.ndarray:
+    message = f"{name} must contain only finite real numeric values"
+    if _has_rejected_numeric_dtype(value):
+        raise ValueError(message)
+    try:
+        value_array = np.asarray(value)
+    except (TypeError, ValueError, OverflowError, RuntimeError) as exc:
+        raise ValueError(message) from exc
+    if _has_rejected_numeric_dtype(value_array) or np.iscomplexobj(value_array):
+        raise ValueError(message)
+    if value_array.dtype.kind == "O" and any(
+        _is_rejected_scalar_payload(item) for item in value_array.reshape(-1)
+    ):
+        raise ValueError(message)
+    try:
+        value_array = np.asarray(value_array, dtype=float)
+    except (TypeError, ValueError, OverflowError, RuntimeError) as exc:
+        raise ValueError(message) from exc
+    if not np.all(np.isfinite(value_array)):
+        raise ValueError(message)
+    return value_array
+
+
 def _normalize_bool_flag(value: bool, name: str) -> bool:
     if isinstance(value, (bool, np.bool_)):
         return bool(value)
@@ -229,9 +252,11 @@ class RollingNISProcessNoiseAdapter:
     ) -> np.ndarray:
         """Return ``process_noise_covariance`` multiplied by the adapted scale."""
 
-        return np.asarray(process_noise_covariance, dtype=float) * self.scale(
-            source_weights
+        covariance = _normalize_finite_real_array(
+            process_noise_covariance,
+            "process_noise_covariance",
         )
+        return covariance * self.scale(source_weights)
 
 
 def adaptive_scale_from_ratio(
