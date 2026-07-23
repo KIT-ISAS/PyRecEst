@@ -62,7 +62,7 @@ def _validate_compatible_bingham(distribution, reference, role):
 
 
 def _validate_bingham_measurement(z, input_dim):
-    measurement = asarray(z).ravel()
+    measurement = asarray(z)
     if measurement.shape != (input_dim,):
         raise ValueError(f"measurement z must have shape ({input_dim},).")
     if not _to_python_bool(backend_all(isfinite(measurement))):
