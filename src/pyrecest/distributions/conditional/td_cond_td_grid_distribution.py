@@ -159,7 +159,7 @@ class TdCondTdGridDistribution(AbstractConditionalDistribution):
                 with both full grids of shape ``(n_points, d)`` and must
                 return an array of shape ``(n_points, n_points)``.
         no_of_grid_points : int
-            Number of grid points for each torus.
+            Number of grid points along each torus dimension.
         fun_does_cartesian_product : bool
             See ``fun`` description above.
         grid_type : str
@@ -191,12 +191,13 @@ class TdCondTdGridDistribution(AbstractConditionalDistribution):
             )
 
         dim_half = dim // 2
-        n = no_of_grid_points
+        n_per_dimension = no_of_grid_points
         grid = HypertoroidalGridDistribution.generate_cartesian_product_grid(
-            [n] * dim_half
+            [n_per_dimension] * dim_half
         )
+        n_grid_points = grid.shape[0]
 
         grid_values = TdCondTdGridDistribution._evaluate_on_grid(
-            fun, grid, n, fun_does_cartesian_product
+            fun, grid, n_grid_points, fun_does_cartesian_product
         )
         return TdCondTdGridDistribution(grid, grid_values)
