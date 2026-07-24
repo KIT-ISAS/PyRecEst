@@ -19,7 +19,10 @@ def test_multivariate_normal_accepts_numpy_validation_keywords():
     assert sample.shape == (3, 2)
 
 
-@pytest.mark.parametrize("bad_check_valid", ["error", None, 1])
+@pytest.mark.parametrize(
+    "bad_check_valid",
+    ["error", None, 1, [], {}, bytearray(b"warn")],
+)
 def test_multivariate_normal_rejects_invalid_check_valid_keyword(bad_check_valid):
     with pytest.raises(ValueError, match="check_valid"):
         random.multivariate_normal(
