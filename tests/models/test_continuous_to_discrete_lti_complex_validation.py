@@ -8,9 +8,12 @@ from pyrecest.models import continuous_to_discrete_lti
 
 class TestContinuousToDiscreteLtiComplexValidation(unittest.TestCase):
     def test_rejects_complex_system_and_noise_matrices(self):
+        nested_complex = np.empty((1, 1), dtype=object)
+        nested_complex[0, 0] = np.array(1.0 + 2.0j)
         complex_variants = (
             np.array([[1.0 + 2.0j]]),
             np.array([[1.0 + 2.0j]], dtype=object),
+            nested_complex,
         )
         parameter_cases = (
             (
