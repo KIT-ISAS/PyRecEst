@@ -94,7 +94,7 @@ def _validate_se2_gaussian(distribution, role):
 
 
 def _validate_se2_measurement(z):
-    measurement = asarray(z).ravel()
+    measurement = asarray(z)
     if measurement.shape != (4,):
         raise ValueError("measurement z must be a 4-D vector.")
     if not _to_python_bool(backend_all(isfinite(measurement))):
