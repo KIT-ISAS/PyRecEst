@@ -20,7 +20,7 @@ def _coerce_mtt_scenario_flag(value: Any) -> bool:
         raise ValueError("mtt_scenario must be a bool")
     try:
         value_array = np.asarray(value)
-    except (TypeError, ValueError) as exc:
+    except (TypeError, ValueError, RuntimeError, OverflowError) as exc:
         raise ValueError("mtt_scenario must be a bool") from exc
     if value_array.shape == () and np.issubdtype(value_array.dtype, np.bool_):
         return bool(value_array.item())
