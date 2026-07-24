@@ -197,7 +197,14 @@ def _cmd_run_scenario(args: argparse.Namespace) -> int:
     print(result.to_json(indent=2))
 
     if args.expected is not None:
-        expected = json.loads(Path(args.expected).read_text(encoding="utf-8"))
+        try:
+            expected = json.loads(Path(args.expected).read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+            print(f"failed to read expected results: {exc}", file=sys.stderr)
+            return 2
+        if not isinstance(expected, dict):
+            print("expected results must be a JSON object", file=sys.stderr)
+            return 2
         raw_tolerance = (
             args.tolerance
             if args.tolerance is not None
