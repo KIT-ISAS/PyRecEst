@@ -721,7 +721,9 @@ def solve_global_nearest_neighbor(  # pylint: disable=too-many-locals
         leaving a measurement unmatched. If omitted, ``unassigned_track_cost``
         is reused.
     invalid_cost:
-        Replacement for non-finite costs.
+        Minimum replacement for non-finite costs. The effective blocker is
+        increased when necessary so an invalid pair cannot undercut a feasible
+        assignment.
     dummy_dummy_cost:
         Cost placed in the dummy-dummy block. The default ``0.0`` matches the
         common rectangular-assignment interpretation. Some legacy trackers use a
@@ -762,10 +764,24 @@ def solve_global_nearest_neighbor(  # pylint: disable=too-many-locals
         name="unassigned_measurement_cost",
     )
 
-    finite_matrix = matrix.copy()
-    finite_matrix[~np.isfinite(finite_matrix)] = float(invalid_cost)
-
     assignment_size = num_tracks + num_measurements
+    minimum_invalid_cost = _forbidden_assignment_cost(
+        assignment_size,
+        matrix,
+        track_unassigned_costs,
+        measurement_unassigned_costs,
+        np.asarray([dummy_dummy_cost]),
+    )
+    invalid_cost_value = float(invalid_cost)
+    if np.isnan(invalid_cost_value):
+        raise ValueError("invalid_cost must not be NaN")
+
+    finite_matrix = matrix.copy()
+    finite_matrix[~np.isfinite(finite_matrix)] = max(
+        invalid_cost_value,
+        minimum_invalid_cost,
+    )
+
     structural_cost = _forbidden_assignment_cost(
         assignment_size,
         finite_matrix,
