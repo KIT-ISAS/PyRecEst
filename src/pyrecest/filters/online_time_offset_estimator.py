@@ -98,12 +98,17 @@ class OnlineTimeOffsetEstimator:
 
 
 def _contains_unsupported_numeric_values(value: Any) -> bool:
-    value_array = np.asarray(value)
-    if value_array.dtype.kind in _UNSUPPORTED_NUMERIC_KINDS:
+    if isinstance(value, _UNSUPPORTED_SCALAR_TYPES):
         return True
-    if value_array.dtype.kind != "O":
-        return False
-    return any(isinstance(item, _UNSUPPORTED_SCALAR_TYPES) for item in value_array.flat)
+    if isinstance(value, np.ndarray):
+        if value.dtype.kind in _UNSUPPORTED_NUMERIC_KINDS:
+            return True
+        if value.dtype.kind != "O":
+            return False
+        return any(_contains_unsupported_numeric_values(item) for item in value.flat)
+    if isinstance(value, (list, tuple)):
+        return any(_contains_unsupported_numeric_values(item) for item in value)
+    return False
 
 
 def _as_real_numeric_array(value: Any, name: str) -> np.ndarray:
