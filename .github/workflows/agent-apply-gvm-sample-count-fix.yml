@@ -1,0 +1,115 @@
+name: Apply Gauss-von-Mises sample-count fix
+
+on:
+  push:
+    branches:
+      - agent/reject-rounded-gauss-von-mises-sample-counts-20260724
+
+permissions:
+  contents: write
+
+jobs:
+  apply-fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - name: Apply focused fix and regression
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          source_path = Path(
+              "src/pyrecest/distributions/cart_prod/gauss_von_mises_distribution.py"
+          )
+          source = source_path.read_text(encoding="utf-8")
+          old = '''    try:
+                  count_int = int(count)
+                  count_float = float(count)
+              except (OverflowError, TypeError, ValueError) as exc:
+                  raise ValueError("n must be an integer") from exc
+
+              if not np.isfinite(count_float) or not count_float.is_integer():
+                  raise ValueError("n must be a finite integer")
+          '''
+          new = '''    try:
+                  count_int = int(count)
+              except (OverflowError, TypeError, ValueError) as exc:
+                  raise ValueError("n must be an integer") from exc
+
+              try:
+                  is_exact_integer = count == count_int
+              except (OverflowError, TypeError, ValueError) as exc:
+                  raise ValueError("n must be a finite integer") from exc
+              if not bool(is_exact_integer):
+                  raise ValueError("n must be a finite integer")
+          '''
+          if source.count(old) != 1:
+              raise RuntimeError("expected exactly one sample-count validator block")
+          source_path.write_text(source.replace(old, new, 1), encoding="utf-8")
+
+          test_path = Path(
+              "tests/distributions/test_gauss_von_mises_sample_count_precision.py"
+          )
+          test_path.write_text(
+              '''"""Regression tests for exact Gauss-von-Mises sample-count validation."""
+
+          from fractions import Fraction
+
+          import pytest
+
+          from pyrecest.distributions.cart_prod.gauss_von_mises_distribution import (
+              _validate_positive_sample_count,
+          )
+
+
+          def test_rejects_fraction_rounded_to_integer_by_binary64():
+              rounded_half_integer = Fraction(2**54 + 1, 2)
+
+              with pytest.raises(ValueError, match="finite integer"):
+                  _validate_positive_sample_count(rounded_half_integer)
+
+
+          def test_preserves_exact_large_integer():
+              exact_integer = Fraction(2**54 + 2, 2)
+
+              assert _validate_positive_sample_count(exact_integer) == 2**53 + 1
+          ''',
+              encoding="utf-8",
+          )
+
+          Path(
+              ".github/workflows/agent-apply-gvm-sample-count-fix.yml"
+          ).unlink()
+          PY
+
+      - name: Validate changed Python files
+        run: |
+          python -m py_compile \
+            src/pyrecest/distributions/cart_prod/gauss_von_mises_distribution.py \
+            tests/distributions/test_gauss_von_mises_sample_count_precision.py
+          python - <<'PY'
+          from fractions import Fraction
+
+          rounded_half_integer = Fraction(2**54 + 1, 2)
+          exact_integer = Fraction(2**54 + 2, 2)
+          assert float(rounded_half_integer).is_integer()
+          assert rounded_half_integer != int(rounded_half_integer)
+          assert exact_integer == int(exact_integer)
+          PY
+
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            src/pyrecest/distributions/cart_prod/gauss_von_mises_distribution.py \
+            tests/distributions/test_gauss_von_mises_sample_count_precision.py \
+            .github/workflows/agent-apply-gvm-sample-count-fix.yml
+          git commit -m "Reject rounded Gauss-von-Mises sample counts"
+          git push origin HEAD:${{ github.ref_name }}
