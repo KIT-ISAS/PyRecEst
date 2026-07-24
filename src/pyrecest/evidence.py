@@ -240,6 +240,9 @@ try:
     from pyrecest.backend_support._pytorch_reduction_axis_contract import (  # pylint: disable=import-outside-toplevel
         patch_pytorch_reduction_axis_contract as _patch_pytorch_reduction_axis_contract,
     )
+    from pyrecest.backend_support._shared_numpy_squeeze_contract import (  # pylint: disable=import-outside-toplevel
+        patch_shared_numpy_squeeze_nonsingleton_axis_contract as _patch_shared_numpy_squeeze_nonsingleton_axis_contract,
+    )
 except ModuleNotFoundError:  # pragma: no cover - source tree corruption only
     pass
 else:
@@ -255,3 +258,4 @@ else:
     _patch_pytorch_quantile_empty_batch_contract()
     _patch_pytorch_reduction_axis_contract()
     _patch_jax_array_from_sparse_flat_index_contract()
+    _patch_shared_numpy_squeeze_nonsingleton_axis_contract()
