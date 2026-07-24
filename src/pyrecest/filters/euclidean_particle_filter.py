@@ -84,13 +84,16 @@ class EuclideanParticleFilter(AbstractParticleFilter, EuclideanFilterMixin):
             raise ValueError(message)
 
         try:
-            scalar_float = float(scalar)
+            integer = int(scalar)
         except (TypeError, ValueError, OverflowError) as exc:
             raise ValueError(message) from exc
-        if not np.isfinite(scalar_float) or not scalar_float.is_integer():
+        try:
+            is_exact_integer = bool(scalar == integer)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError(message) from exc
+        if not is_exact_integer:
             raise ValueError(message)
 
-        integer = int(scalar_float)
         if integer <= 0:
             raise ValueError(message)
         return integer
