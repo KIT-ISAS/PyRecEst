@@ -46,6 +46,18 @@ class TestFibonacciGaussianParameterValidation(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "mean.*real numeric"):
                     self.sampler.get_gaussian_samples(10, 2, mean=mean)
 
+    def test_nonvector_mean_shapes_are_rejected(self):
+        invalid_means = (
+            np.zeros((1, 2)),
+            np.zeros((2, 1)),
+            np.zeros((2, 1, 1)),
+        )
+
+        for mean in invalid_means:
+            with self.subTest(shape=mean.shape):
+                with self.assertRaisesRegex(ValueError, "mean must have shape"):
+                    self.sampler.get_gaussian_samples(10, 2, mean=mean)
+
 
 if __name__ == "__main__":
     unittest.main()
