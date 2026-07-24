@@ -395,17 +395,18 @@ def _finite_percentile(costs: np.ndarray, percentile: float) -> float | None:
 
 def _effective_large_cost(costs: np.ndarray, penalty: float) -> float:
     finite = costs[np.isfinite(costs)]
-    if finite.size == 0:
+    assignment_size = min(costs.shape)
+    if finite.size == 0 or assignment_size == 0:
         return penalty
 
-    max_finite = float(np.max(finite))
-    if penalty > max_finite:
-        return penalty
-
-    adjusted_penalty = float(np.nextafter(max_finite, np.inf))
-    if not np.isfinite(adjusted_penalty):
-        raise ValueError("large_cost is too small to exceed finite costs")
-    return adjusted_penalty
+    scale = max(1.0, float(np.max(np.abs(finite))))
+    with np.errstate(over="ignore"):
+        minimum_penalty = scale * float(2 * assignment_size + 1)
+    if not np.isfinite(minimum_penalty):
+        raise ValueError(
+            "finite costs are too large to construct a safe pruning penalty"
+        )
+    return max(penalty, float(minimum_penalty))
 
 
 def _as_cost_matrix(
