@@ -151,18 +151,21 @@ class WrappedCauchyDistribution(AbstractCircularDistribution):
         the value at the requested starting point.
         """
 
-        def coth(x):
-            return 1 / tanh(x)
-
         starting_point = _validate_finite_scalar(starting_point, "starting_point")
         xs = _as_1d_input(xs)
+        half_gamma_tanh = tanh(self.gamma / 2.0)
 
         def primitive(angles):
             angles = array(angles)
             angles_centered = mod(angles - self.mu, 2.0 * pi)
             half_angles = angles_centered / 2.0
+            # Multiplying both atan2 arguments by tanh(gamma / 2) preserves
+            # the angle while avoiding reciprocal overflow for tiny gamma.
             return (
-                arctan2(coth(self.gamma / 2.0) * sin(half_angles), cos(half_angles))
+                arctan2(
+                    sin(half_angles),
+                    half_gamma_tanh * cos(half_angles),
+                )
                 / pi
             )
 
