@@ -1,14 +1,12 @@
-import matplotlib
+import matplotlib.pyplot as plt
 import numpy as np
 import numpy.testing as npt
 import pyrecest.backend
 import pytest
-
-matplotlib.use("Agg")
-
-import matplotlib.pyplot as plt  # pylint: disable=wrong-import-position
 from pyrecest.backend import array
 from pyrecest.distributions.abstract_se2_distribution import AbstractSE2Distribution
+
+plt.switch_backend("Agg")
 
 
 class _PlotStateFixture:
