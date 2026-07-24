@@ -28,34 +28,56 @@ _UNSUPPORTED_SCALAR_TYPES = (
 )
 
 
-def _object_item_contains_unsupported_numeric_values(item) -> bool:
+def _object_item_contains_unsupported_numeric_values(
+    item, active_ids: set[int]
+) -> bool:
     if isinstance(item, _UNSUPPORTED_SCALAR_TYPES):
         return True
     if isinstance(item, np.ndarray):
-        return _contains_unsupported_numeric_values(item)
+        return _contains_unsupported_numeric_values(item, active_ids)
     if isinstance(item, (list, tuple)):
-        return any(
-            _object_item_contains_unsupported_numeric_values(subitem)
-            for subitem in item
-        )
+        item_id = id(item)
+        if item_id in active_ids:
+            return True
+        active_ids.add(item_id)
+        try:
+            return any(
+                _object_item_contains_unsupported_numeric_values(
+                    subitem, active_ids
+                )
+                for subitem in item
+            )
+        finally:
+            active_ids.remove(item_id)
     return False
 
 
-def _contains_unsupported_numeric_values(value) -> bool:
+def _contains_unsupported_numeric_values(
+    value, active_ids: set[int] | None = None
+) -> bool:
     if np.ma.is_masked(value):
         return True
+    if active_ids is None:
+        active_ids = set()
+    value_id = id(value)
+    if value_id in active_ids:
+        return True
+    active_ids.add(value_id)
     try:
-        value_array = np.asarray(value)
-    except (TypeError, ValueError, OverflowError, RuntimeError):
-        return True
-    if value_array.dtype.kind in _UNSUPPORTED_NUMERIC_KINDS:
-        return True
-    if value_array.dtype.kind != "O":
-        return False
-    return any(
-        _object_item_contains_unsupported_numeric_values(item)
-        for item in value_array.flat
-    )
+        try:
+            value_array = np.asarray(value)
+        except (TypeError, ValueError, OverflowError, RuntimeError):
+            return True
+        if value_array.dtype.kind in _UNSUPPORTED_NUMERIC_KINDS:
+            return True
+        if value_array.dtype.kind != "O":
+            return False
+        return any(
+            _object_item_contains_unsupported_numeric_values(item, active_ids)
+            for item in value_array.flat
+        )
+    finally:
+        active_ids.remove(value_id)
 
 
 def _to_numpy_array(value, *, name: str = "matrix") -> np.ndarray:
