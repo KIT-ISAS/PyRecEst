@@ -69,22 +69,12 @@ def _normalize_seed(seed: int | None) -> int | None:
     except (TypeError, ValueError, RuntimeError, OverflowError) as exc:
         raise ValueError(message) from exc
 
-    if isinstance(scalar, _UNSUPPORTED_SEED_SCALAR_TYPES):
+    if isinstance(scalar, _UNSUPPORTED_SEED_SCALAR_TYPES) or not isinstance(
+        scalar, Integral
+    ):
         raise ValueError(message)
-    if isinstance(scalar, Integral):
-        normalized_seed = int(scalar)
-    else:
-        try:
-            normalized_seed = int(scalar)
-        except (TypeError, ValueError, OverflowError) as exc:
-            raise ValueError(message) from exc
-        try:
-            is_exact_integer = bool(scalar == normalized_seed)
-        except (TypeError, ValueError, RuntimeError, OverflowError) as exc:
-            raise ValueError(message) from exc
-        if not is_exact_integer:
-            raise ValueError(message)
 
+    normalized_seed = int(scalar)
     if normalized_seed < 0 or normalized_seed > _MAX_BACKEND_SEED:
         raise ValueError(message)
     return normalized_seed
