@@ -50,9 +50,9 @@ class AssignmentNestedValueValidationTest(unittest.TestCase):
                         **{name: invalid_costs},
                     )
 
-    @unittest.skipIf(
-        pyrecest.backend.__backend_name__ == "jax",  # pylint: disable=no-member
-        reason="Not supported on the JAX backend",
+    @unittest.skipUnless(
+        pyrecest.backend.__backend_name__ == "numpy",  # pylint: disable=no-member
+        reason="Nested NumPy object arrays are only supported by the NumPy backend",
     )
     def test_nested_real_scalar_arrays_remain_supported(self):
         solutions = murty_k_best_assignments(
