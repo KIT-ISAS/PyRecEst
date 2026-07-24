@@ -24,6 +24,14 @@ class WrappedLaplaceDistributionTest(unittest.TestCase):
 
         npt.assert_allclose(wl.pdf(array(1.0)), self.wl.pdf(array(1.0)), rtol=1e-6)
 
+    def test_one_element_parameter_arrays_are_normalized_to_scalars(self):
+        wl = WrappedLaplaceDistribution(array([2.0]), array([1.3]))
+
+        self.assertEqual(wl.lambda_.shape, ())
+        self.assertEqual(wl.kappa.shape, ())
+        self.assertEqual(wl.pdf(array(1.0)).shape, ())
+        self.assertEqual(wl.trigonometric_moment(1).shape, ())
+
     def test_pdf(self):
         def laplace(x):
             return (
