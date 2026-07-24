@@ -12,17 +12,46 @@ _nearly_coordinated_turn_model_impl = _motion_models.nearly_coordinated_turn_mod
 _continuous_to_discrete_lti_impl = _motion_models.continuous_to_discrete_lti
 
 
-def _reject_complex_matrix(value: Any, name: str) -> None:
-    """Reject complex-valued matrices before NumPy can discard imaginary parts."""
+def _contains_complex_values(value: Any, seen: set[int] | None = None) -> bool:
+    """Return whether a possibly nested array-like value contains complex data."""
+    if isinstance(value, (complex, np.complexfloating)):
+        return True
+
+    dtype = getattr(value, "dtype", None)
+    if dtype is not None:
+        try:
+            if np.dtype(dtype).kind == "c":
+                return True
+        except TypeError:
+            if "complex" in str(dtype).lower():
+                return True
+
+    if seen is None:
+        seen = set()
+    value_id = id(value)
+    if value_id in seen:
+        return False
+    seen.add(value_id)
+
+    if isinstance(value, (list, tuple)):
+        return any(_contains_complex_values(item, seen) for item in value)
+
     try:
         value_array = np.asarray(value)
     except (TypeError, ValueError):
-        return
-
-    contains_complex_object = value_array.dtype == object and any(
-        isinstance(item, (complex, np.complexfloating)) for item in value_array.flat
+        return False
+    if np.iscomplexobj(value_array):
+        return True
+    if value_array.dtype != object:
+        return False
+    return any(
+        _contains_complex_values(item, seen) for item in value_array.flat
     )
-    if np.iscomplexobj(value_array) or contains_complex_object:
+
+
+def _reject_complex_matrix(value: Any, name: str) -> None:
+    """Reject complex-valued matrices before NumPy can discard imaginary parts."""
+    if _contains_complex_values(value):
         raise ValueError(f"{name} must contain real values")
 
 
