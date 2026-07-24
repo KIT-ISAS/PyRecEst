@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from itertools import combinations
+from math import isfinite
 from typing import Any, Literal
 
 ResidualMHTPreset = Literal["conservative", "frontier", "multi_family"]
@@ -34,6 +35,15 @@ class ResidualEditCandidate:
     metadata: Mapping[str, Any] = field(default_factory=dict)
     family: str | None = None
     group_keys: frozenset[str] = field(default_factory=frozenset)
+
+    def __post_init__(self) -> None:
+        try:
+            score = float(self.score)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError("Residual candidate score must be finite.") from exc
+        if not isfinite(score):
+            raise ValueError("Residual candidate score must be finite.")
+        object.__setattr__(self, "score", score)
 
 
 @dataclass(frozen=True)

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from pyrecest.tracking import (
     ResidualEditCandidate,
     ResidualMHTConfig,
@@ -34,3 +36,9 @@ def test_duplicate_candidate_ids_are_deduplicated_before_frontier_limits():
         ("a",),
         ("b",),
     }
+
+
+@pytest.mark.parametrize("score", [float("nan"), float("inf"), float("-inf")])
+def test_residual_edit_candidate_rejects_nonfinite_scores(score):
+    with pytest.raises(ValueError, match="score must be finite"):
+        ResidualEditCandidate("invalid", score)
