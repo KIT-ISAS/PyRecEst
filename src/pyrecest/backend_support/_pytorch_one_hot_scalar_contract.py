@@ -97,6 +97,12 @@ def _patch_pytorch_one_hot_scalar_contract(
         ):
             return original_one_hot(labels, num_classes)
         labels = labels.to(dtype=torch_module.long)
+        if labels.numel() == 0 and num_classes == 0:
+            return torch_module.empty(
+                (*labels.shape, 0),
+                dtype=torch_module.uint8,
+                device=labels.device,
+            )
         return torch_module.nn.functional.one_hot(labels, num_classes).to(
             dtype=torch_module.uint8
         )
