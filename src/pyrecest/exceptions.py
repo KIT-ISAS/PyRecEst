@@ -56,14 +56,14 @@ class BackendNotSupportedError(BackendSupportError, NotImplementedError):
         reason: str | None = None,
     ) -> None:
         self.api = api
-        self.backend = backend
+        self.backend = None if backend is None else _normalize_backend_name(backend)
         self.supported_backends = _normalize_supported_backends(supported_backends)
         self.reason = reason
 
-        if backend is None:
+        if self.backend is None:
             message = api
         else:
-            message = f"{api} is unavailable for backend '{backend}'"
+            message = f"{api} is unavailable for backend '{self.backend}'"
         if self.supported_backends:
             supported = ", ".join(self.supported_backends)
             message += f"; supported backends: {supported}"
