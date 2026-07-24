@@ -169,13 +169,10 @@ class MerweScaledSigmaPoints:
         central_covariance_weight = central_mean_weight + (
             1.0 - alpha_squared + self.beta
         )
-        if not all(
-            math.isfinite(weight)
-            for weight in (
-                central_mean_weight,
-                central_covariance_weight,
-                off_center_weight,
-            )
+        if not (
+            math.isfinite(central_mean_weight)
+            and math.isfinite(central_covariance_weight)
+            and math.isfinite(off_center_weight)
         ):
             raise ValueError("Merwe sigma-point weights must be finite")
 
