@@ -19,7 +19,11 @@ _LEGACY_SPEC.loader.exec_module(_LEGACY)
 
 
 def _validate_multivariate_normal_check_valid(check_valid):
-    if check_valid not in {"warn", "raise", "ignore"}:
+    if not isinstance(check_valid, str) or check_valid not in {
+        "warn",
+        "raise",
+        "ignore",
+    }:
         raise ValueError("check_valid must be one of 'warn', 'raise', or 'ignore'")
     return check_valid
 
