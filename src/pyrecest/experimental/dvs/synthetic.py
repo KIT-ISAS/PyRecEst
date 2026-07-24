@@ -182,6 +182,30 @@ def _as_finite_real_scalar(value, name: str) -> float:
     return value_float
 
 
+def _as_exact_integer(value, name: str, integer_message: str) -> int:
+    """Return an integer scalar without losing exactness through float rounding."""
+    value_array = np.asarray(value)
+    if value_array.shape != () or value_array.dtype.kind in "bcSU":
+        raise ValueError(f"{name} must be a finite real scalar")
+    scalar = value_array.item()
+    if isinstance(scalar, _INVALID_REAL_SCALAR_TYPES):
+        raise ValueError(f"{name} must be a finite real scalar")
+    try:
+        value_float = float(scalar)
+        value_int = int(scalar)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(f"{name} must be a finite real scalar") from exc
+    if not np.isfinite(value_float):
+        raise ValueError(f"{name} must be a finite real scalar")
+    try:
+        is_exact_integer = bool(scalar == value_int)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(integer_message) from exc
+    if not is_exact_integer:
+        raise ValueError(integer_message)
+    return value_int
+
+
 def _validate_probability_floor(probability_floor: float) -> float:
     value = _as_finite_real_scalar(probability_floor, "probability_floor")
     if value <= 0.0 or value > 1.0:
@@ -197,20 +221,23 @@ def _nonnegative_real_scalar(value, name: str) -> float:
 
 
 def _positive_integer_count(value, name: str) -> int:
-    scalar = _as_finite_real_scalar(value, name)
-    if scalar <= 0.0 or not scalar.is_integer():
-        raise ValueError(f"{name} must be a positive integer")
-    return int(scalar)
+    message = f"{name} must be a positive integer"
+    value_int = _as_exact_integer(value, name, message)
+    if value_int <= 0:
+        raise ValueError(message)
+    return value_int
 
 
 def _edge_count(observed_counts: dict[str, int], edge: str) -> int:
-    value = _as_finite_real_scalar(
+    message = "observed_counts values must be non-negative integers"
+    value_int = _as_exact_integer(
         _mapping_value(observed_counts, edge, "observed_counts"),
         "observed_counts values",
+        message,
     )
-    if value < 0.0 or not value.is_integer():
-        raise ValueError("observed_counts values must be non-negative integers")
-    return int(value)
+    if value_int < 0:
+        raise ValueError(message)
+    return value_int
 
 
 def _edge_probability(

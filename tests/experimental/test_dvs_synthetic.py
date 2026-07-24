@@ -1,3 +1,5 @@
+from fractions import Fraction
+
 import numpy as np
 import pytest
 from pyrecest.experimental.dvs import (
@@ -8,6 +10,7 @@ from pyrecest.experimental.dvs import (
 )
 
 _EDGES = ("left", "right", "top", "bottom")
+_ROUNDED_HALF_INTEGER = Fraction(2**54 + 1, 2)
 
 
 def test_motion_gated_counts_concentrate_on_vertical_edges():
@@ -53,7 +56,16 @@ def test_uniform_edge_probabilities_sum_to_one():
 def test_count_nll_rejects_invalid_observed_counts():
     probabilities = {edge: 0.25 for edge in _EDGES}
 
-    for bad_count in (-1, 1.5, np.nan, np.inf, True, "2", np.array([2])):
+    for bad_count in (
+        -1,
+        1.5,
+        _ROUNDED_HALF_INTEGER,
+        np.nan,
+        np.inf,
+        True,
+        "2",
+        np.array([2]),
+    ):
         observed_counts = {edge: 1 for edge in _EDGES}
         observed_counts["left"] = bad_count
         with pytest.raises(ValueError, match="observed_counts"):
@@ -118,7 +130,16 @@ def test_edge_probabilities_from_activity_rejects_invalid_weights():
 
 
 def test_simulate_rectangle_event_counts_rejects_invalid_total_events():
-    for bad_total_events in (0, -1, 1.5, np.nan, np.inf, True, "4"):
+    for bad_total_events in (
+        0,
+        -1,
+        1.5,
+        _ROUNDED_HALF_INTEGER,
+        np.nan,
+        np.inf,
+        True,
+        "4",
+    ):
         with pytest.raises(ValueError, match="total_events"):
             simulate_rectangle_event_counts(
                 np.array([1.0, 0.0]),
