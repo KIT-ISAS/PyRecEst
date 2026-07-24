@@ -336,20 +336,22 @@ def _nearest_neighbor_distances_dense(
     query_chunk_size: int,
     return_indices: bool,
 ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
-    ref_t = reference.T
-    ref_norm = np.sum(reference**2, axis=1)
     distances = np.empty((query.shape[0],), dtype=np.float64)
     indices = np.empty((query.shape[0],), dtype=np.int64) if return_indices else None
     for start in range(0, query.shape[0], query_chunk_size):
         chunk = query[start : start + query_chunk_size]
-        chunk_norm = np.sum(chunk**2, axis=1, keepdims=True)
-        squared = np.maximum(
-            chunk_norm + ref_norm[None, :] - 2.0 * (chunk @ ref_t), 0.0
+        pairwise_distances = np.zeros(
+            (chunk.shape[0], reference.shape[0]), dtype=np.float64
         )
-        chunk_indices = np.argmin(squared, axis=1)
-        distances[start : start + chunk.shape[0]] = np.sqrt(
-            squared[np.arange(chunk.shape[0]), chunk_indices]
-        )
+        for coordinate in range(query.shape[1]):
+            pairwise_distances = np.hypot(
+                pairwise_distances,
+                chunk[:, None, coordinate] - reference[None, :, coordinate],
+            )
+        chunk_indices = np.argmin(pairwise_distances, axis=1)
+        distances[start : start + chunk.shape[0]] = pairwise_distances[
+            np.arange(chunk.shape[0]), chunk_indices
+        ]
         if indices is not None:
             indices[start : start + chunk.shape[0]] = chunk_indices
     if indices is None:
