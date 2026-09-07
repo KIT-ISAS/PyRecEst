@@ -41,7 +41,14 @@ class AbstractEllipsoidalBallDistribution(AbstractBoundedNonPeriodicDistribution
 
         if center.ndim != 1:
             raise ShapeError("center", center.shape, expected="(dim,)")
-        AbstractBoundedNonPeriodicDistribution.__init__(self, center.shape[-1])
+        dim = center.shape[-1]
+        if dim == 0:
+            # A zero-dimensional ellipsoidal ball is the singleton R^0.  It is
+            # intentionally supported by this distribution even though the
+            # generic manifold constructor rejects nonpositive dimensions.
+            self._dim = 0
+        else:
+            AbstractBoundedNonPeriodicDistribution.__init__(self, dim)
         if shape_matrix.ndim != 2:
             raise ShapeError(
                 "shape_matrix",
