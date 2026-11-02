@@ -205,7 +205,7 @@ description = "Efficiently computes derivatives of NumPy code."
 optional = true
 python-versions = ">=3.10"
 groups = ["main"]
-markers = "extra == \"all-support\" or extra == \"jax-support\""
+markers = "extra == \"jax-support\" or extra == \"all-support\""
 files = [
     {file = "autograd-1.9.1-py3-none-any.whl", hash = "sha256:b788bae3fa010cbffb4cfb7b8ba2a3f0daa6072a8506da6164c779fe9cf3e05a"},
     {file = "autograd-1.9.1.tar.gz", hash = "sha256:7818c5c69ddf9efb7da74097bd741a4c7920133f41966f68537223a15ef798bc"},
@@ -749,7 +749,7 @@ description = "Python bindings for CUDA"
 optional = true
 python-versions = ">=3.10"
 groups = ["main"]
-markers = "platform_system == \"Linux\" and (extra == \"all-support\" or extra == \"pytorch-support\")"
+markers = "platform_system == \"Linux\" and (extra == \"pytorch-support\" or extra == \"all-support\")"
 files = [
     {file = "cuda_bindings-13.2.0-cp310-cp310-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:08b395f79cb89ce0cd8effff07c4a1e20101b873c256a1aeb286e8fd7bd0f556"},
     {file = "cuda_bindings-13.2.0-cp310-cp310-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:d6f3682ec3c4769326aafc67c2ba669d97d688d0b7e63e659d36d2f8b72f32d6"},
@@ -784,7 +784,7 @@ description = "Pathfinder for CUDA components"
 optional = true
 python-versions = ">=3.10"
 groups = ["main"]
-markers = "platform_system == \"Linux\" and (extra == \"all-support\" or extra == \"pytorch-support\")"
+markers = "platform_system == \"Linux\" and (extra == \"pytorch-support\" or extra == \"all-support\")"
 files = [
     {file = "cuda_pathfinder-1.5.4-py3-none-any.whl", hash = "sha256:9563d3175ce1828531acf4b94e1c1c7d67208c347ca002493e2654878b26f4b7"},
 ]
@@ -796,7 +796,7 @@ description = "CUDA Toolkit meta-package"
 optional = true
 python-versions = "*"
 groups = ["main"]
-markers = "(extra == \"all-support\" or extra == \"pytorch-support\") and platform_system == \"Linux\""
+markers = "(extra == \"pytorch-support\" or extra == \"all-support\") and platform_system == \"Linux\""
 files = [
     {file = "cuda_toolkit-13.2.2-py2.py3-none-any.whl", hash = "sha256:d12edc1aad1356236a2ee10c0d794b1aff5d3e79bfeca54867c3bb8e5afd87b0"},
 ]
@@ -902,7 +902,7 @@ files = [
     {file = "filelock-4.2.4-py3-none-any.whl", hash = "sha256:301241438c57936ef93f4243a94f2559022268bfcf9b375a9a72eb0f8db8358e"},
     {file = "filelock-4.2.4.tar.gz", hash = "sha256:c6d8663535e1650ee430507b4ffbac7b464dd64b7647ea0112a9f406499d163d"},
 ]
-markers = {main = "extra == \"all-support\" or extra == \"pytorch-support\""}
+markers = {main = "extra == \"pytorch-support\" or extra == \"all-support\""}
 
 [[package]]
 name = "fonttools"
@@ -992,7 +992,7 @@ description = "File-system specification"
 optional = true
 python-versions = ">=3.10"
 groups = ["main"]
-markers = "extra == \"all-support\" or extra == \"pytorch-support\""
+markers = "extra == \"pytorch-support\" or extra == \"all-support\""
 files = [
     {file = "fsspec-2026.9.0-py3-none-any.whl", hash = "sha256:8dd6e646e99ea382bd85f97a45e6b526a442d79423a7dc673f1e2756d05fcb5f"},
     {file = "fsspec-2026.9.0.tar.gz", hash = "sha256:0f08147951c8cb31d844c3547d631053b127863b60be04cf06e121333ee0e2fe"},
@@ -1066,7 +1066,7 @@ description = "Healpix tools package for Python"
 optional = true
 python-versions = ">=3.10"
 groups = ["main"]
-markers = "extra == \"all-support\" or extra == \"healpy-support\""
+markers = "extra == \"healpy-support\" or extra == \"all-support\""
 files = [
     {file = "healpy-1.20.1-cp310-cp310-macosx_13_0_x86_64.whl", hash = "sha256:57a15a3b026eb7b1fc700894c35e504904a888b8686f702140e53bc867e53fa6"},
     {file = "healpy-1.20.1-cp310-cp310-macosx_14_0_arm64.whl", hash = "sha256:2be3b9c59e30c89e239eae6025814dfa574eef53b871993b0a58e0b9ca2313ee"},
@@ -1188,7 +1188,7 @@ description = "Differentiate, compile, and transform Numpy code."
 optional = true
 python-versions = ">=3.11"
 groups = ["main"]
-markers = "extra == \"all-support\" or extra == \"jax-support\""
+markers = "extra == \"jax-support\" or extra == \"all-support\""
 files = [
     {file = "jax-0.10.2-py3-none-any.whl", hash = "sha256:724d73c4678d8b06f6a6ab4db1b8a2fea8cd4f1e2c2564f99601634ec7b8d1c6"},
     {file = "jax-0.10.2.tar.gz", hash = "sha256:bf77428a8c2e6904c4f46d5ab12aa5cfc6cad2179f07f7e4c0fc75ac86ef0639"},
@@ -1221,7 +1221,7 @@ description = "XLA library for JAX"
 optional = true
 python-versions = ">=3.11"
 groups = ["main"]
-markers = "extra == \"all-support\" or extra == \"jax-support\""
+markers = "extra == \"jax-support\" or extra == \"all-support\""
 files = [
     {file = "jaxlib-0.10.2-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:5a98873fc867623b81f2bee15d554b8edd6588a183d01fa50d21b1e3db96ff2b"},
     {file = "jaxlib-0.10.2-cp311-cp311-manylinux_2_27_aarch64.whl", hash = "sha256:d44565dcfd1b4f60f76d911c6512118a8a4fc764bdef92663fecb8bfccd54f23"},
@@ -1263,7 +1263,7 @@ files = [
     {file = "jinja2-3.1.6-py3-none-any.whl", hash = "sha256:85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67"},
     {file = "jinja2-3.1.6.tar.gz", hash = "sha256:0137fb05990d35f1275a587e9aee6d56da821fc83491a0fb838183be43f66d6d"},
 ]
-markers = {main = "extra == \"all-support\" or extra == \"pytorch-support\""}
+markers = {main = "extra == \"pytorch-support\" or extra == \"all-support\""}
 
 [package.dependencies]
 MarkupSafe = ">=2.0"
@@ -1610,7 +1610,7 @@ files = [
     {file = "markupsafe-3.0.4-cp39-cp39-win_arm64.whl", hash = "sha256:6669c1bf34080161ce49c589cc512ef24d4c704ac9d2b2d3667f519c60418378"},
     {file = "markupsafe-3.0.4.tar.gz", hash = "sha256:2e9ad7dd851bf45fab9f75cbff4cb493fee9979e8d8c7c9c3ee119022518edd6"},
 ]
-markers = {main = "extra == \"all-support\" or extra == \"pytorch-support\""}
+markers = {main = "extra == \"pytorch-support\" or extra == \"all-support\""}
 
 [[package]]
 name = "matplotlib"
@@ -1813,7 +1813,7 @@ description = "ml_dtypes is a stand-alone implementation of several NumPy dtype 
 optional = true
 python-versions = ">=3.10"
 groups = ["main"]
-markers = "extra == \"all-support\" or extra == \"jax-support\""
+markers = "extra == \"jax-support\" or extra == \"all-support\""
 files = [
     {file = "ml_dtypes-0.6.0-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:bad8d1dd5bed060a29332b99d63d0e5c2969081e1c6ea54adfbccfdfa783be44"},
     {file = "ml_dtypes-0.6.0-cp310-cp310-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:008382aeab529df5d3f00501ad9a7dcd64494d4b5b1971fc4c79019e6c1f5010"},
@@ -1892,7 +1892,7 @@ description = "Python package for creating and manipulating graphs and networks"
 optional = true
 python-versions = ">=3.11"
 groups = ["main"]
-markers = "python_version == \"3.14\" and (extra == \"all-support\" or extra == \"pytorch-support\")"
+markers = "python_version == \"3.14\" and (extra == \"pytorch-support\" or extra == \"all-support\")"
 files = [
     {file = "networkx-3.6-py3-none-any.whl", hash = "sha256:cdb395b105806062473d3be36458d8f1459a4e4b98e236a66c3a48996e07684f"},
     {file = "networkx-3.6.tar.gz", hash = "sha256:285276002ad1f7f7da0f7b42f004bcba70d381e936559166363707fdad3d72ad"},
@@ -1916,7 +1916,7 @@ description = "Python package for creating and manipulating graphs and networks"
 optional = true
 python-versions = "!=3.14.1,>=3.11"
 groups = ["main"]
-markers = "python_version <= \"3.13\" and (extra == \"all-support\" or extra == \"pytorch-support\")"
+markers = "python_version <= \"3.13\" and (extra == \"pytorch-support\" or extra == \"all-support\")"
 files = [
     {file = "networkx-3.6.1-py3-none-any.whl", hash = "sha256:d47fbf302e7d9cbbb9e2555a0d267983d2aa476bac30e90dfbe5669bd57f3762"},
     {file = "networkx-3.6.1.tar.gz", hash = "sha256:26b7c357accc0c8cde558ad486283728b65b6a95d85ee1cd66bafab4c8168509"},
@@ -2046,29 +2046,12 @@ files = [
 
 [[package]]
 name = "nvidia-cublas"
-version = "13.1.1.3"
-description = "CUBLAS native runtime libraries"
-optional = true
-python-versions = ">=3"
-groups = ["main"]
-markers = "(extra == \"all-support\" or extra == \"pytorch-support\") and platform_system == \"Linux\""
-files = [
-    {file = "nvidia_cublas-13.1.1.3-py3-none-manylinux_2_27_aarch64.whl", hash = "sha256:b7a210458267ac818974c53038fbec2e969d5c99f305ab15c72522fa9f001dd5"},
-    {file = "nvidia_cublas-13.1.1.3-py3-none-manylinux_2_27_x86_64.whl", hash = "sha256:37936a16db8fe4ac1f065c2139360608a543a09275cb1a1af612e08cfa065436"},
-    {file = "nvidia_cublas-13.1.1.3-py3-none-win_amd64.whl", hash = "sha256:b6cdce694e47ff6aadf0a69df1cab6628d696f5ff56e8d16af50309d855fa20f"},
-]
-
-[package.dependencies]
-nvidia-cuda-nvrtc = "*"
-
-[[package]]
-name = "nvidia-cublas"
 version = "13.4.1.3"
 description = "CUBLAS native runtime libraries"
 optional = true
 python-versions = ">=3"
 groups = ["main"]
-markers = "sys_platform == \"win32\" and platform_machine == \"AMD64\" and (extra == \"all-support\" or extra == \"pytorch-support\") and platform_system == \"Linux\" or sys_platform == \"linux\" and (platform_machine == \"aarch64\" or platform_machine == \"x86_64\") and (extra == \"all-support\" or extra == \"pytorch-support\") and platform_system == \"Linux\""
+markers = "(extra == \"pytorch-support\" or extra == \"all-support\") and platform_system == \"Linux\""
 files = [
     {file = "nvidia_cublas-13.4.1.3-py3-none-manylinux_2_27_aarch64.whl", hash = "sha256:4eb1472bf92b741e7cf24da7978dde251b58ddec2092d9f6a04f3623eb4e9a15"},
     {file = "nvidia_cublas-13.4.1.3-py3-none-manylinux_2_27_x86_64.whl", hash = "sha256:a5917cb642cfb07f4a0231ee16aec7e2e0357d8cb8b1b78a0c9c68dba3e6afc7"},
@@ -2085,7 +2068,7 @@ description = "CUDA CCCL"
 optional = true
 python-versions = ">=3"
 groups = ["main"]
-markers = "(extra == \"all-support\" or extra == \"pytorch-support\") and platform_system == \"Linux\""
+markers = "(extra == \"pytorch-support\" or extra == \"all-support\") and platform_system == \"Linux\""
 files = [
     {file = "nvidia_cuda_cccl-13.3.4.3.1-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:cd47e7823e3ab369a3e3df3a4c6dbb4cb02176cb85b251eec5f7c9cdfa528ec4"},
     {file = "nvidia_cuda_cccl-13.3.4.3.1-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:48ba8e44a1162face51306d5bfd67604d9949be5acb9105dbb93734d2df8b3a4"},
@@ -2100,25 +2083,11 @@ description = "CUDA profiling tools runtime libs."
 optional = true
 python-versions = ">=3"
 groups = ["main"]
-markers = "sys_platform == \"win32\" and (extra == \"all-support\" or extra == \"pytorch-support\") and platform_system == \"Linux\" and platform_machine == \"AMD64\" or sys_platform == \"linux\" and (platform_machine == \"aarch64\" or platform_machine == \"x86_64\") and (extra == \"all-support\" or extra == \"pytorch-support\") and platform_system == \"Linux\""
+markers = "sys_platform == \"win32\" and (extra == \"pytorch-support\" or extra == \"all-support\") and platform_system == \"Linux\" and platform_machine == \"AMD64\" or sys_platform == \"linux\" and (platform_machine == \"aarch64\" or platform_machine == \"x86_64\") and (extra == \"pytorch-support\" or extra == \"all-support\") and platform_system == \"Linux\""
 files = [
     {file = "nvidia_cuda_cupti-13.2.86-py3-none-manylinux_2_25_aarch64.whl", hash = "sha256:d9a5c133f73fcb9013f3ada0da6fb54d4117618d81f3f5a0419417ea6ee829d4"},
     {file = "nvidia_cuda_cupti-13.2.86-py3-none-manylinux_2_25_x86_64.whl", hash = "sha256:8fa29f15dd8336181f961764d9d95236fc6b931dd0c8fcf8cd70aab0c310b586"},
     {file = "nvidia_cuda_cupti-13.2.86-py3-none-win_amd64.whl", hash = "sha256:10837e2910753a7726c0243aa113e2bd65c0edee6f6f3e097db1757a8eac2c9e"},
-]
-
-[[package]]
-name = "nvidia-cuda-nvrtc"
-version = "13.0.88"
-description = "NVRTC native runtime libraries"
-optional = true
-python-versions = ">=3"
-groups = ["main"]
-markers = "(extra == \"all-support\" or extra == \"pytorch-support\") and platform_system == \"Linux\""
-files = [
-    {file = "nvidia_cuda_nvrtc-13.0.88-py3-none-manylinux2010_x86_64.manylinux_2_12_x86_64.whl", hash = "sha256:ad9b6d2ead2435f11cbb6868809d2adeeee302e9bb94bcf0539c7a40d80e8575"},
-    {file = "nvidia_cuda_nvrtc-13.0.88-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:d27f20a0ca67a4bb34268a5e951033496c5b74870b868bacd046b1b8e0c3267b"},
-    {file = "nvidia_cuda_nvrtc-13.0.88-py3-none-win_amd64.whl", hash = "sha256:6bcd4e7f8e205cbe644f5a98f2f799bef9556fefc89dd786e79a16312ce49872"},
 ]
 
 [[package]]
@@ -2128,7 +2097,7 @@ description = "NVRTC native runtime libraries"
 optional = true
 python-versions = ">=3"
 groups = ["main"]
-markers = "sys_platform == \"win32\" and platform_machine == \"AMD64\" and (extra == \"all-support\" or extra == \"pytorch-support\") and platform_system == \"Linux\" or sys_platform == \"linux\" and (platform_machine == \"aarch64\" or platform_machine == \"x86_64\") and (extra == \"all-support\" or extra == \"pytorch-support\") and platform_system == \"Linux\""
+markers = "(extra == \"pytorch-support\" or extra == \"all-support\") and platform_system == \"Linux\""
 files = [
     {file = "nvidia_cuda_nvrtc-13.2.86-py3-none-manylinux2010_x86_64.manylinux_2_12_x86_64.whl", hash = "sha256:8111c5130e967b78222ea2124145f8efe9ce201b752b2579a2513100a53be1c5"},
     {file = "nvidia_cuda_nvrtc-13.2.86-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:1e5d7b411a2eb83f5c71c98d58133a763fc9fa86a4241ee320c5c4782d9ad1fd"},
@@ -2142,7 +2111,7 @@ description = "CUDA Runtime native Libraries"
 optional = true
 python-versions = ">=3"
 groups = ["main"]
-markers = "sys_platform == \"win32\" and (extra == \"all-support\" or extra == \"pytorch-support\") and platform_system == \"Linux\" and platform_machine == \"AMD64\" or sys_platform == \"linux\" and (platform_machine == \"aarch64\" or platform_machine == \"x86_64\") and (extra == \"all-support\" or extra == \"pytorch-support\") and platform_system == \"Linux\""
+markers = "sys_platform == \"win32\" and (extra == \"pytorch-support\" or extra == \"all-support\") and platform_system == \"Linux\" and platform_machine == \"AMD64\" or sys_platform == \"linux\" and (platform_machine == \"aarch64\" or platform_machine == \"x86_64\") and (extra == \"pytorch-support\" or extra == \"all-support\") and platform_system == \"Linux\""
 files = [
     {file = "nvidia_cuda_runtime-13.2.86-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:37844957894bfdecf90243568d21a2cb251b66106915b71459a23c8e6ef2da69"},
     {file = "nvidia_cuda_runtime-13.2.86-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:3498247680dfddce31bad102af7e3e26fc795342a3cac64722bb0fa95e7f60f0"},
@@ -2156,7 +2125,7 @@ description = "cuDNN runtime libraries"
 optional = true
 python-versions = ">=3"
 groups = ["main"]
-markers = "(extra == \"all-support\" or extra == \"pytorch-support\") and platform_system == \"Linux\""
+markers = "(extra == \"pytorch-support\" or extra == \"all-support\") and platform_system == \"Linux\""
 files = [
     {file = "nvidia_cudnn_cu13-9.26.0.51-py3-none-manylinux_2_27_aarch64.whl", hash = "sha256:8e5b4f5eccff721416f70ecf4353172fc4d5cdd8ca869fe6f983a4a5b0147b20"},
     {file = "nvidia_cudnn_cu13-9.26.0.51-py3-none-manylinux_2_27_x86_64.whl", hash = "sha256:9c976d539786698c71d6bcdbe2053b7485fae062ff7e1215d2f2ff67b1a2149a"},
@@ -2173,7 +2142,7 @@ description = "CUFFT native runtime libraries"
 optional = true
 python-versions = ">=3"
 groups = ["main"]
-markers = "sys_platform == \"win32\" and (extra == \"all-support\" or extra == \"pytorch-support\") and platform_system == \"Linux\" and platform_machine == \"AMD64\" or sys_platform == \"linux\" and (platform_machine == \"aarch64\" or platform_machine == \"x86_64\") and (extra == \"all-support\" or extra == \"pytorch-support\") and platform_system == \"Linux\""
+markers = "sys_platform == \"win32\" and (extra == \"pytorch-support\" or extra == \"all-support\") and platform_system == \"Linux\" and platform_machine == \"AMD64\" or sys_platform == \"linux\" and (platform_machine == \"aarch64\" or platform_machine == \"x86_64\") and (extra == \"pytorch-support\" or extra == \"all-support\") and platform_system == \"Linux\""
 files = [
     {file = "nvidia_cufft-12.2.0.57-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:1ed438568ae1088ba2c25789d10205d4104b8b140b7bd942e39a787947a0fb74"},
     {file = "nvidia_cufft-12.2.0.57-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:34da27fadf3979b0b042c43823f0530be8408b86df31ee0108e1ca0b621d4ef6"},
@@ -2190,7 +2159,7 @@ description = "cuFile GPUDirect libraries"
 optional = true
 python-versions = ">=3"
 groups = ["main"]
-markers = "sys_platform == \"linux\" and (platform_machine == \"aarch64\" or platform_machine == \"x86_64\") and (extra == \"all-support\" or extra == \"pytorch-support\") and platform_system == \"Linux\""
+markers = "sys_platform == \"linux\" and (platform_machine == \"aarch64\" or platform_machine == \"x86_64\") and (extra == \"pytorch-support\" or extra == \"all-support\") and platform_system == \"Linux\""
 files = [
     {file = "nvidia_cufile-1.17.1.22-py3-none-manylinux_2_27_aarch64.whl", hash = "sha256:bec33d7f1f12691dce330275246587569c2ed90b1ce43b0f94b3e1ce9268744b"},
     {file = "nvidia_cufile-1.17.1.22-py3-none-manylinux_2_27_x86_64.whl", hash = "sha256:87feaf8c3ad20d3d03a01933181801ff6892bace5c8f0b1e4b48f319d3e62d36"},
@@ -2203,7 +2172,7 @@ description = "CUDA solver native runtime libraries"
 optional = true
 python-versions = ">=3"
 groups = ["main"]
-markers = "sys_platform == \"win32\" and platform_machine == \"AMD64\" and (extra == \"all-support\" or extra == \"pytorch-support\") and platform_system == \"Linux\" or sys_platform == \"linux\" and (platform_machine == \"aarch64\" or platform_machine == \"x86_64\") and (extra == \"all-support\" or extra == \"pytorch-support\") and platform_system == \"Linux\""
+markers = "sys_platform == \"win32\" and platform_machine == \"AMD64\" and (extra == \"pytorch-support\" or extra == \"all-support\") and platform_system == \"Linux\" or sys_platform == \"linux\" and (platform_machine == \"aarch64\" or platform_machine == \"x86_64\") and (extra == \"pytorch-support\" or extra == \"all-support\") and platform_system == \"Linux\""
 files = [
     {file = "nvidia_cusolver-12.2.0.11-py3-none-manylinux_2_27_aarch64.whl", hash = "sha256:8be097fca28de6be0990ab216ee9b804dd51077e1d1d83acf6c9850650bdc64d"},
     {file = "nvidia_cusolver-12.2.0.11-py3-none-manylinux_2_27_x86_64.whl", hash = "sha256:fab5778f6769947389a1a6abc07e635576825a08c0ffc68c3ae7f1392c794b42"},
@@ -2222,7 +2191,7 @@ description = "CUSPARSE native runtime libraries"
 optional = true
 python-versions = ">=3"
 groups = ["main"]
-markers = "sys_platform == \"win32\" and (extra == \"all-support\" or extra == \"pytorch-support\") and platform_system == \"Linux\" and platform_machine == \"AMD64\" or sys_platform == \"linux\" and (platform_machine == \"aarch64\" or platform_machine == \"x86_64\") and (extra == \"all-support\" or extra == \"pytorch-support\") and platform_system == \"Linux\""
+markers = "sys_platform == \"win32\" and (extra == \"pytorch-support\" or extra == \"all-support\") and platform_system == \"Linux\" and platform_machine == \"AMD64\" or sys_platform == \"linux\" and (platform_machine == \"aarch64\" or platform_machine == \"x86_64\") and (extra == \"pytorch-support\" or extra == \"all-support\") and platform_system == \"Linux\""
 files = [
     {file = "nvidia_cusparse-12.7.10.12-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:597eff2cd83e3ab1d1e3a0dce9c9c879d77cf64ec2659bfdb5af6a5d02e7aaa9"},
     {file = "nvidia_cusparse-12.7.10.12-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:25907c75e4db1581685f06f61cc6cdecc04611765516a52373e0a18ebd69fa00"},
@@ -2239,7 +2208,7 @@ description = "NVIDIA cuSPARSELt"
 optional = true
 python-versions = "*"
 groups = ["main"]
-markers = "(extra == \"all-support\" or extra == \"pytorch-support\") and platform_system == \"Linux\""
+markers = "(extra == \"pytorch-support\" or extra == \"all-support\") and platform_system == \"Linux\""
 files = [
     {file = "nvidia_cusparselt_cu13-0.8.1-py3-none-manylinux2014_aarch64.whl", hash = "sha256:4dca476c50bf4780d46cd0bfbd82e2bc10a08e4fef7950917ce8d7578d22a23f"},
     {file = "nvidia_cusparselt_cu13-0.8.1-py3-none-manylinux2014_x86_64.whl", hash = "sha256:786ce87568c303fadb5afcc7102d454cd3040d75f6f8626f5db460d1871f4dd0"},
@@ -2253,7 +2222,7 @@ description = "NVIDIA Collective Communication Library (NCCL) Runtime"
 optional = true
 python-versions = ">=3"
 groups = ["main"]
-markers = "(extra == \"all-support\" or extra == \"pytorch-support\") and platform_system == \"Linux\""
+markers = "(extra == \"pytorch-support\" or extra == \"all-support\") and platform_system == \"Linux\""
 files = [
     {file = "nvidia_nccl_cu13-2.30.7-py3-none-manylinux_2_18_aarch64.whl", hash = "sha256:ca786ffa5a647c75d4d1f5cc72a6c4f537947e2ba8823d7c8aaf768e7a7b9f77"},
     {file = "nvidia_nccl_cu13-2.30.7-py3-none-manylinux_2_18_x86_64.whl", hash = "sha256:cefa7fdb9710efd0f39c5f1be1d61ff6fc9a996c451265bd7fbdcf9455ed4b50"},
@@ -2266,7 +2235,7 @@ description = "Nvidia JIT LTO Library"
 optional = true
 python-versions = ">=3"
 groups = ["main"]
-markers = "sys_platform == \"win32\" and (extra == \"all-support\" or extra == \"pytorch-support\") and platform_system == \"Linux\" and platform_machine == \"AMD64\" or sys_platform == \"linux\" and (platform_machine == \"aarch64\" or platform_machine == \"x86_64\") and (extra == \"all-support\" or extra == \"pytorch-support\") and platform_system == \"Linux\""
+markers = "sys_platform == \"win32\" and (extra == \"pytorch-support\" or extra == \"all-support\") and platform_system == \"Linux\" and platform_machine == \"AMD64\" or sys_platform == \"linux\" and (platform_machine == \"aarch64\" or platform_machine == \"x86_64\") and (extra == \"pytorch-support\" or extra == \"all-support\") and platform_system == \"Linux\""
 files = [
     {file = "nvidia_nvjitlink-13.4.92-py3-none-manylinux2010_x86_64.manylinux_2_12_x86_64.whl", hash = "sha256:e0391f24ed94ec879b84e3da4d4ec320c879aff681f2c7a638462f7199284323"},
     {file = "nvidia_nvjitlink-13.4.92-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:25f74fad0d654271c921ac4dca614bd6258bc21791242fc7b2289dad7ae9c099"},
@@ -2281,7 +2250,7 @@ description = "NVSHMEM creates a global address space that provides efficient an
 optional = true
 python-versions = ">=3"
 groups = ["main"]
-markers = "(extra == \"all-support\" or extra == \"pytorch-support\") and platform_system == \"Linux\""
+markers = "(extra == \"pytorch-support\" or extra == \"all-support\") and platform_system == \"Linux\""
 files = [
     {file = "nvidia_nvshmem_cu13-3.7.2-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:0e748308b9e0a8a8d81859353f3e6c98fbe85a85f652a915a2ba60149a0bd124"},
     {file = "nvidia_nvshmem_cu13-3.7.2-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:b9a4f843c62b5dded8ad33fd6d220e007dcd39f06cee549292f5ba14ce4c235c"},
@@ -2297,7 +2266,7 @@ description = "NVIDIA Tools Extension"
 optional = true
 python-versions = ">=3"
 groups = ["main"]
-markers = "sys_platform == \"win32\" and (extra == \"all-support\" or extra == \"pytorch-support\") and platform_system == \"Linux\" and platform_machine == \"AMD64\" or sys_platform == \"linux\" and (platform_machine == \"aarch64\" or platform_machine == \"x86_64\") and (extra == \"all-support\" or extra == \"pytorch-support\") and platform_system == \"Linux\""
+markers = "sys_platform == \"win32\" and (extra == \"pytorch-support\" or extra == \"all-support\") and platform_system == \"Linux\" and platform_machine == \"AMD64\" or sys_platform == \"linux\" and (platform_machine == \"aarch64\" or platform_machine == \"x86_64\") and (extra == \"pytorch-support\" or extra == \"all-support\") and platform_system == \"Linux\""
 files = [
     {file = "nvidia_nvtx-13.2.86-py3-none-manylinux1_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:968ce72baee2a01791c7d3254000eac81f24677b0b91c62d21b449a1f309c245"},
     {file = "nvidia_nvtx-13.2.86-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:1c6ae1be92fba569dd271f7b9b3056f99f5642726dc6c53d1b93ae4110c398fb"},
@@ -2311,7 +2280,7 @@ description = "Path optimization of einsum functions."
 optional = true
 python-versions = ">=3.8"
 groups = ["main"]
-markers = "extra == \"all-support\" or extra == \"jax-support\""
+markers = "extra == \"jax-support\" or extra == \"all-support\""
 files = [
     {file = "opt_einsum-3.4.0-py3-none-any.whl", hash = "sha256:69bb92469f86a1565195ece4ac0323943e83477171b91d24c35afe028a90d7cd"},
     {file = "opt_einsum-3.4.0.tar.gz", hash = "sha256:96ca72f1b886d148241348783498194c577fa30a8faac108586b14f1ba4473ac"},
@@ -3128,7 +3097,7 @@ description = "Most extensible Python build backend with support for C/C++ exten
 optional = true
 python-versions = ">=3.10"
 groups = ["main"]
-markers = "extra == \"all-support\" or extra == \"pytorch-support\""
+markers = "extra == \"pytorch-support\" or extra == \"all-support\""
 files = [
     {file = "setuptools-84.2.1-py3-none-any.whl", hash = "sha256:ca140b45d5325a9478f880e351484f62fef15f336462e449ca0c03c873d589c2"},
     {file = "setuptools-84.2.1.tar.gz", hash = "sha256:3ff8b3b5492a0aa66960f4419365a86b84e013070d4313e4d4a6894f5d64d6bc"},
@@ -3239,7 +3208,7 @@ description = "Computer algebra system (CAS) in Python"
 optional = true
 python-versions = ">=3.9"
 groups = ["main"]
-markers = "extra == \"all-support\" or extra == \"pytorch-support\""
+markers = "extra == \"pytorch-support\" or extra == \"all-support\""
 files = [
     {file = "sympy-1.14.0-py3-none-any.whl", hash = "sha256:e091cc3e99d2141a0ba2847328f5479b05d94a6635cb96148ccb3f34671bd8f5"},
     {file = "sympy-1.14.0.tar.gz", hash = "sha256:d3d3fe8df1e5a0b42f0e7bdf50541697dbe7d23746e894990c030e2b05e72517"},
@@ -3273,7 +3242,7 @@ description = "Tensors and Dynamic neural networks in Python with strong GPU acc
 optional = true
 python-versions = ">=3.11"
 groups = ["main"]
-markers = "extra == \"all-support\" or extra == \"pytorch-support\""
+markers = "extra == \"pytorch-support\" or extra == \"all-support\""
 files = [
     {file = "torch-2.15.0-cp311-cp311-macosx_14_0_arm64.whl", hash = "sha256:e808b63d616a43b326e1a5677d45a2e5babe7a8ce27edb03ddb48e7dd9b6d663"},
     {file = "torch-2.15.0-cp311-cp311-manylinux_2_28_aarch64.whl", hash = "sha256:58ce2ebfb3430941353109a85be63ee8e941da22f13daa2c43344eeb51c81e06"},
@@ -3354,7 +3323,7 @@ description = "A language and compiler for custom Deep Learning operations"
 optional = true
 python-versions = "<3.16,>=3.11"
 groups = ["main"]
-markers = "platform_system == \"Linux\" and (extra == \"all-support\" or extra == \"pytorch-support\")"
+markers = "platform_system == \"Linux\" and (extra == \"pytorch-support\" or extra == \"all-support\")"
 files = [
     {file = "triton-3.9.0-cp311-cp311-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:feaaec13578ca84301d561d034cb08b3ae293d7f0b7ab6b8ddbb2d6796363716"},
     {file = "triton-3.9.0-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:1622118a038b0c6e16fa4a0305da62c8b3c15904ee1cc4d4e65846a25969e41e"},
@@ -3373,7 +3342,7 @@ description = "Backported and Experimental Type Hints for Python 3.9+"
 optional = true
 python-versions = ">=3.9"
 groups = ["main"]
-markers = "extra == \"all-support\" or extra == \"pytorch-support\""
+markers = "extra == \"pytorch-support\" or extra == \"all-support\""
 files = [
     {file = "typing_extensions-4.16.0-py3-none-any.whl", hash = "sha256:481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8"},
     {file = "typing_extensions-4.16.0.tar.gz", hash = "sha256:dc983d19a509c94dba722ee6abd33940f7c05a89e243c47e907eb4db6f1a43e5"},
