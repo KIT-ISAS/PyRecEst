@@ -1,9 +1,5 @@
-from pyrecest._backend._dtype_utils import (  # noqa: F401
-    _np_box_binary_scalar as _box_binary_scalar,
-)
-from pyrecest._backend._dtype_utils import (  # noqa: F401
-    _np_box_unary_scalar as _box_unary_scalar,
-)
+from pyrecest._backend._dtype_utils import _np_box_binary_scalar as _box_binary_scalar  # noqa: F401
+from pyrecest._backend._dtype_utils import _np_box_unary_scalar as _box_unary_scalar  # noqa: F401
 from pyrecest._backend._dtype_utils import (
     _pre_add_default_dtype_by_casting,
     _pre_allow_complex_dtype,

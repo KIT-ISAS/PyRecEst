@@ -13,31 +13,11 @@ from pyrecest.backend import (
     all,
 )
 from pyrecest.backend import any as backend_any
-from pyrecest.backend import (
-    apply_along_axis,
-    arange,
-    argmax,
-    asarray,
-)
+from pyrecest.backend import apply_along_axis, arange, argmax, asarray
 from pyrecest.backend import copy as backend_copy
-from pyrecest.backend import (
-    exp,
-    int32,
-    int64,
-    isclose,
-    isfinite,
-    log,
-)
+from pyrecest.backend import exp, int32, int64, isclose, isfinite, log
 from pyrecest.backend import max as backend_max
-from pyrecest.backend import (
-    ones,
-    random,
-    reshape,
-    stack,
-    sum,
-    to_numpy,
-    where,
-)
+from pyrecest.backend import ones, random, reshape, stack, sum, to_numpy, where
 
 from .abstract_distribution_type import AbstractDistributionType
 

@@ -6,22 +6,10 @@ from math import log
 from operator import index as operator_index
 
 from pyrecest.backend import all as backend_all
-from pyrecest.backend import (
-    argmax,
-    array,
-    asarray,
-    exp,
-    full,
-    linalg,
-)
+from pyrecest.backend import argmax, array, asarray, exp, full, linalg
 from pyrecest.backend import log as backend_log
 from pyrecest.backend import max as backend_max
-from pyrecest.backend import (
-    ndim,
-    pi,
-    sqrt,
-    stack,
-)
+from pyrecest.backend import ndim, pi, sqrt, stack
 from pyrecest.backend import sum as backend_sum
 from pyrecest.distributions import GaussianDistribution
 from pyrecest.utils import murty_k_best_assignments
