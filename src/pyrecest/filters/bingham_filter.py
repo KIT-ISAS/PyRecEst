@@ -3,19 +3,9 @@ import copy
 
 import pyrecest.backend
 from pyrecest.backend import all as backend_all
-from pyrecest.backend import (
-    allclose,
-    array,
-    asarray,
-)
+from pyrecest.backend import allclose, array, asarray
 from pyrecest.backend import copy as backend_copy
-from pyrecest.backend import (
-    diag,
-    eye,
-    isclose,
-    isfinite,
-    linalg,
-)
+from pyrecest.backend import diag, eye, isclose, isfinite, linalg
 from pyrecest.distributions.hypersphere_subset.bingham_distribution import (
     BinghamDistribution,
 )

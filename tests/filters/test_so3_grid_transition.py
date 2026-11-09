@@ -2,22 +2,11 @@ import unittest
 
 import pyrecest.backend
 from pyrecest.backend import abs as backend_abs
-from pyrecest.backend import (
-    allclose,
-    arange,
-    argmax,
-    array,
-    array_equal,
-    diagonal,
-)
+from pyrecest.backend import allclose, arange, argmax, array, array_equal, diagonal
 from pyrecest.backend import max as backend_max
-from pyrecest.backend import (
-    mean,
-)
+from pyrecest.backend import mean
 from pyrecest.backend import sum as backend_sum
-from pyrecest.backend import (
-    transpose,
-)
+from pyrecest.backend import transpose
 from pyrecest.distributions import SdHalfCondSdHalfGridDistribution
 from pyrecest.distributions._so3_helpers import exp_map_identity, quaternion_multiply
 from pyrecest.filters import (

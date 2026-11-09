@@ -8,18 +8,9 @@ from operator import index as operator_index
 
 from pyrecest.backend import all as backend_all
 from pyrecest.backend import any as backend_any
-from pyrecest.backend import (
-    asarray,
-    concatenate,
-    isfinite,
-)
+from pyrecest.backend import asarray, concatenate, isfinite
 from pyrecest.backend import max as backend_max
-from pyrecest.backend import (
-    ndim,
-    sqrt,
-    stack,
-    sum,
-)
+from pyrecest.backend import ndim, sqrt, stack, sum
 from pyrecest.distributions import (
     AbstractHypercylindricalDistribution,
     AbstractHyperhemisphericalDistribution,
