@@ -12,15 +12,7 @@ from pyrecest.backend import (
     log,
 )
 from pyrecest.backend import max as backend_max
-from pyrecest.backend import (
-    mean,
-    mod,
-    pi,
-    random,
-    sqrt,
-    sum,
-    zeros,
-)
+from pyrecest.backend import mean, mod, pi, random, sqrt, sum, zeros
 
 from .abstract_circular_distribution import AbstractCircularDistribution
 

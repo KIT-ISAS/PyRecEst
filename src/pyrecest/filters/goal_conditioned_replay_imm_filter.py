@@ -41,17 +41,9 @@ from pyrecest.backend import (
     log,
 )
 from pyrecest.backend import max as backend_max
-from pyrecest.backend import (
-    maximum,
-    ndim,
-    outer,
-    pi,
-    reshape,
-)
+from pyrecest.backend import maximum, ndim, outer, pi, reshape
 from pyrecest.backend import sum as backend_sum
-from pyrecest.backend import (
-    zeros,
-)
+from pyrecest.backend import zeros
 from pyrecest.distributions import GaussianDistribution, LinearDiracDistribution
 
 from .abstract_filter import AbstractFilter
