@@ -18,9 +18,7 @@ from typing import Any
 
 import numpy as np
 from pyrecest.backend import abs as backend_abs
-from pyrecest.backend import (
-    all,
-)
+from pyrecest.backend import all
 from pyrecest.backend import angle as backend_angle
 from pyrecest.backend import (
     array,
@@ -37,10 +35,7 @@ from pyrecest.backend import (
     stack,
 )
 from pyrecest.backend import sum as backend_sum
-from pyrecest.backend import (
-    zeros,
-    zeros_like,
-)
+from pyrecest.backend import zeros, zeros_like
 from pyrecest.exceptions import NumericalStabilityError, ShapeError
 from pyrecest.numerics import assert_covariance_matrix
 
