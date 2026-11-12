@@ -10,9 +10,7 @@ from pyrecest.backend import (
     random,
 )
 from pyrecest.backend import sum as backend_sum
-from pyrecest.backend import (
-    to_numpy,
-)
+from pyrecest.backend import to_numpy
 from pyrecest.distributions import GaussianDistribution, LinearDiracDistribution
 from pyrecest.distributions.conversion import (
     ConversionError,

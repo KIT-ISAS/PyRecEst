@@ -24,9 +24,7 @@ from .._shared_numpy.linalg import (
     _normalize_fractional_matrix_power_exponent,
 )
 from .._shared_numpy.linalg import fractional_matrix_power as _fractional_matrix_power
-from .._shared_numpy.linalg import (
-    is_single_matrix_pd,
-)
+from .._shared_numpy.linalg import is_single_matrix_pd
 from .._shared_numpy.linalg import logm as _logm
 from .._shared_numpy.linalg import (
     polar,

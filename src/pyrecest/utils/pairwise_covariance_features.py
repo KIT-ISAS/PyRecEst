@@ -21,29 +21,11 @@ from pyrecest.backend import (
     abs,
 )
 from pyrecest.backend import all as backend_all
-from pyrecest.backend import (
-    asarray,
-    einsum,
-    exp,
-    eye,
-    float64,
-    isfinite,
-    linalg,
-    log,
-)
+from pyrecest.backend import asarray, einsum, exp, eye, float64, isfinite, linalg, log
 from pyrecest.backend import max as backend_max
-from pyrecest.backend import (
-    maximum,
-    moveaxis,
-    reshape,
-    sqrt,
-)
+from pyrecest.backend import maximum, moveaxis, reshape, sqrt
 from pyrecest.backend import sum as backend_sum
-from pyrecest.backend import (
-    transpose,
-    where,
-    zeros,
-)
+from pyrecest.backend import transpose, where, zeros
 
 
 def pairwise_mahalanobis_distances(
