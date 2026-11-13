@@ -7,13 +7,7 @@ from pyrecest.backend import (
     asarray,
 )
 from pyrecest.backend import copy as backend_copy
-from pyrecest.backend import (
-    exp,
-    isfinite,
-    mod,
-    pi,
-    to_numpy,
-)
+from pyrecest.backend import exp, isfinite, mod, pi, to_numpy
 
 from .abstract_circular_distribution import AbstractCircularDistribution
 

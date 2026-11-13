@@ -11,15 +11,9 @@ from pyrecest.backend import (
     __backend_name__,
 )
 from pyrecest.backend import all as backend_all  # pylint: disable=no-name-in-module
-from pyrecest.backend import (
-    asarray,
-)
+from pyrecest.backend import asarray
 from pyrecest.backend import copy as backend_copy
-from pyrecest.backend import (
-    full,
-    isfinite,
-    where,
-)
+from pyrecest.backend import full, isfinite, where
 
 from .multisession_assignment import (
     MultiSessionAssignmentResult,
