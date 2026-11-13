@@ -22,10 +22,7 @@ from pyrecest.backend import (
     reshape,
 )
 from pyrecest.backend import sum as backend_sum
-from pyrecest.backend import (
-    unique,
-    zeros,
-)
+from pyrecest.backend import unique, zeros
 from pyrecest.distributions.cart_prod.abstract_hypercylindrical_distribution import (
     AbstractHypercylindricalDistribution,
 )

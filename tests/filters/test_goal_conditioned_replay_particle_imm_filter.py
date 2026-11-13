@@ -13,9 +13,7 @@ from pyrecest.backend import (
     random,
 )
 from pyrecest.backend import sum as backend_sum
-from pyrecest.backend import (
-    zeros,
-)
+from pyrecest.backend import zeros
 from pyrecest.distributions import GaussianDistribution
 from pyrecest.filters import GoalConditionedReplayParticleIMMFilter
 
