@@ -8,15 +8,7 @@ import pyrecest.backend
 
 # pylint: disable=no-name-in-module,no-member
 from pyrecest.backend import all as backend_all
-from pyrecest.backend import (
-    asarray,
-    cov,
-    isfinite,
-    ones,
-    reshape,
-    to_numpy,
-    zeros,
-)
+from pyrecest.backend import asarray, cov, isfinite, ones, reshape, to_numpy, zeros
 
 from ..abstract_dirac_distribution import AbstractDiracDistribution
 from .abstract_linear_distribution import AbstractLinearDistribution
