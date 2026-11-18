@@ -41,10 +41,7 @@ from pyrecest.backend import (
     isfinite,
 )
 from pyrecest.backend import min as backend_min  # pylint: disable=no-name-in-module
-from pyrecest.backend import (
-    ones,
-    where,
-)
+from pyrecest.backend import ones, where
 from scipy.optimize import linprog
 from scipy.sparse import coo_matrix
 from scipy.sparse.csgraph import min_weight_full_bipartite_matching
