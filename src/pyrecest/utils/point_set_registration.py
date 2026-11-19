@@ -31,13 +31,7 @@ from pyrecest.backend import (
     linalg,
 )
 from pyrecest.backend import max as backend_max
-from pyrecest.backend import (
-    ones,
-    quantile,
-    sqrt,
-    sum,
-    zeros,
-)
+from pyrecest.backend import ones, quantile, sqrt, sum, zeros
 
 from ._point_set_registration_common import (
     RegistrationLoopCallbacks,

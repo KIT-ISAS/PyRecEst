@@ -13,16 +13,9 @@ from pyrecest.backend import (
     __backend_name__,
 )
 from pyrecest.backend import all as backend_all  # pylint: disable=no-name-in-module
-from pyrecest.backend import (
-    asarray,
-    cast,
-)
+from pyrecest.backend import asarray, cast
 from pyrecest.backend import copy as backend_copy
-from pyrecest.backend import (
-    float64,
-    full,
-    isfinite,
-)
+from pyrecest.backend import float64, full, isfinite
 from pyrecest.backend import max as backend_max
 from pyrecest.backend import sum as backend_sum
 
