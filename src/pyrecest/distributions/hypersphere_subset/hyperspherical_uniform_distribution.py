@@ -13,12 +13,7 @@ from pyrecest.backend import (
     pi,
 )
 from pyrecest.backend import random as backend_random
-from pyrecest.backend import (
-    sin,
-    sqrt,
-    stack,
-    where,
-)
+from pyrecest.backend import sin, sqrt, stack, where
 
 from .abstract_hypersphere_subset_uniform_distribution import (
     AbstractHypersphereSubsetUniformDistribution,
