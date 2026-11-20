@@ -15,9 +15,7 @@ from pyrecest.backend import (
     stack,
 )
 from pyrecest.backend import sum as backend_sum
-from pyrecest.backend import (
-    transpose,
-)
+from pyrecest.backend import transpose
 
 from ..distributions.cart_prod.state_space_subdivision_gaussian_distribution import (
     StateSpaceSubdivisionGaussianDistribution,

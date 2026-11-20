@@ -11,22 +11,9 @@ import numpy as np
 # pylint: disable=no-name-in-module,no-member
 from pyrecest.backend import abs as backend_abs
 from pyrecest.backend import all as backend_all
-from pyrecest.backend import (
-    array_equal,
-    asarray,
-    cast,
-    empty,
-    int64,
-    isfinite,
-)
+from pyrecest.backend import array_equal, asarray, cast, empty, int64, isfinite
 from pyrecest.backend import max as backend_max
-from pyrecest.backend import (
-    mean,
-    sqrt,
-    to_numpy,
-    where,
-    zeros,
-)
+from pyrecest.backend import mean, sqrt, to_numpy, where, zeros
 from scipy.optimize import linear_sum_assignment
 from scipy.spatial.distance import cdist
 
