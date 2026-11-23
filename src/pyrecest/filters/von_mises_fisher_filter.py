@@ -3,14 +3,7 @@ import copy
 from math import isfinite as python_isfinite
 
 from pyrecest.backend import all as backend_all
-from pyrecest.backend import (
-    allclose,
-    array,
-    asarray,
-    isfinite,
-    linalg,
-    ndim,
-)
+from pyrecest.backend import allclose, array, asarray, isfinite, linalg, ndim
 from pyrecest.distributions import VonMisesFisherDistribution
 
 from .abstract_filter import AbstractFilter

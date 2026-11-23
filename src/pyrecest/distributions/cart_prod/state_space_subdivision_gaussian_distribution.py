@@ -6,17 +6,9 @@ from pyrecest.backend import (
     allclose,
 )
 from pyrecest.backend import any as backend_any
-from pyrecest.backend import (
-    argmax,
-    array,
-    asarray,
-    concatenate,
-    stack,
-)
+from pyrecest.backend import argmax, array, asarray, concatenate, stack
 from pyrecest.backend import sum as backend_sum
-from pyrecest.backend import (
-    zeros,
-)
+from pyrecest.backend import zeros
 
 from ..nonperiodic.gaussian_distribution import GaussianDistribution
 from ..nonperiodic.gaussian_mixture import GaussianMixture
