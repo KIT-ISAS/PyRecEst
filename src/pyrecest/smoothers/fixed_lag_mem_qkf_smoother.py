@@ -6,20 +6,9 @@ from dataclasses import dataclass
 from typing import Any, Sequence
 
 from pyrecest.backend import abs as backend_abs
-from pyrecest.backend import (
-    array,
-    asarray,
-)
+from pyrecest.backend import array, asarray
 from pyrecest.backend import copy as backend_copy
-from pyrecest.backend import (
-    diag,
-    eye,
-    linalg,
-    maximum,
-    pi,
-    where,
-    zeros,
-)
+from pyrecest.backend import diag, eye, linalg, maximum, pi, where, zeros
 from pyrecest.filters.mem_qkf_tracker import MEMQKFTracker
 
 from .abstract_smoother import AbstractSmoother

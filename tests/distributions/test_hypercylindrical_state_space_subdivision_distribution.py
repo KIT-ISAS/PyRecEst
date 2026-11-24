@@ -6,10 +6,7 @@ import numpy.testing as npt
 import pyrecest.distributions.cart_prod.hypercylindrical_state_space_subdivision_distribution as hsssd_module
 from pyrecest.backend import __backend_name__ as backend_name
 from pyrecest.backend import all as backend_all
-from pyrecest.backend import (
-    array,
-    squeeze,
-)
+from pyrecest.backend import array, squeeze
 from pyrecest.distributions.cart_prod.custom_hypercylindrical_distribution import (
     CustomHypercylindricalDistribution,
 )

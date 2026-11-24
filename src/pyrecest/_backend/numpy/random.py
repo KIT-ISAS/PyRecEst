@@ -2,11 +2,7 @@
 
 import numpy as _np
 from numpy.random import default_rng as _default_rng
-from numpy.random import (  # For PyRecEst
-    get_state,
-    seed,
-    set_state,
-)
+from numpy.random import get_state, seed, set_state  # For PyRecEst
 
 from .._shared_numpy.random import (
     _contains_masked_value,

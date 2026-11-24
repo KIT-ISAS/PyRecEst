@@ -14,11 +14,7 @@ from pyrecest.backend import (
     atleast_2d,
 )
 from pyrecest.backend import copy as backend_copy
-from pyrecest.backend import (
-    eye,
-    linalg,
-    zeros,
-)
+from pyrecest.backend import eye, linalg, zeros
 from pyrecest.distributions import GaussianDistribution
 from pyrecest.protocols.common import BackendArray
 

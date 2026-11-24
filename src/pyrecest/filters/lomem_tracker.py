@@ -19,9 +19,7 @@ from pyrecest.backend import (
     sin,
 )
 from pyrecest.backend import sum as backend_sum
-from pyrecest.backend import (
-    zeros,
-)
+from pyrecest.backend import zeros
 
 from .abstract_extended_object_tracker import AbstractExtendedObjectTracker
 
