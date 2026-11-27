@@ -19,13 +19,7 @@ from pyrecest.backend import (
     float64,
 )
 from pyrecest.backend import isfinite as backend_isfinite
-from pyrecest.backend import (
-    linalg,
-    maximum,
-    minimum,
-    transpose,
-    where,
-)
+from pyrecest.backend import linalg, maximum, minimum, transpose, where
 from pyrecest.distributions import GaussianDistribution
 
 from .kalman_filter import KalmanFilter
