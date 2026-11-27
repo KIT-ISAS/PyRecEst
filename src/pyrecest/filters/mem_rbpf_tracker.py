@@ -38,11 +38,7 @@ from pyrecest.backend import (
     stack,
 )
 from pyrecest.backend import sum as backend_sum
-from pyrecest.backend import (
-    transpose,
-    where,
-    zeros,
-)
+from pyrecest.backend import transpose, where, zeros
 from pyrecest.numerics import assert_covariance_matrix
 
 from .abstract_extended_object_tracker import AbstractExtendedObjectTracker

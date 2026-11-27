@@ -16,11 +16,7 @@ from pyrecest.backend import (
     asarray,
 )
 from pyrecest.backend import copy as backend_copy
-from pyrecest.backend import (
-    full,
-    hstack,
-    pad,
-)
+from pyrecest.backend import full, hstack, pad
 
 
 @dataclass

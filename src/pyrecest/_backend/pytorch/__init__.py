@@ -14,7 +14,7 @@ from torch import (  # The ones below are for pyrecest; For Riemannian score-bas
     asarray,
 )
 from torch import broadcast_tensors as broadcast_arrays
-from torch import (  # The ones below are for pyrecest; For Riemannian score-based SDE
+from torch import (
     clip,
     column_stack,
     complex64,
@@ -54,7 +54,7 @@ from torch import (  # The ones below are for pyrecest; For Riemannian score-bas
     rad2deg,
 )
 from torch import repeat_interleave as repeat
-from torch import (  # The ones below are for pyrecest; For Riemannian score-based SDE
+from torch import (
     reshape,
     roll,
     round,

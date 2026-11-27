@@ -27,13 +27,7 @@ from .._shared_numpy.linalg import (
     is_single_matrix_pd,
 )
 from .._shared_numpy.linalg import logm as _logm
-from .._shared_numpy.linalg import (
-    polar,
-    qr,
-    solve,
-    solve_sylvester,
-    sqrtm,
-)
+from .._shared_numpy.linalg import polar, qr, solve, solve_sylvester, sqrtm
 
 
 def _matrix_transpose(x):

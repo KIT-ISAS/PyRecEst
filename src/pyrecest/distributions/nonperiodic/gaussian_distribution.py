@@ -8,9 +8,7 @@ import pyrecest.backend
 
 # pylint: disable=no-name-in-module,no-member
 from pyrecest.backend import all as backend_all
-from pyrecest.backend import (
-    allclose,
-)
+from pyrecest.backend import allclose
 from pyrecest.backend import copy as backend_copy
 from pyrecest.backend import (
     exp,
